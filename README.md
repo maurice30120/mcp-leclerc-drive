@@ -108,6 +108,17 @@ docs/
   api-capture.md    # the reverse-engineered Leclerc Drive API
 ```
 
+## Contributing
+
+This is a community tool — **contributions are very welcome**, whether it's a
+bug fix, support for your store, or a whole new capability (checkout, delivery
+slots, saved lists…).
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for dev setup, how to smoke-test
+against your own account (`npm run smoke`), and — most useful for this project —
+a short guide on **how to reverse-engineer a new Leclerc Drive endpoint** and
+wire it in. Good first issues are listed in the status checklist above.
+
 ## Feedback & contact
 
 Feedback, bug reports, and ideas are very welcome — this is an early v0.1.
