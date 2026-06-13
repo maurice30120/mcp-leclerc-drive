@@ -1,6 +1,6 @@
 {
   "name": "mcp-leclerc-drive",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "mcpName": "io.github.skunkobi/leclerc-drive",
   "description": "MCP server for E.Leclerc Drive — search products, manage cart, and order groceries from Claude",
   "type": "module",
@@ -44,5 +44,13 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
+  },
+  "comment:overrides": "Force patched versions of sqlite3's (chrome-cookies-secure) build-time transitive deps to clear known CVEs. These are not used at runtime (sqlite3 ships a prebuilt binary).",
+  "overrides": {
+    "tar": "^7.5.16",
+    "node-gyp": "^13.0.0",
+    "cacache": "^21.0.1",
+    "make-fetch-happen": "^15.0.6",
+    "http-proxy-agent": "^9.1.0"
   }
 }
