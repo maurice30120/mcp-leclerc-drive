@@ -108,6 +108,13 @@ docs/
   api-capture.md    # the reverse-engineered Leclerc Drive API
 ```
 
+## Feedback & contact
+
+Feedback, bug reports, and ideas are very welcome — this is an early v0.1.
+
+- **Issues / PRs:** [open an issue](https://github.com/skunkobi/mcp-leclerc-drive/issues) on the repo.
+- **Email:** alexandreyagoubi@gmail.com
+
 ## Disclaimer
 
 Unofficial. Not affiliated with or endorsed by E.Leclerc. Use with your own account, at your own risk, in line with the site's terms of service. Intended for personal automation of your own grocery shopping.
