@@ -21,6 +21,32 @@ import { delay, Throttler } from "./throttle.js";
 /** HTTP statuses that indicate a DataDome challenge / rate-limit worth retrying. */
 const RETRYABLE_STATUSES = new Set([403, 429]);
 
+/**
+ * Marker embedded in the chrome of every real Leclerc store page (the cart
+ * summary). The two non-store responses we can get back with HTTP 200 — DataDome's
+ * soft JS-challenge interstitial and the "session expirée" page — don't contain it.
+ * Note: the `x-datadome: protected` header and the `js.datadome.co` bootstrap are
+ * present on legitimate pages too, so they cannot be used to detect a block.
+ */
+const STORE_PAGE_MARKER = "lstProduitsLight";
+
+/**
+ * Guard against silently treating a block page as "no results". A real store page
+ * always carries STORE_PAGE_MARKER; if it's missing, the response is a DataDome
+ * interstitial or an expired session — surface that with an actionable message
+ * instead of returning an empty list.
+ */
+function assertStorePage(html: string): void {
+  if (html.includes(STORE_PAGE_MARKER)) return;
+  const expired = /session a expir|sessionexpiree/i.test(html);
+  throw new Error(
+    expired
+      ? "Session Leclerc Drive expirée. Ouvre Leclerc Drive dans Chrome et reconnecte-toi, puis réessaie."
+      : "Bloqué par Leclerc Drive (challenge DataDome). Ouvre Leclerc Drive dans Chrome et " +
+        "recharge le magasin une fois pour rafraîchir la session, puis réessaie.",
+  );
+}
+
 /** Cart mutation discriminator (see capture doc §2). */
 const ACTION_ADD = 1; // add / increase to target qty
 const ACTION_SUB = 2; // decrease / remove (qty 0)
@@ -128,6 +154,7 @@ export class LeclercClient {
     const res = await this.send("GET", this.searchUrl(query), { Accept: "text/html" });
     if (!res.ok) throw new Error(`Search HTTP ${res.status} (${res.statusText})`);
     const html = await res.text();
+    assertStorePage(html);
 
     // The search page embeds product data inside `initOptions(...)` widget
     // calls as `{objContenu:{lstElements:[{objElement:{...iIdProduit...}}]}}`.
@@ -217,6 +244,7 @@ export class LeclercClient {
     const res = await this.send("GET", this.searchUrl(NO_MATCH_QUERY), { Accept: "text/html" });
     if (!res.ok) throw new Error(`Cart read HTTP ${res.status} (${res.statusText})`);
     const html = await res.text();
+    assertStorePage(html);
 
     const arr = extractArrayNamed(html, "lstProduits");
     const items: CartItem[] = [];

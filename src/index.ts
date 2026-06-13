@@ -11,6 +11,8 @@
  * return a clear "not reverse-engineered yet" error.
  */
 
+import { readFileSync } from "node:fs";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -20,13 +22,19 @@ import { cookieSourceOf, loadConfig } from "./config.js";
 import { LeclercClient } from "./leclerc/client.js";
 import { Cart, Product } from "./types.js";
 
+// Single source of truth for the version: read it from package.json (one dir up
+// from dist/index.js) so serverInfo never drifts from the published package.
+const pkg = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
+
 const config = loadConfig();
 const cookieProvider = createCookieProvider(config);
 const client = new LeclercClient(config, cookieProvider);
 
 const server = new McpServer({
   name: "mcp-leclerc-drive",
-  version: "0.1.0",
+  version: pkg.version,
 });
 
 function formatProduct(p: Product): string {
