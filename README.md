@@ -59,6 +59,29 @@ expires, so this needs periodic refreshing).
 | `LECLERC_HOST` | `fd9-courses.leclercdrive.fr` | Backend host (the `fdN` prefix varies by store). |
 | `LECLERC_CHROME_PROFILE` | `Default` | Chrome profile directory to read cookies from. |
 | `LECLERC_COOKIE` | — | Optional raw `Cookie` override; skips Chrome when set. |
+| `LECLERC_MIN_INTERVAL_MS` | `1000` | Minimum delay between two requests (anti-strike). |
+| `LECLERC_JITTER_MS` | `400` | Extra random jitter added between requests. |
+| `LECLERC_MAX_RETRIES` | `3` | Retries on a 403/429 before giving up. |
+| `LECLERC_BACKOFF_BASE_MS` | `1500` | Base retry backoff (doubles each attempt). |
+
+### Staying under DataDome (anti-strike)
+
+Leclerc Drive is protected by [DataDome](https://datadome.co/), which blocks
+(HTTP 403) traffic that looks automated — **especially bursts of parallel
+requests**. The server defends against this automatically so you don't get
+struck:
+
+- **Serialized requests** — every call goes through a single queue, one at a
+  time, so even if several tools are invoked "in parallel" they never hit the
+  site at once.
+- **Spacing + jitter** — a ~1 s pause (plus random jitter) between requests.
+- **Retry with backoff** — a 403/429 is retried a few times with exponential
+  backoff, re-reading a fresh cookie from Chrome each attempt (a real browser
+  refreshes its `datadome` cookie on its own).
+
+If you ever do get a persistent 403, just open Leclerc Drive in Chrome to
+refresh your session and retry. Tune the cadence with the `LECLERC_*` env vars
+above.
 
 **Finding your store id and host:** open your Drive in a browser — the URL looks
 like `https://fd9-courses.leclercdrive.fr/magasin-053701-053701-Your-Town/`. The
@@ -104,6 +127,7 @@ src/
     cookies.ts      # cookie provider: auto-read from Chrome, env override
   leclerc/
     client.ts       # Leclerc Drive backend client (search + cart, validated)
+    throttle.ts     # anti-strike: serialize + space out + retry (DataDome)
 docs/
   api-capture.md    # the reverse-engineered Leclerc Drive API
 ```

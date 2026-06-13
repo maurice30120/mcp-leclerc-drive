@@ -25,6 +25,23 @@ export interface LeclercConfig {
   cookie: string;
   /** Chrome profile directory to read cookies from (default "Default"). */
   chromeProfile: string | undefined;
+
+  // --- Anti-strike (DataDome) throttling ---
+  /** Minimum delay between two requests, in ms. */
+  minIntervalMs: number;
+  /** Extra random jitter added between requests, in ms. */
+  jitterMs: number;
+  /** Retries on a 403/429 before giving up. */
+  maxRetries: number;
+  /** Base backoff for retries, in ms (doubles each attempt). */
+  backoffBaseMs: number;
+}
+
+function intEnv(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
 const DEFAULT_STORE_ID = "053701";
@@ -36,6 +53,10 @@ export function loadConfig(): LeclercConfig {
     host: process.env.LECLERC_HOST?.trim() || DEFAULT_HOST,
     cookie: process.env.LECLERC_COOKIE?.trim() || "",
     chromeProfile: process.env.LECLERC_CHROME_PROFILE?.trim() || undefined,
+    minIntervalMs: intEnv("LECLERC_MIN_INTERVAL_MS", 1000),
+    jitterMs: intEnv("LECLERC_JITTER_MS", 400),
+    maxRetries: intEnv("LECLERC_MAX_RETRIES", 3),
+    backoffBaseMs: intEnv("LECLERC_BACKOFF_BASE_MS", 1500),
   };
 }
 

@@ -16,6 +16,10 @@
 import { CookieProvider } from "../auth/cookies.js";
 import { LeclercConfig, storePath } from "../config.js";
 import { Cart, CartItem, Product } from "../types.js";
+import { delay, Throttler } from "./throttle.js";
+
+/** HTTP statuses that indicate a DataDome challenge / rate-limit worth retrying. */
+const RETRYABLE_STATUSES = new Set([403, 429]);
 
 /** Cart mutation discriminator (see capture doc §2). */
 const ACTION_ADD = 1; // add / increase to target qty
@@ -43,10 +47,51 @@ interface RawProduct {
 const NO_MATCH_QUERY = "zzzznomatchzzz";
 
 export class LeclercClient {
+  private readonly throttler: Throttler;
+
   constructor(
     private readonly config: LeclercConfig,
     private readonly cookieProvider: CookieProvider,
-  ) {}
+  ) {
+    this.throttler = new Throttler({
+      minIntervalMs: config.minIntervalMs,
+      jitterMs: config.jitterMs,
+      maxRetries: config.maxRetries,
+      backoffBaseMs: config.backoffBaseMs,
+    });
+  }
+
+  /**
+   * Single choke point for every HTTP call: serialized + spaced out by the
+   * throttler, and retried on a DataDome 403/429 with backoff and a fresh
+   * cookie. Auth headers are rebuilt on each attempt so a refreshed cookie is
+   * picked up. This is what keeps the tool from getting struck.
+   */
+  private send(
+    method: "GET" | "POST",
+    url: string,
+    extraHeaders: Record<string, string>,
+    body?: string,
+  ): Promise<Response> {
+    return this.throttler.run(async () => {
+      let lastStatus = 0;
+      for (let attempt = 0; attempt <= this.throttler.maxRetries; attempt++) {
+        if (attempt > 0) {
+          this.cookieProvider.invalidate(); // re-read a fresh datadome cookie
+          await delay(this.throttler.backoff(attempt));
+        }
+        const headers = await this.authHeaders(extraHeaders);
+        const res = await fetch(url, { method, headers, body });
+        if (!RETRYABLE_STATUSES.has(res.status)) return res;
+        lastStatus = res.status;
+      }
+      throw new Error(
+        `Blocked by Leclerc Drive (HTTP ${lastStatus}, likely DataDome) after ` +
+          `${this.throttler.maxRetries + 1} attempts. Open Leclerc Drive in Chrome ` +
+          `to refresh your session, then retry.`,
+      );
+    });
+  }
 
   private origin(): string {
     return `https://${this.config.host}`;
@@ -66,7 +111,7 @@ export class LeclercClient {
   private async authHeaders(
     extra: Record<string, string> = {},
   ): Promise<Record<string, string>> {
-    const cookie = await this.cookieProvider();
+    const cookie = await this.cookieProvider.get();
     return {
       "User-Agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
@@ -80,9 +125,7 @@ export class LeclercClient {
   // ---- Search ------------------------------------------------------------
 
   async searchProducts(query: string): Promise<Product[]> {
-    const res = await fetch(this.searchUrl(query), {
-      headers: await this.authHeaders({ Accept: "text/html" }),
-    });
+    const res = await this.send("GET", this.searchUrl(query), { Accept: "text/html" });
     if (!res.ok) throw new Error(`Search HTTP ${res.status} (${res.statusText})`);
     const html = await res.text();
 
@@ -116,15 +159,16 @@ export class LeclercClient {
       sNoPointLivraison: this.config.storeId,
     };
     const body = "d=" + encodeURIComponent(JSON.stringify(payload));
-    const res = await fetch(this.cartUrl(), {
-      method: "POST",
-      headers: await this.authHeaders({
+    const res = await this.send(
+      "POST",
+      this.cartUrl(),
+      {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
         Accept: "application/json, text/javascript, */*; q=0.01",
-      }),
+      },
       body,
-    });
+    );
     if (!res.ok) throw new Error(`Cart HTTP ${res.status} (${res.statusText})`);
     const text = await res.text();
     let events: CartEvent[];
@@ -170,9 +214,7 @@ export class LeclercClient {
     // `lstProduitsLight` summary and a `sTotalAPayer` grand total. We fetch a
     // no-match search page so the only product records present are the cart's,
     // then extract and map the `lstProduits` array.
-    const res = await fetch(this.searchUrl(NO_MATCH_QUERY), {
-      headers: await this.authHeaders({ Accept: "text/html" }),
-    });
+    const res = await this.send("GET", this.searchUrl(NO_MATCH_QUERY), { Accept: "text/html" });
     if (!res.ok) throw new Error(`Cart read HTTP ${res.status} (${res.statusText})`);
     const html = await res.text();
 

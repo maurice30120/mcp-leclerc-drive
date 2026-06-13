@@ -22,6 +22,12 @@ incl. DataDome, replayed).
 - The MCP reads these cookies straight from the local Chrome profile
   (`chrome-cookies-secure`), so no manual copy-paste is needed — see
   `src/auth/cookies.ts`.
+- ⚠️ **Bursts get struck.** Observed live: firing ~5 cart mutations in parallel
+  immediately triggered DataDome — both writes *and* subsequent reads returned
+  403 for that client, while the real browser session stayed fine. Recovery:
+  refresh Leclerc Drive in Chrome (re-issues a valid `datadome` cookie). The
+  client now serializes + spaces out + retries all requests to avoid this — see
+  `src/leclerc/throttle.ts`. Keep a human-like cadence; don't parallelize.
 - Mutating requests send header `X-Requested-With: XMLHttpRequest` and
   `Content-Type: application/x-www-form-urlencoded; charset=UTF-8`.
 
