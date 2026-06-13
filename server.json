@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.skunkobi/leclerc-drive",
+  "description": "MCP server for E.Leclerc Drive — search products, manage cart, and order groceries from Claude",
+  "repository": {
+    "url": "https://github.com/skunkobi/mcp-leclerc-drive",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "mcp-leclerc-drive",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LECLERC_STORE_ID",
+          "description": "Leclerc Drive store id, e.g. 053701 (defaults to 053701).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "LECLERC_HOST",
+          "description": "Backend host for your store, e.g. fd9-courses.leclercdrive.fr (the fdN prefix varies by region).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "LECLERC_COOKIE",
+          "description": "Optional raw Cookie header override for headless hosts; by default the session is read from your local Chrome profile.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "LECLERC_CHROME_PROFILE",
+          "description": "Chrome profile directory to read the session cookie from (defaults to \"Default\").",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
