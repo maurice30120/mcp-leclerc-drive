@@ -6,12 +6,12 @@
     "url": "https://github.com/skunkobi/mcp-leclerc-drive",
     "source": "github"
   },
-  "version": "0.1.2",
+  "version": "0.2.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mcp-leclerc-drive",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },

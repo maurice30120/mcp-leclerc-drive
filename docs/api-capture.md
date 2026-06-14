@@ -114,10 +114,43 @@ Single endpoint for all cart mutations. `op=1` constant.
 - Note: cart line records use `iQuantitePanier` (full list) / `iQtePanier`
   (light list) — the client accepts either.
 
+## 4. Store locator (find_stores) — `api-recherchemagasins.leclercdrive.fr`
+
+A clean JSON REST API (separate from the ASP.NET store sites), validated live
+2026-06-13. Behind DataDome like the rest — replay the Chrome cookie (the
+`datadome` cookie on `.leclercdrive.fr` covers this subdomain). Base:
+`https://api-recherchemagasins.leclercdrive.fr/API_RechercheMagasins/api/v1`.
+
+Three chained calls:
+
+1. `GET /autocomplete?search={postal|city}&provider=Woosmap`
+   → `{ postalCodes: [ { id, postalCode, city } ], pointsLivraisonParNom, ... }`.
+   Take `postalCodes[0].id` (an opaque Woosmap token).
+2. `GET /autocomplete/coordinates?id={id}&provider=Woosmap`
+   → `{ latitude, longitude }` for the place.
+3. `GET /MapPoint/nearby?latitude={lat}&longitude={lng}&postalCode={cp}`
+   → `{ points: [ store, ... ] }`, nearest first.
+
+Each `point` carries: `name`, **`noPL`** (store id, zero-padded string),
+**`noPR`** (retrieval point; == noPL for drives), `serviceType`
+(`drive` / `relais` / `livraison`), `distance` (km), `postalCode`,
+`coordinates {latitude, longitude}`, and **`urlSiteCourse` / `urlBase`** — the
+store's shopping host (e.g. `fd8`/`fd9`/`fd14-courses.leclercdrive.fr`, **varies
+per store**). The client maps these into the active `StoreSelection`
+(see `src/store.ts`, `src/leclerc/locator.ts`).
+
+⚠️ **Session is bound to one drive.** Shopping (search/cart) only works against
+the drive the Chrome session is currently logged into. `set_store` to a store the
+browser isn't on yields a "session expirée" page. Replaying Leclerc's
+"switch drive" call to rebind the session server-side is an open item (would let
+set_store switch to any drive) — see below.
+
 ## Open items / to refine
 
 - Confirm `objContexteProvenanceArticle` can be fully omitted on **add** (only
   verified omittable on remove).
 - Find a clean read-only cart endpoint if one exists (avoid HTML scrape).
 - DataDome cookie lifetime / refresh behaviour for long-lived sessions.
-- Checkout / slot-booking flow (out of scope for v0.1).
+- **Reverse-engineer the "switch drive" call** so `set_store` can rebind the
+  session to any drive server-side (today it must match the browser's drive).
+- Checkout / slot-booking flow (out of scope).

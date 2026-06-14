@@ -66,9 +66,10 @@ export function cookieSourceOf(config: LeclercConfig): CookieSource {
 }
 
 /** Store path segment used by the backend (no cosmetic slug). */
-export function storePath(storeId: string): string {
-  // Leclerc store URLs embed the id twice plus a slug, e.g.
-  // /magasin-053701-053701-La-Ville-aux-Dames/. The slug is cosmetic; the
-  // backend keys off the id, so a minimal path works for API calls.
-  return `magasin-${storeId}-${storeId}`;
+export function storePath(storeId: string, noPR: string = storeId): string {
+  // Leclerc store URLs embed the delivery point + retrieval point plus a slug,
+  // e.g. /magasin-053701-053701-La-Ville-aux-Dames/. The slug is cosmetic; the
+  // backend keys off the ids. For drives the two ids are equal; for piéton
+  // relays they differ (noPL-noPR).
+  return `magasin-${storeId}-${noPR}`;
 }

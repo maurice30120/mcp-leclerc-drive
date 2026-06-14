@@ -12,6 +12,9 @@ E.Leclerc Drive has no public API. Today the only way to automate it is browser 
 
 | Tool | Description |
 | --- | --- |
+| `find_stores(query)` | Find drives near a postal code or city → name, id, service type, distance, host. |
+| `set_store(store_id)` | Select & remember the active store (resolves the right host automatically). |
+| `get_store()` | Show the currently selected store. |
 | `search_product(query)` | Search the catalogue → products with price, price/kg, Nutri-Score, availability, and an `id`. |
 | `add_to_cart(product_id, quantity?)` | Add a product to the cart. |
 | `remove_from_cart(product_id)` | Remove a line from the cart. |
@@ -83,11 +86,30 @@ If you ever do get a persistent 403, just open Leclerc Drive in Chrome to
 refresh your session and retry. Tune the cadence with the `LECLERC_*` env vars
 above.
 
-**Finding your store id and host:** open your Drive in a browser — the URL looks
-like `https://fd9-courses.leclercdrive.fr/magasin-053701-053701-Your-Town/`. The
-6-digit number is your `LECLERC_STORE_ID`; the `fdN-courses.leclercdrive.fr` part
-is your `LECLERC_HOST` (the `fdN` prefix varies by region). The defaults point to
-store 053701 (La Ville-aux-Dames).
+### Choosing your store (no env needed)
+
+The easiest way: just **ask, in the conversation**. No env vars required.
+
+```
+> "trouve mon drive vers 44000"     → find_stores lists nearby drives
+> "prends Rezé Atout Sud"           → set_store remembers it (correct host resolved)
+> "cherche du lait"                  → runs on that store
+```
+
+`set_store` persists your choice to `~/.mcp-leclerc-drive/config.json`, so it
+sticks across sessions, and it resolves the correct backend host for you (the
+`fdN` prefix genuinely varies per store — `fd8`, `fd9`, `fd14`…).
+
+> ⚠️ **One drive at a time.** Leclerc binds your session to a single drive. The
+> store you `set_store` to must be the one your Chrome session is logged into —
+> which is the normal case (your own drive). Switching to an arbitrary other
+> drive your browser isn't on will return a "session expired" error.
+
+You can still hard-set the store via `LECLERC_STORE_ID` / `LECLERC_HOST` env vars
+if you prefer (e.g. for headless deploys). To find them manually: your Drive URL
+looks like `https://fd9-courses.leclercdrive.fr/magasin-053701-053701-Your-Town/`
+— the 6-digit number is the store id, the `fdN-courses.leclercdrive.fr` part is
+the host.
 
 ### Claude Desktop / Claude Code (`mcp` config)
 
@@ -123,10 +145,12 @@ src/
   index.ts          # MCP server: registers the 5 tools over stdio
   config.ts         # env-based config (store, host, cookie source)
   types.ts          # Product / CartItem / Cart
+  store.ts          # active store selection + persistence (~/.mcp-leclerc-drive)
   auth/
     cookies.ts      # cookie provider: auto-read from Chrome, env override
   leclerc/
     client.ts       # Leclerc Drive backend client (search + cart, validated)
+    locator.ts      # store finder: postal code / city → nearby drives
     throttle.ts     # anti-strike: serialize + space out + retry (DataDome)
 docs/
   api-capture.md    # the reverse-engineered Leclerc Drive API

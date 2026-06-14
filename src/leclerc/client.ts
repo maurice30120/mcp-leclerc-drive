@@ -15,6 +15,7 @@
 
 import { CookieProvider } from "../auth/cookies.js";
 import { LeclercConfig, storePath } from "../config.js";
+import { StoreState } from "../store.js";
 import { Cart, CartItem, Product } from "../types.js";
 import { delay, Throttler } from "./throttle.js";
 
@@ -78,6 +79,7 @@ export class LeclercClient {
   constructor(
     private readonly config: LeclercConfig,
     private readonly cookieProvider: CookieProvider,
+    private readonly store: StoreState,
   ) {
     this.throttler = new Throttler({
       minIntervalMs: config.minIntervalMs,
@@ -120,17 +122,20 @@ export class LeclercClient {
   }
 
   private origin(): string {
-    return `https://${this.config.host}`;
+    return `https://${this.store.current().host}`;
   }
 
   /** API path (no cosmetic slug). */
   private cartUrl(): string {
-    return `${this.origin()}/${storePath(this.config.storeId)}/panier.aspx?op=1`;
+    const s = this.store.current();
+    return `${this.origin()}/${storePath(s.storeId, s.noPR)}/panier.aspx?op=1`;
   }
 
   private searchUrl(query: string): string {
+    const s = this.store.current();
     return `${this.origin()}/${storePath(
-      this.config.storeId,
+      s.storeId,
+      s.noPR,
     )}/recherche.aspx?TexteRecherche=${encodeURIComponent(query)}`;
   }
 
@@ -183,7 +188,7 @@ export class LeclercClient {
       eTypeAction: action,
       iIdProduit: String(productId),
       iQuantite: quantity,
-      sNoPointLivraison: this.config.storeId,
+      sNoPointLivraison: this.store.current().storeId,
     };
     const body = "d=" + encodeURIComponent(JSON.stringify(payload));
     const res = await this.send(
@@ -268,7 +273,7 @@ export class LeclercClient {
       items,
       itemCount: items.reduce((s, i) => s + i.quantity, 0),
       total: round2(grandTotal),
-      storeId: this.config.storeId,
+      storeId: this.store.current().storeId,
     };
   }
 
@@ -293,7 +298,7 @@ export class LeclercClient {
         }
       }
     }
-    return { items, itemCount, total: round2(total), storeId: this.config.storeId };
+    return { items, itemCount, total: round2(total), storeId: this.store.current().storeId };
   }
 }
 
