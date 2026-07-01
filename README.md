@@ -149,7 +149,7 @@ src/
 extension/
   manifest.json      # MV3, Leclerc-only permissions
   background.ts      # injects the bridge into the Leclerc tab (MAIN world)
-  inject.ts          # registers the 8 tools on document.modelContext + throttle/retry
+  inject.ts          # registers the 9 tools on document.modelContext + throttle/retry
 scripts/
   build-extension.mjs# esbuild → dist/extension/
 docs/

@@ -26,6 +26,7 @@ import {
   nearbyUrl,
   hostOf,
   isLeclercHost,
+  isRetryableStatus,
   searchUrl as buildSearchUrl,
   cartUrl as buildCartUrl,
   cartMutationBody,
@@ -64,6 +65,8 @@ interface ActiveStore {
   noPR: string;
   host: string;
   name?: string;
+  /** Service kind from the finder response, e.g. "drive"/"relais"/"livraison". */
+  serviceType?: string;
 }
 
 const STORE_KEY = "mcp-leclerc-drive:active-store";
@@ -102,6 +105,7 @@ function readSavedStore(): ActiveStore | null {
         noPR: typeof o.noPR === "string" ? o.noPR : o.storeId,
         host: o.host,
         name: typeof o.name === "string" ? o.name : undefined,
+        serviceType: typeof o.serviceType === "string" ? o.serviceType : undefined,
       };
     }
   } catch {
@@ -180,7 +184,7 @@ async function retry(fn: () => Promise<Response>): Promise<Response> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (attempt > 0) await delay(backoff(attempt));
     const res = await fn();
-    if (res.status !== 403 && res.status !== 429) return res;
+    if (!isRetryableStatus(res.status)) return res;
     last = res;
   }
   throw new Error(
@@ -261,7 +265,7 @@ function scrubUntrusted(s: string): string {
     .replace(/\[\/?(system|tool|assistant)\]/gi, "");
 }
 
-// ---- The 8 tools -----------------------------------------------------------
+// ---- The 9 tools -----------------------------------------------------------
 
 function registerTools(): void {
   const mc = document.modelContext;
@@ -475,6 +479,7 @@ function registerTools(): void {
             noPR: String(p.noPR ?? p.noPL),
             host,
             name: scrubUntrusted(p.name ?? `Magasin ${p.noPL}`),
+            serviceType: p.serviceType || p.type || "drive",
           });
         }
         // Cache for set_store.
@@ -482,8 +487,8 @@ function registerTools(): void {
 
         if (found.length === 0) return asText(`Aucun drive trouvé pour « ${query} ».`);
         const lines = found.map(
-          (s, i) =>
-            `• ${s.name} — ${(nearbyType(found, i, near)).toLowerCase()} (id=${s.storeId} @ ${s.host})`,
+          (s) =>
+            `• ${s.name} — ${s.serviceType ?? "drive"} (id=${s.storeId} @ ${s.host})`,
         );
         return asText(
           `Drives autour de « ${query} » :\n${lines.join("\n")}\n\n` +
@@ -538,6 +543,7 @@ function registerTools(): void {
           noPR: found?.noPR ?? a.store_id,
           host,
           name: found?.name,
+          serviceType: found?.serviceType,
         };
         setStore(selection);
         return asText(
@@ -614,17 +620,6 @@ async function currentQuantity(productId: string): Promise<number> {
   const cart = cartFromHtml(html, s.storeId);
   const line = cart.items.find((i) => i.product.id === String(productId));
   return line?.quantity ?? 0;
-}
-
-function nearbyType(
-  _found: ActiveStore[],
-  _i: number,
-  near: NearbyResponse,
-): string {
-  // The finder response's `serviceType`/`type` field isn't in our ActiveStore;
-  // we lean on the original nearby payload keyed by index. (Best-effort.)
-  const p = near.points?.[_i];
-  return p?.serviceType || p?.type || "drive";
 }
 
 // ---- Boot ------------------------------------------------------------------

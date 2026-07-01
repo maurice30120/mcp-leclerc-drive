@@ -1,9 +1,9 @@
 /**
- * Shared domain types for the Leclerc Drive MCP server.
+ * Shared domain types for the Leclerc Drive MCP tools.
  *
- * These are the shapes the MCP tools expose to the model. The raw shapes
- * returned by the Leclerc Drive backend are mapped into these in the client
- * layer (see src/leclerc/client.ts) once the API has been reverse-engineered.
+ * These are the shapes the tools expose to the model. The raw shapes
+ * returned by the Leclerc Drive backend (RawProduct, CartEvent) live in
+ * src/leclerc/api.ts and are mapped into these by mapProduct / cartFrom*.
  */
 
 export interface Product {

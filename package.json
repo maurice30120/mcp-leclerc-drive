@@ -12,6 +12,7 @@
     "build:extension": "node scripts/build-extension.mjs",
     "build:all": "npm run build && npm run build:extension",
     "dev": "tsc --watch",
+    "test": "node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.extension.json",
     "clean": "rm -rf dist dist-extension-types"
   },

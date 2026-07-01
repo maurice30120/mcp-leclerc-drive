@@ -21,12 +21,15 @@ src/
 extension/
   manifest.json      # MV3, Leclerc-only permissions
   background.ts      # service worker: injects the bridge into the Leclerc tab
-  inject.ts          # runs in the tab MAIN world: registers the 8 tools, fetch
+  inject.ts          # runs in the tab MAIN world: registers the 9 tools, fetch
 docs/
   api-capture.md     # reverse-engineered Leclerc Drive API — read this first
   security.md        # threat model
 scripts/
   build-extension.mjs# esbuild build → dist/extension/
+tests/
+  *.test.ts        # unit tests for api.ts, one file per feature
+  helpers.ts        # shared re-exports + fixtures for tests/
 ```
 
 Two layers matter:
@@ -53,6 +56,7 @@ cd mcp-leclerc-drive
 npm install
 npm run typecheck        # must pass before you open a PR
 npm run build:extension # produces dist/extension/
+npm test                # run the api.ts unit suite (Node 22+)
 ```
 
 ## Extension dev flow
@@ -72,17 +76,34 @@ npm run build:extension # produces dist/extension/
 - **Relay:** start it standalone to see its logs up front:
   `npx @mcp-b/webmcp-local-relay --widget-origin https://<your-drive-origin>`.
 
+## Unit tests (`api.ts`)
+
+`src/leclerc/api.ts` is pure (no `fetch`, no Node, no storage) on purpose —
+that lets it be unit-tested in isolation. The suite lives in `tests/`, one
+file per feature (constants, SSRF gate, URLs, scalars, store-page guard,
+extraction, mapping, cart, search-products, formatting, store-finder), with
+shared imports in `tests/helpers.ts`. It uses Node's native test runner (no
+extra dependency):
+
+```bash
+npm test          # node --test tests/*.test.ts
+```
+
+Add a test whenever you touch a helper in `api.ts` — the runner is fast and
+the seam is already there. (The relay-driven smoke test below covers the part
+the unit suite cannot: the live browser session.)
+
 ## Smoke test (relay-driven)
 
-There's no mocked test suite (contributions welcome). For now, verify end-to-end
-against your own logged-in tab:
+There's also a relay-driven smoke test for end-to-end verification against your
+own logged-in tab:
 
 1. Build the extension and load it in Chrome; open your Leclerc Drive tab;
    badge `ON`. Keep Chrome running.
 2. Start the relay: `npx @mcp-b/webmcp-local-relay --widget-origin https://<your-drive-origin>`.
 3. From your MCP client (or directly via the relay's MCP stdio), call:
    - `webmcp_list_sources` — should show the Leclerc tab as a connected source.
-   - `webmcp_list_tools` — should list the 8 `search_product`, …, `get_store`.
+   - `webmcp_list_tools` — should list the 9 `search_product`, …, `get_store`.
    - `search_product`, `add_to_cart`, `get_cart`, `update_quantity`,
      `remove_from_cart` in sequence to exercise the live cart
      (**on your own account**: it adds one item, then cleans up).
@@ -114,12 +135,12 @@ replay cookies manually — DataDome is handled by the browser.
 - `api.ts` stays pure — no `fetch`, no Node/browser-only globals beyond standard
   JS. Submit fetch/navigation/storage code in `extension/inject.ts`.
 - Comments in English so the project stays broadly contributable.
-- Run `npm run typecheck` and `npm run build:extension` before pushing.
+- Run `npm run typecheck`, `npm test`, and `npm run build:extension` before pushing.
 
 ## Opening a pull request
 
 1. Fork, branch (`git checkout -b my-change`).
 2. Make the change; keep it focused.
-3. Ensure `npm run typecheck` and `npm run build:extension` pass, and that you've
-   smoke-tested if you touched the tool surface or `api.ts`.
+3. Ensure `npm run typecheck`, `npm test`, and `npm run build:extension` pass,
+   and that you've smoke-tested if you touched the tool surface or `api.ts`.
 4. Open the PR describing **what** changed and **how you verified** it.

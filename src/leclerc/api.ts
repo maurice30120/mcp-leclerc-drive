@@ -1,7 +1,6 @@
 /**
- * Pure logic for the Leclerc Drive backend, shared between:
- *  - the (legacy) Node stdio client (src/leclerc/client.ts),
- *  - the browser content-script injector (extension/inject.ts).
+ * Pure logic for the Leclerc Drive backend, used by the browser MAIN-world
+ * injector (extension/inject.ts).
  *
  * No `fetch`, no Node APIs, no storage — only URL building, HTML/JSON parsing,
  * and type mapping. Safe to bundle into an MV3 content script.
@@ -10,7 +9,7 @@
  * 2026-06-13 — see docs/api-capture.md for the full capture.
  */
 
-import { Cart, CartItem, Product } from "../types.js";
+import type { Cart, CartItem, Product } from "../types.js";
 
 /** Cart mutation discriminator (see capture doc §2). */
 export const ACTION_ADD = 1; // add / increase to target qty
@@ -18,6 +17,11 @@ export const ACTION_SUB = 2; // decrease / remove (qty 0)
 
 /** HTTP statuses that indicate a DataDome challenge / rate-limit worth retrying. */
 export const RETRYABLE_STATUSES = new Set([403, 429]);
+
+/** True when `status` is one of the DataDome retryable statuses. */
+export function isRetryableStatus(status: number): boolean {
+  return RETRYABLE_STATUSES.has(status);
+}
 
 /**
  * Marker embedded in the chrome of every real Leclerc store page (the cart
@@ -33,11 +37,6 @@ export const NO_MATCH_QUERY = "zzzznomatchzzz";
 /** Leclerc store-finder REST API base (DataDome-protected but CORS-open). */
 export const STORE_FINDER_API_BASE =
   "https://api-recherchemagasins.leclercdrive.fr/API_RechercheMagasins/api/v1";
-
-/** User-Agent used by the legacy Node client. The browser fetcher ignores it. */
-export const DESKTOP_USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
 export interface RawProduct {
   iIdProduit: number | string;
@@ -100,11 +99,6 @@ export function searchUrl(host: string, storeId: string, noPR: string, query: st
 
 export function cartUrl(host: string, storeId: string, noPR: string): string {
   return `https://${host}/${storePath(storeId, noPR)}/panier.aspx?op=1`;
-}
-
-/** True when `name` is one of the DataDome retryable statuses. */
-export function isRetryableStatus(status: number): boolean {
-  return RETRYABLE_STATUSES.has(status);
 }
 
 // ---- HTML / JSON parsing --------------------------------------------------
@@ -248,6 +242,9 @@ export function num(v: unknown): number | undefined {
 export function parseEuro(v: unknown): number | undefined {
   if (typeof v !== "string") return undefined;
   const cleaned = v.replace(/[^\d,.-]/g, "").replace(",", ".");
+  // Number("") === 0 (not NaN), so a string with no digits would otherwise
+  // round-trip to a silent 0€ price. Treat an empty cleaned string as missing.
+  if (cleaned === "" || cleaned === "-" || cleaned === "." || cleaned === "-.") return undefined;
   const n = Number(cleaned);
   return Number.isNaN(n) ? undefined : n;
 }
