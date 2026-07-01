@@ -9,3 +9,8 @@ dist/
 captures/
 *.har
 secrets.json
+
+# Local agent skills + personal MCP config (not project artifacts)
+.agents/
+skills-lock.json
+opencode.jsonc

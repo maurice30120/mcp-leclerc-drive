@@ -15,7 +15,7 @@
         //   fd14-courses.leclercdrive.fr, ...
         // Multiple origins can be passed comma-separated.
         "--widget-origin",
-        "https://fd11-courses.leclercdrive.fr"
+        "https://fdxx-courses.leclercdrive.fr"
       ]
     }
   }
