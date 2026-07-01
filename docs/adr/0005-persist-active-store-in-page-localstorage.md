@@ -1,16 +1,30 @@
-# Persist the active store in page `localStorage`, not a Node config file
+# Persister le magasin actif dans le `localStorage` de la page, pas dans un fichier de config Node
 
-v0.x wrote the selected store to `~/.mcp-leclerc-drive/config.json` on disk.
-v1.0 stores it at `localStorage["mcp-leclerc-drive:active-store"]`, scoped to
-the Leclerc host, and prefers the tab's own URL's `magasin-{id}-{id}` segment
-when present.
+v0.x écrivait le magasin sélectionné dans `~/.mcp-leclerc-drive/config.json` sur
+disque. v1.0 le stocke dans
+`localStorage["mcp-leclerc-drive:active-store"]`, scopé à l'hôte Leclerc, et
+préfère le segment `magasin-{id}-{id}` de l'URL courante de l'onglet quand
+présent.
 
-Why: there is no Node process to own the config anymore — the tools live in the
-tab — so the store selection belongs with the tab. Keeping it in `localStorage`
-makes it survive reloads of the same drive tab; preferring the URL keeps the
-tools honest about which drive the session is actually on (Leclerc binds a
-session to one drive).
+Pourquoi : il n'y a plus de process Node pour posséder la config — les outils
+vivent dans l'onglet — donc la sélection de magasin appartient à l'onglet. La
+garder dans `localStorage` la fait survivre aux reloads du même onglet drive ;
+préférer l'URL garde les outils honnêtes sur le drive où la session est
+réellement (Leclerc lie une session à un seul drive).
 
-**Consequence.** First-run requires the tab to be open on a store page or a
-prior `set_store`; there is no env-var default anymore (see
-`comparison-origin.md` §7).
+```mermaid
+flowchart TD
+    URL["URL de l'onglet<br/>(préféré)"]
+    LS["localStorage<br/>mcp-leclerc-drive:active-store"]
+    Err["erreur: aucun drive"]
+
+    loadStore -->|présent magasin-X-Y| URL
+    loadStore -->|"sinon"| LS
+    loadStore -->|"sinon"| Err
+    setStore -->|"persiste"| LS
+    note URL = vérité courante ; localStorage = persistance inter-reloads
+```
+
+**Conséquence.** Le premier run exige que l'onglet soit ouvert sur une page
+magasin ou qu'il y ait eu un `set_store` préalable ; il n'y a plus de défaut
+par variable d'env.

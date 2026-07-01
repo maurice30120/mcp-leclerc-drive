@@ -1,15 +1,38 @@
-# Publish no npm binary — bridge to stdio clients via the local relay
+# Ne publier aucun binaire npm — ponte vers les clients stdio via le relay local
 
-v0.x published a `bin.mcp-leclerc-drive` stdio server (you `npx`'d it). v1.0
-publishes nothing runnable: the package holds the built extension + types; the
-MCP client `npx`es `@mcp-b/webmcp-local-relay` (a *dev* dependency here), and
-the user loads `dist/extension/` into Chrome. `server.json` retains
-`transport: stdio` but carries a `transportHint` explaining this.
+v0.x publiait un serveur stdio `bin.mcp-leclerc-drive` (tu le `npx`ais). v1.0
+ne publie rien d'exécutable : le package contient l'extension buildée + les
+types ; le client MCP `npx`e `@mcp-b/webmcp-local-relay` (une dev dependency
+ici), et l'utilisateur charge `dist/extension/` dans Chrome. `server.json`
+garde `transport: stdio` mais porte un `transportHint` qui l'explique.
 
-Why: the tools live in the browser tab, so there is nothing for a stdio binary
-to *do* except be the relay — and the relay is already published as its own
-package. Publishing our own no-op binary would only mislead registry consumers.
+Pourquoi : les outils vivent dans l'onglet navigateur, donc il n'y a rien
+qu'un binaire stdio aurait à *faire* sauf être le relay — et le relay est déjà
+publié comme son propre package. Publier notre propre binaire no-op ne ferait
+qu'induire en erreur les consommateurs du registry.
 
-**Consequence.** Install instructions must cover two artifacts (extension +
-client config) instead of one `npx` line; the README and `server.json` carry
-that load.
+```mermaid
+flowchart LR
+    subgraph Registry["npm registry"]
+        Pkg["mcp-leclerc-drive<br/>(extension buildée + types)"]
+        Relay["@mcp-b/webmcp-local-relay<br/>(paquet séparé, devDep)"]
+    end
+    subgraph Client["Client MCP stdio"]
+        CLI["opencode / Claude Code"]
+    end
+    subgraph Browser["Chrome utilisateur"]
+        Ext["dist/extension/<br/>chargé manuellement"]
+        Tab["onglet Leclerc (outils enregistrés)"]
+    end
+
+    CLI -->|npx| Relay
+    CLI -->|config MCP| Pkg
+    Pkg -->|install/livraison| Ext
+    Ext -->|injecte MAIN world| Tab
+    Relay <-->|WebSocket loopback| Tab
+    note le package ne publie PAS de binaire : le client npx-e le relay connu
+```
+
+**Conséquence.** Les instructions d'install doivent couvrir deux artefacts
+(extension + config client) au lieu d'une seule ligne `npx` ; le README et
+`server.json` portent ce poids.

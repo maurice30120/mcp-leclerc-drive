@@ -1,37 +1,36 @@
-# Documentation index
+# Index de la documentation
 
-Entry point for everything you need to understand `mcp-leclerc-drive`. Read in
-this order on a first pass.
+Point d'entrée pour tout comprendre de `mcp-leclerc-drive`. Lire dans cet ordre
+en première passe.
 
-| Document | What it covers |
+| Document | Ce qu'il couvre |
 | --- | --- |
-| [../README.md](../README.md) | Project pitch, install, the 9 tools at a glance — start here. |
-| [architecture.md](architecture.md) | The WebMCP runtime shape: extension, relay, MVP-B, data flow, layers. |
-| [tools.md](tools.md) | Reference for the 9 MCP tools: contracts, inputs, behavior, annotations. |
-| [security.md](security.md) | Threat model: trust boundaries, SSRF closure, prompt-injection hardening, permissions. |
-| [api-capture.md](api-capture.md) | The reverse-engineered Leclerc Drive HTTP API (read this before touching `src/leclerc/api.ts`). |
-| [comparison-origin.md](comparison-origin.md) | Local working tree vs. `origin/main` (v0.2.0 Node stdio): what changed, what remains, critical diffs. |
-| [adr/](adr/) | Architecture Decision Records — the *why* behind the hard-to-reverse choices. |
-| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup, extension build/reload flow, reverse-engineering a new endpoint, PR checklist. |
-| [../CHANGELOG.md](../CHANGELOG.md) | What changed in each release (current: 1.0.0 WebMCP refactor). |
+| [../README.md](../README.md) | Pitch du projet, install, les 9 outils en un coup d'œil — commencer ici. |
+| [architecture.md](architecture.md) | Forme du runtime WebMCP : extension, relay, MVP-B, flux de données, couches. |
+| [tools.md](tools.md) | Référence des 9 outils MCP : contrats, entrées, comportement, annotations. |
+| [security.md](security.md) | Modèle de menaces : frontières de confiance, fermeture SSRF, durcissement anti-injection de prompt, permissions. |
+| [api-capture.md](api-capture.md) | L'API HTTP Leclerc Drive reverse-enginé (à lire avant de toucher `src/leclerc/api.ts`). |
+| [adr/](adr/) | Architecture Decision Records — le *pourquoi* derrière les choix difficiles à revenir. |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Setup dev, build/reload de l'extension, reverse-engineering d'un nouvel endpoint, checklist PR. |
+| [../CHANGELOG.md](../CHANGELOG.md) | Ce qui a changé à chaque release (courant : refactor WebMCP 1.0.0). |
 
-## Quick mental model
+## Modèle mental rapide
 
-```
-opencode / Claude Code            stdio client
-   │  JSON-RPC over stdio
-   ▼
-@mcp-b/webmcp-local-relay         local Node, 127.0.0.1:9333, --widget-origin pinned
-   │  WebSocket (loopback)
-   ▼
-Chrome MV3 extension              background.ts injects [inject.js, embed.js] into the tab (MAIN world)
-   │  chrome.scripting.executeScript
-   ▼
-Leclerc Drive tab (logged in)     inject.ts registers 9 tools on document.modelContext;
-                                   fetch = the page's own fetch (cookies + datadome authentic)
+```mermaid
+flowchart TD
+    Client["opencode / Claude Code<br/>(client stdio)"]
+    Relay["@mcp-b/webmcp-local-relay<br/>Node local, 127.0.0.1:9333<br/>--widget-origin bloqué sur Leclerc"]
+    Ext["Extension Chrome MV3<br/>background.ts injecte [inject.js, embed.js]<br/>dans l'onglet (MAIN world)"]
+    Tab["Onglet Leclerc Drive (connecté)<br/>inject.ts enregistre 9 outils sur<br/>document.modelContext<br/>fetch = le propre fetch de la page<br/>(cookies + datadome authentiques)"]
+
+    Client -->|JSON-RPC sur stdio| Relay
+    Relay -->|WebSocket, loopback uniquement| Ext
+    Ext -->|chrome.scripting.executeScript| Tab
 ```
 
-Key invariant: **no credential ever leaves the logged-in tab.** Business logic
-is pure in [`src/leclerc/api.ts`](../src/leclerc/api.ts) so it bundles into the
-content script and stays unit-testable; the only place that calls `fetch` is
-[`extension/inject.ts`](../extension/inject.ts), using the page's fetch.
+Invariant clé : **aucun identifiant ne quitte jamais l'onglet connecté.** La
+logique métier est pure dans [`src/leclerc/api.ts`](../src/leclerc/api.ts) de
+façon à se bundler dans le content script et rester unit-testable ; le seul
+endroit qui appelle `fetch` est
+[`extension/inject.ts`](../extension/inject.ts), en utilisant le fetch de la
+page.
