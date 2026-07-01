@@ -1,27 +1,26 @@
 {
   "name": "mcp-leclerc-drive",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "mcpName": "io.github.skunkobi/leclerc-drive",
-  "description": "MCP server for E.Leclerc Drive — search products, manage cart, and order groceries from Claude",
+  "description": "Expose your Leclerc Drive as MCP tools via WebMCP — search products, manage cart, refresh natively, from any MCP client (opencode / Claude Code).",
   "type": "module",
-  "bin": {
-    "mcp-leclerc-drive": "dist/index.js"
-  },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsc",
+    "build:extension": "node scripts/build-extension.mjs",
+    "build:all": "npm run build && npm run build:extension",
     "dev": "tsc --watch",
-    "start": "node dist/index.js",
-    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "smoke": "node scripts/smoke-test.mjs",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.extension.json",
+    "clean": "rm -rf dist dist-extension-types"
   },
   "keywords": [
     "mcp",
     "model-context-protocol",
+    "webmcp",
+    "mcp-b",
+    "opencode",
     "leclerc",
     "leclerc-drive",
     "grocery",
@@ -34,23 +33,17 @@
     "url": "git+https://github.com/skunkobi/mcp-leclerc-drive.git"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "chrome-cookies-secure": "^3.0.2",
-    "zod": "^3.23.8"
+    "@mcp-b/global": "^3.0.0",
+    "@mcp-b/webmcp-types": "^3.0.0"
   },
   "devDependencies": {
+    "@mcp-b/webmcp-local-relay": "^3.0.0",
+    "@types/chrome": "^0.2.2",
     "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
     "typescript": "^5.6.0"
-  },
-  "comment:overrides": "Force patched versions of sqlite3's (chrome-cookies-secure) build-time transitive deps to clear known CVEs. These are not used at runtime (sqlite3 ships a prebuilt binary).",
-  "overrides": {
-    "tar": "^7.5.16",
-    "node-gyp": "^13.0.0",
-    "cacache": "^21.0.1",
-    "make-fetch-happen": "^15.0.6",
-    "http-proxy-agent": "^9.1.0"
   }
 }

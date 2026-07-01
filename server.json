@@ -1,50 +1,22 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.skunkobi/leclerc-drive",
-  "description": "MCP server for E.Leclerc Drive — search products, manage cart, and order groceries from Claude",
+  "description": "Expose your E.Leclerc Drive as MCP tools via WebMCP — search products, manage cart, refresh natively, from any MCP client (opencode / Claude Code). Runs inside your logged-in Chrome tab; no cookie extraction.",
   "repository": {
     "url": "https://github.com/skunkobi/mcp-leclerc-drive",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "1.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "mcp-leclerc-drive",
-      "version": "0.2.0",
+      "version": "1.0.0",
       "transport": {
         "type": "stdio"
       },
-      "environmentVariables": [
-        {
-          "name": "LECLERC_STORE_ID",
-          "description": "Leclerc Drive store id, e.g. 053701 (defaults to 053701).",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
-          "name": "LECLERC_HOST",
-          "description": "Backend host for your store, e.g. fd9-courses.leclercdrive.fr (the fdN prefix varies by region).",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        },
-        {
-          "name": "LECLERC_COOKIE",
-          "description": "Optional raw Cookie header override for headless hosts; by default the session is read from your local Chrome profile.",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": true
-        },
-        {
-          "name": "LECLERC_CHROME_PROFILE",
-          "description": "Chrome profile directory to read the session cookie from (defaults to \"Default\").",
-          "isRequired": false,
-          "format": "string",
-          "isSecret": false
-        }
-      ]
+      "transportHint": "This server is a WebMCP relay, not a classic stdio server. Configure your MCP client to launch `@mcp-b/webmcp-local-relay` with `--widget-origin` pinned to your Leclerc Drive origin, and load the bundled Chrome extension (dist/extension/) so it registers the tools in your tab. See the README for the exact opencode/Claude Code config block.",
+      "environmentVariables": []
     }
   ]
 }

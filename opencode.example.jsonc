@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "leclerc-drive": {
+      "type": "local",
+      // The relay bridges WebMCP tools (registered by the extension inside the
+      // Leclerc Drive tab) to any stdio MCP client. See README.md.
+      "command": [
+        "npx",
+        "-y",
+        "@mcp-b/webmcp-local-relay@latest",
+        // Pin the relay to only accept tools from a Leclerc Drive page.
+        // REPLACE with YOUR own drive's origin — the fdN prefix varies:
+        //   fd8-courses.leclercdrive.fr, fd9-courses.leclercdrive.fr,
+        //   fd14-courses.leclercdrive.fr, ...
+        // Multiple origins can be passed comma-separated.
+        "--widget-origin",
+        "https://fd11-courses.leclercdrive.fr"
+      ]
+    }
+  }
+}

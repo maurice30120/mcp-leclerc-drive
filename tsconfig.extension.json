@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-extension-types",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "declaration": false,
+    "sourceMap": false,
+    "types": ["chrome"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["extension/**/*", "src/leclerc/api.ts", "src/types.ts"]
+}
