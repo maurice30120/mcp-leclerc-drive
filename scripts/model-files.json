@@ -1,0 +1,25 @@
+{
+  "$comment": "Reference layout for ONE orchestrator model (onnx-community/Qwen3-1.7B-ONNX, dtype q4f16) shown as an example. The full, ordered catalogue of models the picker exposes lives in src/orchestrator/models.ts (onnx-community Qwen3 family). scripts/fetch-model.mjs downloads every catalogue model into dist/extension/models/<org>/<repo>/<path>, verifies size + sha256 (when known), and writes the reproducible lock file scripts/model-lock.json (gitignored). LFS file sha256 values are the content sha256 exposed by the Hugging Face API (lfs.oid).",
+  "repo": "onnx-community/Qwen3-1.7B-ONNX",
+  "revision": "main",
+  "baseDir": "onnx-community/Qwen3-1.7B-ONNX",
+  "files": [
+    { "path": "config.json", "size": 943 },
+    { "path": "generation_config.json", "size": 219 },
+    { "path": "tokenizer_config.json", "size": 9705 },
+    {
+      "path": "tokenizer.json",
+      "size": 9117040,
+      "sha256": "e7a95fce95bf5b0946d0ddb3f9d7caa030b7e850bbe92b0edb26bcf563e9f3d5"
+    },
+    { "path": "vocab.json", "size": 2776833 },
+    { "path": "merges.txt", "size": 1671853 },
+    { "path": "special_tokens_map.json", "size": 613 },
+    { "path": "added_tokens.json", "size": 707 },
+    {
+      "path": "onnx/model_q4f16.onnx",
+      "size": 1426069098,
+      "sha256": "fb85b44defdf43ace50c7a4937127e889b9f8a0483eb87a6c4151a815c5da3b5"
+    }
+  ]
+}

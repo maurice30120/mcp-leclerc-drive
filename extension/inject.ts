@@ -44,6 +44,17 @@ import {
   type CoordinatesResponse,
   type NearbyResponse,
 } from "../src/leclerc/api.js";
+import type { Product, Cart } from "../src/types.js";
+import {
+  isLeclercRequest,
+  isLeclercCommand,
+  type LeclercRequest,
+  type LeclercResponse,
+} from "../src/orchestrator/messages.js";
+import {
+  validateCommand,
+  type DispatchCall,
+} from "../src/orchestrator/dispatcher.js";
 
 // ---- Protection: a single injection per tab -------------------------------
 
@@ -289,15 +300,12 @@ function registerTools(): void {
     async execute(args) {
       try {
         const query = String((args as { query: string }).query);
-        const s = loadStore();
-        if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
-        const html = await getHtml(buildSearchUrl(s.host, s.storeId, s.noPR, query));
-        const products = productsFromHtml(html);
-        if (products.length === 0) return asText(`Aucun produit trouvé pour « ${query} ».`);
-        const lines = products.map((p) => {
-          const safe = { ...p, label: scrubUntrusted(p.label) };
-          return formatProduct(safe);
-        });
+        const v = validateCommand("search_products", { query });
+        if (!v.ok) return asError(new Error(v.error));
+        const result = await runDispatch(v.call);
+        if (result.kind !== "search_products") return asError(new Error("Réponse inattendue"));
+        if (result.products.length === 0) return asText(`Aucun produit trouvé pour « ${query} ».`);
+        const lines = result.products.map((p) => formatProduct(p));
         return asText(lines.join("\n"));
       } catch (err) {
         return asError(err);
@@ -321,25 +329,12 @@ function registerTools(): void {
     async execute(args) {
       try {
         const a = args as { product_id: string; quantity?: number };
-        const s = loadStore();
-        if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
         const qty = a.quantity ?? 1;
-        if (!Number.isInteger(qty) || qty < 1) throw new Error("quantity doit être un entier ≥ 1");
-        const body = cartMutationBody(a.product_id, qty, ACTION_ADD, s.storeId);
-        const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-        let events: unknown;
-        try {
-          events = JSON.parse(raw);
-        } catch (e) {
-          throw new Error(
-            "Réponse panier inattendue (non JSON) : " +
-              (e as Error).message +
-              ". Début : " +
-              raw.slice(0, 120),
-          );
-        }
-        const cart = cartFromEvents(events as never[], s.storeId);
-        return asText(`Ajouté.\n\n${formatCart(cart)}`);
+        const v = validateCommand("add_to_cart", { product_id: a.product_id, quantity: qty });
+        if (!v.ok) return asError(new Error(v.error));
+        const result = await runDispatch(v.call);
+        if (result.kind !== "cart_mutation") return asError(new Error("Réponse inattendue"));
+        return asText(`Ajouté.\n\n${formatCart(result.cart)}`);
       } catch (err) {
         return asError(err);
       }
@@ -361,13 +356,11 @@ function registerTools(): void {
     async execute(args) {
       try {
         const a = args as { product_id: string };
-        const s = loadStore();
-        if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
-        const body = cartMutationBody(a.product_id, 0, ACTION_SUB, s.storeId);
-        const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-        const events = JSON.parse(raw) as never[];
-        const cart = cartFromEvents(events, s.storeId);
-        return asText(`Retiré.\n\n${formatCart(cart)}`);
+        const v = validateCommand("remove_from_cart", { product_id: a.product_id });
+        if (!v.ok) return asError(new Error(v.error));
+        const result = await runDispatch(v.call);
+        if (result.kind !== "cart_mutation") return asError(new Error("Réponse inattendue"));
+        return asText(`Retiré.\n\n${formatCart(result.cart)}`);
       } catch (err) {
         return asError(err);
       }
@@ -394,24 +387,11 @@ function registerTools(): void {
     async execute(args) {
       try {
         const a = args as { product_id: string; quantity: number };
-        if (!Number.isInteger(a.quantity) || a.quantity < 0) {
-          throw new Error("quantity doit être un entier ≥ 0");
-        }
-        const s = loadStore();
-        if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
-        if (a.quantity === 0) {
-          const body = cartMutationBody(a.product_id, 0, ACTION_SUB, s.storeId);
-          const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-          const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
-          return asText(`Quantité mise à jour.\n\n${formatCart(cart)}`);
-        }
-        // Need current quantity to choose ADD vs SUB (iQuantite is absolute target).
-        const current = await currentQuantity(a.product_id);
-        const action = a.quantity >= current ? ACTION_ADD : ACTION_SUB;
-        const body = cartMutationBody(a.product_id, a.quantity, action, s.storeId);
-        const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-        const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
-        return asText(`Quantité mise à jour.\n\n${formatCart(cart)}`);
+        const v = validateCommand("update_quantity", { product_id: a.product_id, quantity: a.quantity });
+        if (!v.ok) return asError(new Error(v.error));
+        const result = await runDispatch(v.call);
+        if (result.kind !== "cart_mutation") return asError(new Error("Réponse inattendue"));
+        return asText(`Quantité mise à jour.\n\n${formatCart(result.cart)}`);
       } catch (err) {
         return asError(err);
       }
@@ -426,11 +406,11 @@ function registerTools(): void {
     annotations: { readOnlyHint: true, openWorldHint: true },
     async execute() {
       try {
-        const s = loadStore();
-        if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
-        const html = await getHtml(buildSearchUrl(s.host, s.storeId, s.noPR, NO_MATCH_QUERY));
-        const cart = cartFromHtml(html, s.storeId);
-        return asText(formatCart(cart));
+        const v = validateCommand("get_cart", {});
+        if (!v.ok) return asError(new Error(v.error));
+        const result = await runDispatch(v.call);
+        if (result.kind !== "get_cart") return asError(new Error("Réponse inattendue"));
+        return asText(formatCart(result.cart));
       } catch (err) {
         return asError(err);
       }
@@ -564,7 +544,11 @@ function registerTools(): void {
     annotations: { readOnlyHint: true },
     async execute() {
       try {
-        const s = loadStore();
+        const v = validateCommand("get_store", {});
+        if (!v.ok) return asError(new Error(v.error));
+        const result = await runDispatch(v.call);
+        if (result.kind !== "get_store") return asError(new Error("Réponse inattendue"));
+        const s = result.store;
         return asText(`Magasin actif : ${s.name ?? s.storeId} (id=${s.storeId} @ ${s.host}).`);
       } catch (err) {
         return asError(err);
@@ -613,6 +597,127 @@ function registerTools(): void {
   });
 }
 
+// ---- Internal structured dispatcher --------------------------------------
+//
+// The single source of truth for the 6 core Leclerc actions. Both the public
+// MCP tools (below) and the postMessage bridge (used by the popup orchestrator)
+// call this, so there is no duplicated business logic between the CLI agent
+// path and the local-model popup path.
+//
+// Read commands return plain data; mutation commands return the updated cart.
+// Labels are scrubbed of prompt-injection sequences before leaving the bridge
+// (see scrubUntrusted) — the orchestrator must still treat them as untrusted
+// data, never as instructions.
+
+export type DispatchResult =
+  | { kind: "search_products"; products: Product[] }
+  | { kind: "get_cart"; cart: Cart }
+  | { kind: "get_store"; store: { storeId: string; noPR: string; host: string; name?: string; serviceType?: string } }
+  | { kind: "cart_mutation"; cart: Cart };
+
+async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
+  switch (call.command) {
+    case "search_products": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      const html = await getHtml(buildSearchUrl(s.host, s.storeId, s.noPR, call.query));
+      const products = productsFromHtml(html).map((p) => ({
+        ...p,
+        label: scrubUntrusted(p.label),
+      }));
+      return { kind: "search_products", products };
+    }
+    case "get_cart": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      const html = await getHtml(buildSearchUrl(s.host, s.storeId, s.noPR, NO_MATCH_QUERY));
+      const cart = cartFromHtml(html, s.storeId);
+      return { kind: "get_cart", cart };
+    }
+    case "get_store": {
+      const s = loadStore();
+      return {
+        kind: "get_store",
+        store: { storeId: s.storeId, noPR: s.noPR, host: s.host, name: s.name, serviceType: s.serviceType },
+      };
+    }
+    case "add_to_cart": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      const body = cartMutationBody(call.productId, call.quantity, ACTION_ADD, s.storeId);
+      const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
+      const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
+      return { kind: "cart_mutation", cart };
+    }
+    case "remove_from_cart": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      const body = cartMutationBody(call.productId, 0, ACTION_SUB, s.storeId);
+      const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
+      const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
+      return { kind: "cart_mutation", cart };
+    }
+    case "update_quantity": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      if (call.quantity === 0) {
+        const body = cartMutationBody(call.productId, 0, ACTION_SUB, s.storeId);
+        const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
+        return { kind: "cart_mutation", cart: cartFromEvents(JSON.parse(raw) as never[], s.storeId) };
+      }
+      const current = await currentQuantity(call.productId);
+      const action = call.quantity >= current ? ACTION_ADD : ACTION_SUB;
+      const body = cartMutationBody(call.productId, call.quantity, action, s.storeId);
+      const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
+      return { kind: "cart_mutation", cart: cartFromEvents(JSON.parse(raw) as never[], s.storeId) };
+    }
+  }
+}
+
+// ---- postMessage bridge: orchestrator (popup) → live tab ------------------
+//
+// The isolated-world content relay posts LeclercRequest on window. We validate
+// + dispatch and post back a typed LeclercResponse. Mutations are allowed here
+// only because the popup gates them behind an explicit *Valider* click — the
+// bridge itself never invents mutations, and refuses to run off a Leclerc tab.
+
+function installBridgeListener(): void {
+  // Defence in depth: the injector only runs on Leclerc tabs (background
+  // filters by host), but a navigated/redirected page could change origin.
+  if (!isLeclercHost(location.host)) return;
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    if (!isLeclercRequest(event.data)) return;
+    void handleBridgeRequest(event.data);
+  });
+}
+
+async function handleBridgeRequest(req: LeclercRequest): Promise<void> {
+  let resp: LeclercResponse;
+  try {
+    if (!isLeclercCommand(req.command)) {
+      resp = { source: "mcp-leclerc-drive:bridge", requestId: req.requestId, ok: false, error: `Commande inconnue : ${req.command}` };
+    } else {
+      const host = isLeclercHost(location.host) ? location.host : undefined;
+      const v = validateCommand(req.command, req.args, host);
+      if (!v.ok) {
+        resp = { source: "mcp-leclerc-drive:bridge", requestId: req.requestId, ok: false, error: v.error };
+      } else {
+        const result = await runDispatch(v.call);
+        resp = { source: "mcp-leclerc-drive:bridge", requestId: req.requestId, ok: true, data: result };
+      }
+    }
+  } catch (err) {
+    resp = {
+      source: "mcp-leclerc-drive:bridge",
+      requestId: req.requestId,
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+  window.postMessage(resp, location.origin);
+}
+
 /** Quick inline current-quantity reader used by update_quantity. */
 async function currentQuantity(productId: string): Promise<number> {
   const s = loadStore();
@@ -632,6 +737,11 @@ async function main(): Promise<void> {
 
   // 2) Register the 9 tools on the document's model context.
   registerTools();
+
+  // 2b) Install the postMessage bridge so the popup orchestrator (local
+  //     Transformers.js model) can drive the same dispatcher the MCP tools use.
+  //     The isolated-world content relay posts typed LeclercRequest on window.
+  installBridgeListener();
 
   // 3) The webmcp-local-relay embed script is injected right after this one
   //    by the extension background worker (see ../extension/background.ts).

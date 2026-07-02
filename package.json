@@ -11,10 +11,14 @@
     "build": "tsc",
     "build:extension": "node scripts/build-extension.mjs",
     "build:all": "npm run build && npm run build:extension",
+    "fetch:model": "node scripts/fetch-model.mjs",
     "dev": "tsc --watch",
     "test": "node --test tests/*.test.ts",
+    "test:inference": "MCP_LECLERC_RUN_INFERENCE=1 node --test tests/model-inference.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.extension.json",
-    "clean": "rm -rf dist dist-extension-types"
+    "clean": "node scripts/clean.mjs",
+    "clean:dry": "node scripts/clean.mjs --dry-run",
+    "clean:keep-models": "node scripts/clean.mjs --keep-models"
   },
   "keywords": [
     "mcp",
@@ -37,6 +41,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@mcp-b/global": "^3.0.0",
     "@mcp-b/webmcp-types": "^3.0.0"
   },
@@ -44,6 +49,7 @@
     "@mcp-b/webmcp-local-relay": "^3.0.0",
     "@types/chrome": "^0.2.2",
     "@types/node": "^22.0.0",
+    "cli-progress": "^3.12.0",
     "esbuild": "^0.28.0",
     "typescript": "^5.6.0"
   }

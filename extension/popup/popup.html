@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>mcp-leclerc-drive — courses</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>mcp-leclerc-drive</h1>
+      <p id="model-status" class="status idle">Modèle : inconnu</p>
+    </header>
+
+    <section id="input-section">
+      <label for="prompt">Ta recette ou ton plat</label>
+      <textarea
+        id="prompt"
+        rows="3"
+        placeholder="ex. Carbonara pour 4 personnes, ou 100 g de lardons fumés"
+      ></textarea>
+      <button id="plan-btn" type="button" disabled>Générer la liste</button>
+      <p id="plan-error" class="error" hidden></p>
+    </section>
+
+    <section id="plan-section" hidden>
+      <h2>Liste de courses</h2>
+      <div id="questions" class="questions" hidden></div>
+      <div id="items"></div>
+      <button id="validate-btn" type="button" disabled>Valider et ajouter au panier</button>
+      <p id="validate-note" class="note">
+        Aucune ligne du panier ne sera modifiée avant validation.
+      </p>
+    </section>
+
+    <section id="results-section" hidden>
+      <h2>Résultats</h2>
+      <ul id="results"></ul>
+    </section>
+
+    <section id="debug-section" hidden>
+      <h2>Debug</h2>
+      <pre id="debug-output"></pre>
+    </section>
+
+    <footer>
+      <label id="model-picker" class="picker">
+        <span>Modèle local</span>
+        <select id="model-select"></select>
+      </label>
+      <label id="webgpu-toggle" class="toggle">
+        <input id="webgpu-checkbox" type="checkbox" />
+        <span>WebGPU (rapide mais instable)</span>
+      </label>
+      <a id="open-leclerc" href="#" target="_blank">Ouvrir mon drive Leclerc</a>
+    </footer>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

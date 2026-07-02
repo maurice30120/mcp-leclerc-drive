@@ -14,3 +14,9 @@ secrets.json
 .agents/
 skills-lock.json
 opencode.jsonc
+
+# Local orchestrator model: large ONNX artefacts are never committed.
+# Only the manifest (scripts/model-files.json) and the reproducible lock
+# (scripts/model-lock.json) are tracked.
+dist/extension/models/
+scripts/model-lock.json
