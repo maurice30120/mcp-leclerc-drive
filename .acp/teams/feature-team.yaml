@@ -1,0 +1,20 @@
+version: 1
+id: feature-team
+title: Feature Team
+# Coherent: in teams v1, orchestrator.agent is metadata only.
+# It documents intent but does not run as an active LLM or consume tokens.
+orchestrator:
+  agent: Vibe
+roles:
+  planner:
+    agent: Cursor CLI
+    instructions: .acp/agents/planner.md
+  implementer:
+    agent: Cursor Sandcastle
+    instructions: .acp/agents/implementer.md
+  reviewer:
+    agent: Cursor CLI
+    instructions: .acp/agents/reviewer.md
+  tester:
+    agent: Vibe
+    instructions: .acp/agents/tester.md

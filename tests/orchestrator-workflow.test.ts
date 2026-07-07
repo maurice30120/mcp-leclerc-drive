@@ -1,5 +1,5 @@
 /**
- * Recipe orchestration workflow — mocked model output to Leclerc tool calls.
+ * Shopping-list orchestration workflow — mocked model output to Leclerc tool calls.
  */
 import { test, assert } from "./helpers.ts";
 import { parsePlan } from "../src/orchestrator/plan.ts";
@@ -11,7 +11,7 @@ import { validateCommand } from "../src/orchestrator/dispatcher.ts";
 
 const LECLERC_HOST = "fd9-courses.leclercdrive.fr";
 
-test("recipe generation: parses a mocked recipe into searchable ingredients", () => {
+test("shopping list: parses a mocked model plan into searchable products", () => {
   const rawModelOutput = JSON.stringify({
     items: [
       { query: "farine de blé", quantity: 1, constraints: "1 kg" },
@@ -35,7 +35,7 @@ test("recipe generation: parses a mocked recipe into searchable ingredients", ()
   assert.equal(parsed.plan.items[0].constraints, "1 kg");
 });
 
-test("tool calls: recipe plan produces one read-only search_products call per ingredient", () => {
+test("tool calls: shopping-list plan produces one read-only search_products call per item", () => {
   const parsed = parsePlan(JSON.stringify({
     items: [
       { query: "pâtes lasagnes", quantity: 1 },
@@ -96,7 +96,7 @@ test("tool calls: selected catalogue products produce add_to_cart mutations", ()
   }
 });
 
-test("tool calls: add_to_cart is refused until every recipe item has a selection", () => {
+test("tool calls: add_to_cart is refused until every shopping-list item has a selection", () => {
   const parsed = parsePlan(JSON.stringify({
     items: [
       { query: "farine", quantity: 1 },

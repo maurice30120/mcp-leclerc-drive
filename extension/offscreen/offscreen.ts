@@ -7,10 +7,11 @@
  * `offscreen_orchestrate` messages by running the text-generation pipeline and
  * parsing its JSON output into a validated {@link Plan}.
  *
- * The model NEVER produces product ids: it only turns recipes/dishes into a
- * list of purchasable `{ query, quantity, constraints?, notes? }` ingredients.
- * The popup resolves real product ids via `search_products` afterwards, and
- * mutations only run after the user clicks *Valider*.
+ * The model NEVER produces product ids: it only normalizes explicit shopping
+ * list entries into purchasable `{ query, quantity, constraints?, notes? }`
+ * items. It must not infer ingredients from recipe or dish names. The popup
+ * resolves real product ids via `search_products` afterwards, and mutations
+ * only run after the user clicks *Valider*.
  */
 
 import {
@@ -20,9 +21,8 @@ import {
 } from "@huggingface/transformers";
 
 import { parsePlan, type Plan } from "../../src/orchestrator/plan.js";
-import { buildMessages } from "../../src/orchestrator/prompt.js";
+import { buildMessages, buildPrompt } from "../../src/orchestrator/prompt.js";
 import {
-  MODEL_DTYPE,
   MAX_NEW_TOKENS,
 } from "../../src/orchestrator/models.js";
 
@@ -30,8 +30,9 @@ import {
 // offscreen documents have no chrome.storage access. The background owns
 // the choice and forwards modelId + device in every offscreen_* message.
 import type {
-  BackgroundToOffscreenMsg,
+  OffscreenOrchestrateMsg,
   OffscreenOrchestrateResultMsg,
+  OffscreenStatusMsg,
   OffscreenToBackgroundMsg,
   OrchestrationDebug,
 } from "../../src/orchestrator/messages.js";
@@ -65,51 +66,57 @@ if (ortWasm) {
 // and the pipeline is rebuilt whenever either changes (popup model switch).
 
 let generatorPromise: Promise<TextGenerationPipeline> | null = null;
-let activeModelId: string | null = null;
+let activeGeneratorKey: string | null = null;
 let activeDevice: "webgpu" | "wasm" = "wasm";
 let device: "webgpu" | "wasm" = "wasm";
 
 async function getGenerator(
   modelId: string,
+  repoId: string,
+  dtype: string,
   requestedDevice: "webgpu" | "wasm",
+  allowWasmFallback: boolean,
 ): Promise<TextGenerationPipeline> {
+  const key = `${modelId}|${repoId}|${dtype}|${requestedDevice}|${allowWasmFallback ? "fallback" : "strict"}`;
   if (
     generatorPromise &&
-    activeModelId === modelId &&
+    activeGeneratorKey === key &&
     activeDevice === requestedDevice
   ) {
     return generatorPromise;
   }
-  activeModelId = modelId;
+  activeGeneratorKey = key;
   activeDevice = requestedDevice;
-  generatorPromise = createGenerator(modelId, requestedDevice).catch((err) => {
+  generatorPromise = createGenerator(repoId, dtype, requestedDevice, allowWasmFallback).catch((err) => {
     generatorPromise = null;
-    activeModelId = null;
+    activeGeneratorKey = null;
     throw err;
   });
   return generatorPromise;
 }
 
 async function createGenerator(
-  modelId: string,
+  repoId: string,
+  dtype: string,
   requestedDevice: "webgpu" | "wasm",
+  allowWasmFallback: boolean,
 ): Promise<TextGenerationPipeline> {
   device = requestedDevice;
   try {
-    return await pipeline("text-generation", modelId, {
-      dtype: MODEL_DTYPE,
+    return await pipeline("text-generation", repoId, {
+      dtype,
       device,
     }) as TextGenerationPipeline;
   } catch (err) {
-    if (device === "webgpu") {
+    if (device === "webgpu" && allowWasmFallback) {
       console.warn(
         "[mcp-leclerc-drive] WebGPU init failed, fallback WASM :",
         err,
       );
       device = "wasm";
       activeDevice = "wasm";
-      return await pipeline("text-generation", modelId, {
-        dtype: MODEL_DTYPE,
+      return await pipeline("text-generation", repoId, {
+        dtype,
         device,
       }) as TextGenerationPipeline;
     }
@@ -118,7 +125,7 @@ async function createGenerator(
 }
 
 // ---- message handler ------------------------------------------------------
-// The system prompt + buildMessages live in the pure, chrome-free module
+// The system prompt + buildPrompt live in the pure, chrome-free module
 // `src/orchestrator/prompt.ts` so they can be shared verbatim with the Node
 // inference tests (`tests/model-inference.test.ts`).
 
@@ -132,9 +139,15 @@ chrome.runtime.onMessage.addListener(
     const type = (msg as { type?: unknown }).type;
 
     if (type === "offscreen_status") {
-      const { modelId, device: reqDevice } = msg as OffscreenStatusMsg;
+      const {
+        modelId,
+        repoId,
+        dtype,
+        device: reqDevice,
+        allowWasmFallback = true,
+      } = msg as OffscreenStatusMsg;
       // Pre-warm + report readiness without running generation.
-      void getGenerator(modelId, reqDevice)
+      void getGenerator(modelId, repoId, dtype, reqDevice, allowWasmFallback)
         .then(() =>
           sendResponse({
             type: "offscreen_status_result",
@@ -153,18 +166,31 @@ chrome.runtime.onMessage.addListener(
     }
 
     if (type !== "offscreen_orchestrate") return false;
-    const { text, traceId, modelId, device: reqDevice } = msg as OffscreenOrchestrateMsg;
-    void run(text, modelId, reqDevice, traceId)
+    const {
+      text,
+      traceId,
+      modelId,
+      repoId,
+      dtype,
+      promptFormat = "text",
+      device: reqDevice,
+      allowWasmFallback = true,
+    } = msg as OffscreenOrchestrateMsg;
+    void run(text, modelId, repoId, dtype, promptFormat, reqDevice, allowWasmFallback, traceId)
       .then(({ plan, debug }) =>
         sendResponse({ type: "offscreen_orchestrate_result", ok: true, plan, debug }),
       )
       .catch((err: unknown) => {
+        const rawOutput = getErrorRawOutput(err);
         const debug: OrchestrationDebug = {
           traceId,
           modelId,
-          dtype: MODEL_DTYPE,
+          repoId,
+          dtype,
+          promptFormat,
           device,
           input: text,
+          rawOutput,
           error: err instanceof Error ? err.message : String(err),
         };
         console.error("[mcp-leclerc-drive][offscreen] orchestrate failed", debug);
@@ -182,22 +208,28 @@ chrome.runtime.onMessage.addListener(
 async function run(
   userText: string,
   modelId: string,
+  repoId: string,
+  dtype: string,
+  promptFormat: "text" | "chat",
   reqDevice: "webgpu" | "wasm",
+  allowWasmFallback: boolean,
   traceId?: string,
 ): Promise<{ plan: Plan; debug: OrchestrationDebug }> {
   if (!userText || !userText.trim()) {
     throw new Error("Demande vide.");
   }
-  const generator = await getGenerator(modelId, reqDevice);
-  const messages = buildMessages(userText);
+  const generator = await getGenerator(modelId, repoId, dtype, reqDevice, allowWasmFallback);
+  const prompt = promptFormat === "chat" ? buildMessages(userText) : buildPrompt(userText);
   console.info("[mcp-leclerc-drive][offscreen] model input", {
     traceId,
     modelId,
-    dtype: MODEL_DTYPE,
+    repoId,
+    dtype,
+    promptFormat,
     device,
     userText,
   });
-  const output = await generator(messages, {
+  const output = await generator(prompt, {
     max_new_tokens: MAX_NEW_TOKENS,
     do_sample: false,
     return_full_text: false,
@@ -211,11 +243,17 @@ async function run(
     rawOutput: text,
   });
   const parsed = parsePlan(text);
-  if (!parsed.ok) throw new Error(parsed.error);
+  if (!parsed.ok) {
+    const err = new Error(parsed.error) as Error & { rawOutput?: string };
+    err.rawOutput = text;
+    throw err;
+  }
   const debug: OrchestrationDebug = {
     traceId,
     modelId,
-    dtype: MODEL_DTYPE,
+    repoId,
+    dtype,
+    promptFormat,
     device,
     source: "model",
     input: userText,
@@ -224,6 +262,14 @@ async function run(
   };
   console.info("[mcp-leclerc-drive][offscreen] parsed plan", debug);
   return { plan: parsed.plan, debug };
+}
+
+function getErrorRawOutput(err: unknown): string | undefined {
+  if (err && typeof err === "object") {
+    const rawOutput = (err as { rawOutput?: unknown }).rawOutput;
+    if (typeof rawOutput === "string") return rawOutput;
+  }
+  return undefined;
 }
 
 /** Transformers.js text-generation output can be a string[] or message-like. */

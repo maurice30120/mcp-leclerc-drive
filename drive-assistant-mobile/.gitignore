@@ -1,0 +1,37 @@
+# OSX
+.DS_Store
+
+# node
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+.env.*
+!.env.example
+
+# React Native
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+ios/Pods/
+ios/build/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/debug/
+android/app/release/
+
+# Local downloaded model weights (never committed)
+models/*.gguf
+models/**/*.gguf
+models/.download-state.json
+
+# Generated from .env by scripts/generate-env.mjs. It embeds the POC API key
+# into the mobile JS bundle, so it must never be committed.
+src/features/ai/env.generated.ts
+
+# Build output
+dist/

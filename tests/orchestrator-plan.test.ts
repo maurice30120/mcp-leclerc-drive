@@ -27,6 +27,18 @@ test("parsePlan: tolerates trailing prose after the JSON object", () => {
   if (r.ok) assert.equal(r.plan.items[0].query, "pâtes");
 });
 
+test("parsePlan: accepts a JSON object double-encoded as a JSON string", () => {
+  const raw = JSON.stringify(
+    '{"items":[{"query":"salade grecque","quantity":1,"constraints":"100 g"}]}',
+  );
+  const r = parsePlan(raw);
+  assert.equal(r.ok, true);
+  if (r.ok) {
+    assert.equal(r.plan.items[0].query, "salade grecque");
+    assert.equal(r.plan.items[0].constraints, "100 g");
+  }
+});
+
 test("parsePlan: rejects an empty output", () => {
   const r = parsePlan("   ");
   assert.equal(r.ok, false);

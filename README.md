@@ -43,7 +43,7 @@ credential surface is the tab you're already logged into. See
 ### 1. Build the extension
 
 ```bash
-git clone https://github.com/skunkobi/mcp-leclerc-drive.git
+git clone https://github.com/maurice30120/mcp-leclerc-drive.git
 cd mcp-leclerc-drive
 npm install
 npm run build:extension
@@ -173,7 +173,7 @@ backend.
 
 ## Feedback & contact
 
-- **Issues / PRs:** [open an issue](https://github.com/skunkobi/mcp-leclerc-drive/issues) on the repo.
+- **Issues / PRs:** [open an issue](https://github.com/maurice30120/mcp-leclerc-drive/issues) on the repo.
 - **Email:** alexandreyagoubi@gmail.com
 
 ## Disclaimer

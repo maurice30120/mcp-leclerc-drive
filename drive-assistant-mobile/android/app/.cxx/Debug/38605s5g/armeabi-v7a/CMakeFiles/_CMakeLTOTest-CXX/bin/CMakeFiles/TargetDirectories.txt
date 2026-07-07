@@ -1,0 +1,4 @@
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/foo.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/boo.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/edit_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/armeabi-v7a/CMakeFiles/_CMakeLTOTest-CXX/bin/CMakeFiles/rebuild_cache.dir

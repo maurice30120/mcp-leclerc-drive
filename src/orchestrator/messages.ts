@@ -105,7 +105,7 @@ export interface OrchestrateRequestMsg {
   type: "orchestrate";
   /** Correlates popup, background and offscreen logs for one planning run. */
   traceId?: string;
-  /** Recipe, dish, or direct ingredient request from the user. */
+  /** Explicit shopping list or direct grocery request from the user. */
   text: string;
 }
 
@@ -170,10 +170,18 @@ export interface OffscreenOrchestrateMsg {
   type: "offscreen_orchestrate";
   traceId?: string;
   text: string;
-  /** Active model id (background-owned; offscreen has no chrome.storage). */
+  /** Active picker/storage model id (background-owned; offscreen has no chrome.storage). */
   modelId: string;
+  /** Transformers.js repo id. */
+  repoId: string;
+  /** ONNX dtype to load. */
+  dtype: string;
+  /** Prompt shape to send to Transformers.js. */
+  promptFormat: "text" | "chat";
   /** Resolved device for this model. */
   device: "webgpu" | "wasm";
+  /** Whether WebGPU init may fall back to WASM for this model. */
+  allowWasmFallback?: boolean;
 }
 
 export interface OffscreenOrchestrateResultMsg {
@@ -187,9 +195,11 @@ export interface OffscreenOrchestrateResultMsg {
 export interface OrchestrationDebug {
   traceId?: string;
   modelId?: string;
+  repoId?: string;
   dtype?: string;
+  promptFormat?: string;
   device?: string;
-  source?: "model";
+  source?: "model" | "deterministic";
   input: string;
   rawOutput?: string;
   parsedPlan?: unknown;
@@ -198,10 +208,16 @@ export interface OrchestrationDebug {
 
 export interface OffscreenStatusMsg {
   type: "offscreen_status";
-  /** Active model id (background-owned; offscreen has no chrome.storage). */
+  /** Active picker/storage model id (background-owned; offscreen has no chrome.storage). */
   modelId: string;
+  /** Transformers.js repo id. */
+  repoId: string;
+  /** ONNX dtype to load. */
+  dtype: string;
   /** Resolved device for this model. */
   device: "webgpu" | "wasm";
+  /** Whether WebGPU init may fall back to WASM for this model. */
+  allowWasmFallback?: boolean;
 }
 
 export interface OffscreenStatusResultMsg {

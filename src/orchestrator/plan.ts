@@ -59,7 +59,8 @@ export function parsePlan(raw: string): ParseResult {
     return { ok: false, error: "Modèle : sortie vide." };
   }
 
-  const jsonText = extractFirstJsonObject(raw);
+  const unwrapped = unwrapJsonStringOutput(raw);
+  const jsonText = extractFirstJsonObject(unwrapped ?? raw);
   if (jsonText === null) {
     return {
       ok: false,
@@ -78,6 +79,21 @@ export function parsePlan(raw: string): ParseResult {
   }
 
   return validatePlan(obj);
+}
+
+/**
+ * Some models return a JSON object double-encoded as a JSON string:
+ * `"{\"items\":[...]}"`. Decode that wrapper before scanning for the object.
+ */
+function unwrapJsonStringOutput(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('"') || !trimmed.endsWith('"')) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    return typeof parsed === "string" ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Validate an already-parsed JS value as a {@link Plan}. Exported for tests. */

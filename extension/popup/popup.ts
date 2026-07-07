@@ -4,8 +4,8 @@
  * Flow:
  *   1. On open, render immediately without loading the local model. The model
  *      is loaded only when the user asks to plan a list.
- *   2. User types a recipe/dish → *Planifier* → background → offscreen model
- *      → validated Plan.
+ *   2. User types an explicit shopping list → *Préparer* → background →
+ *      offscreen model → validated Plan.
  *   3. For each plan item, the popup runs `search_products` (via background →
  *      content relay → MAIN bridge) and shows candidates. The user picks a
  *      product + quantity per item.
@@ -112,7 +112,7 @@ function setStatus(state: "idle" | "loading" | "ready" | "error", detail?: strin
 setStatus("idle", "chargement au lancement");
 planBtn.disabled = false;
 
-// ---- Model picker (lightest → heaviest, default = heaviest reliable) ------
+// ---- Model picker (lightest → heaviest, default = smallest stable) ---------
 
 // Populate the select ordered lightest → heaviest.
 for (const m of MODELS) {
@@ -246,7 +246,7 @@ function renderPlan(plan: Plan): void {
     questionsEl.hidden = false;
     questionsEl.innerHTML = "";
     const title = document.createElement("strong");
-    title.textContent = "Questions du modèle :";
+    title.textContent = "À préciser :";
     questionsEl.appendChild(title);
     for (const q of plan.questions) {
       const p = document.createElement("p");

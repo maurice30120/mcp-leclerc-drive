@@ -9,7 +9,10 @@
  * excluded):
  *   - onnx-community/Qwen3-0.6B-ONNX
  *   - onnx-community/Qwen3-0.6B-Instruct-ONNX
- *   - onnx-community/Qwen3-1.7B-ONNX
+ *
+ * `onnx-community/Qwen3-1.7B-ONNX` is deliberately excluded for now: q4f16
+ * fails ONNX Runtime WASM session creation, and q4 can crash Chrome natively
+ * on macOS during extension execution.
  *
  * For each model it downloads the standard Qwen file set at dtype `q4`:
  *   config.json, generation_config.json, tokenizer_config.json, tokenizer.json,
@@ -35,7 +38,7 @@
  * Usage:
  *   node scripts/fetch-model.mjs            # fetch all models, dtype q4
  *   MCP_LECLERC_MODEL_DTYPE=q4 node scripts/fetch-model.mjs
- *   MCP_LECLERC_MODEL_FILTER=onnx-community/Qwen3-1.7B-ONNX node scripts/fetch-model.mjs
+ *   MCP_LECLERC_MODEL_FILTER=onnx-community/Qwen3-0.6B-Instruct-ONNX node scripts/fetch-model.mjs
  *   MCP_LECLERC_MODEL_CONCURRENCY=4 node scripts/fetch-model.mjs
  *
  * Large ONNX weights are NOT committed — only this script + the lock are.
@@ -75,7 +78,6 @@ const BIG = 1024 * 1024;
 const MODELS = [
   { id: "onnx-community/Qwen3-0.6B-ONNX", baseDir: "onnx-community/Qwen3-0.6B-ONNX" },
   { id: "onnx-community/Qwen3-0.6B-Instruct-ONNX", baseDir: "onnx-community/Qwen3-0.6B-Instruct-ONNX" },
-  { id: "onnx-community/Qwen3-1.7B-ONNX", baseDir: "onnx-community/Qwen3-1.7B-ONNX" },
 ];
 
 const REVISION = "main";

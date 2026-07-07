@@ -184,27 +184,36 @@ await build({
 // the catalogue (src/orchestrator/models.ts) is present; if any is missing it
 // shells out to scripts/fetch-model.mjs to download them, then verifies.
 {
-  // Catalogue mirrors src/orchestrator/models.ts (onnx-community Qwen3 only;
-  // the huggingworld Qwen3.5 repos and the stub onnx-community 4B repo are
-  // excluded).
+  // Catalogue mirrors src/orchestrator/models.ts (onnx-community Qwen3 0.6B
+  // only; the unstable 1.7B, the huggingworld Qwen3.5 repos and the stub
+  // onnx-community 4B repo are excluded).
   const CATALOGUE = [
-    { id: "onnx-community/Qwen3-0.6B-ONNX", baseDir: "onnx-community/Qwen3-0.6B-ONNX" },
-    { id: "onnx-community/Qwen3-0.6B-Instruct-ONNX", baseDir: "onnx-community/Qwen3-0.6B-Instruct-ONNX" },
-    { id: "onnx-community/Qwen3-1.7B-ONNX", baseDir: "onnx-community/Qwen3-1.7B-ONNX" },
+    {
+      id: "onnx-community/Qwen3-0.6B-ONNX",
+      baseDir: "onnx-community/Qwen3-0.6B-ONNX",
+      dtypes: ["q4", "q4f16"],
+    },
+    {
+      id: "onnx-community/Qwen3-0.6B-Instruct-ONNX",
+      baseDir: "onnx-community/Qwen3-0.6B-Instruct-ONNX",
+      dtypes: ["q4"],
+    },
   ];
-  const dtype = "q4";
   // Only the truly required files: the weight, the model config, and the
   // self-contained tokenizer. Other tokenizer files (vocab.json, merges.txt,
   // special_tokens_map.json, added_tokens.json, generation_config.json,
   // tokenizer_config.json) are best-effort and may be absent on some repos.
-  const required = [
+  const commonRequired = [
     "config.json",
     "tokenizer.json",
-    `onnx/model_${dtype}.onnx`,
   ];
   const modelsSrc = join(OUT, "models");
   const missing = [];
   for (const m of CATALOGUE) {
+    const required = [
+      ...commonRequired,
+      ...m.dtypes.map((dtype) => `onnx/model_${dtype}.onnx`),
+    ];
     for (const f of required) {
       if (!existsSync(join(modelsSrc, m.baseDir, f))) {
         missing.push(`${m.baseDir}/${f}`);
@@ -218,14 +227,32 @@ await build({
     );
     // Delegate to the fetch script (same node). Blocks the build until done.
     const { spawnSync } = await import("node:child_process");
-    const r = spawnSync(process.execPath, [join(ROOT, "scripts", "fetch-model.mjs")], {
-      stdio: "inherit",
-    });
-    if (r.status !== 0) {
-      throw new Error(
-        `fetch-model failed (exit ${r.status}). Fix the errors above and re-run ` +
-          "`npm run build:extension`.",
-      );
+    const missingByModelAndDtype = new Map();
+    for (const p of missing) {
+      const model = CATALOGUE.find((m) => p.startsWith(`${m.baseDir}/`));
+      if (!model) continue;
+      const dtypeMatch = p.match(/onnx\/model_(.+)\.onnx$/);
+      const dtypes = dtypeMatch ? [dtypeMatch[1]] : model.dtypes;
+      for (const dtype of dtypes) {
+        const key = `${model.id}|${dtype}`;
+        missingByModelAndDtype.set(key, { model, dtype });
+      }
+    }
+    for (const { model, dtype } of missingByModelAndDtype.values()) {
+      const r = spawnSync(process.execPath, [join(ROOT, "scripts", "fetch-model.mjs")], {
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          MCP_LECLERC_MODEL_FILTER: model.id,
+          MCP_LECLERC_MODEL_DTYPE: dtype,
+        },
+      });
+      if (r.status !== 0) {
+        throw new Error(
+          `fetch-model failed for ${model.id} (${dtype}, exit ${r.status}). Fix the errors above and re-run ` +
+            "`npm run build:extension`.",
+        );
+      }
     }
     // Re-check in case the fetch silently skipped something.
     const stillMissing = missing.filter((p) => !existsSync(join(modelsSrc, p)));

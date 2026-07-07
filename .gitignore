@@ -4,19 +4,20 @@ dist/
 .env
 .env.local
 .DS_Store
-
 # Local capture / reverse-engineering scratch (may contain session cookies)
 captures/
 *.har
 secrets.json
-
 # Local agent skills + personal MCP config (not project artifacts)
 .agents/
 skills-lock.json
 opencode.jsonc
-
 # Local orchestrator model: large ONNX artefacts are never committed.
 # Only the manifest (scripts/model-files.json) and the reproducible lock
 # (scripts/model-lock.json) are tracked.
 dist/extension/models/
 scripts/model-lock.json
+
+# Local Codex/plugin-installed skills
+.agents/skills/
+.cursor/skills

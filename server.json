@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.skunkobi/leclerc-drive",
+  "name": "io.github.maurice30120/leclerc-drive",
   "description": "Expose your E.Leclerc Drive as MCP tools via WebMCP — search products, manage cart, refresh natively, from any MCP client (opencode / Claude Code). Runs inside your logged-in Chrome tab; no cookie extraction.",
   "repository": {
-    "url": "https://github.com/skunkobi/mcp-leclerc-drive",
+    "url": "https://github.com/maurice30120/mcp-leclerc-drive",
     "source": "github"
   },
   "version": "1.0.0",

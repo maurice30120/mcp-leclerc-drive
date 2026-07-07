@@ -1,0 +1,59 @@
+version: 2
+id: plan-execute-verify
+title: Plan Execute Verify
+
+primitives:
+  planner:
+    agent: Cursor CLI
+    output: proposed_plan
+    sideEffects: none
+    prompt: |
+      Create a decision-complete implementation plan only.
+      Return exactly one <proposed_plan>...</proposed_plan> block.
+
+      User request:
+      {{userPrompt}}
+
+  implementer:
+    agent: Vibe
+    output: markdown
+    sideEffects: workspace
+    prompt: |
+      Implement the approved plan in the current workspace.
+
+      Original request:
+      {{userPrompt}}
+
+      Approved plan:
+      {{steps.approval.output}}
+
+  verifier:
+    agent: Cursor CLI
+    output: markdown
+    sideEffects: none
+    prompt: |
+      Verify whether the approved plan was completed.
+      Include changed files, tests, risks, and remaining gaps.
+
+      Original request:
+      {{userPrompt}}
+
+      Approved plan:
+      {{steps.approval.output}}
+
+      Implementation output:
+      {{steps.implement.output}}
+
+steps:
+  - id: plan
+    use: planner
+
+  - id: approval
+    type: approval
+    input: "{{steps.plan.output}}"
+
+  - id: implement
+    use: implementer
+
+  - id: verify
+    use: verifier

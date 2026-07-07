@@ -32,9 +32,10 @@ import {
 } from "../src/orchestrator/messages.js";
 import {
   DEFAULT_MODEL_ID,
-  MODEL_DTYPE,
   findModel,
+  type ModelEntry,
 } from "../src/orchestrator/models.js";
+import { normalizeShoppingList } from "../src/orchestrator/shopping-list.js";
 
 const LECRERC_URL_FILTER = {
   url: [{ hostSuffix: "leclercdrive.fr" }],
@@ -172,7 +173,7 @@ async function handlePopupMessage(
 
 // -- active model + device (background-owned; offscreen has no storage) ----
 
-async function getActiveModel(): Promise<{ modelId: string; device: "webgpu" | "wasm" }> {
+async function getActiveModel(): Promise<{ entry: ModelEntry; device: "webgpu" | "wasm" }> {
   const v = await chrome.storage.local.get(["modelId", "webgpu"]);
   const modelId = (v as { modelId?: string }).modelId ?? DEFAULT_MODEL_ID;
   const entry = findModel(modelId);
@@ -182,38 +183,41 @@ async function getActiveModel(): Promise<{ modelId: string; device: "webgpu" | "
   // GPU process on some macOS setups (EXC_BREAKPOINT in the compositor).
   const override = (v as { webgpu?: boolean }).webgpu;
   const device = override === true ? "webgpu" : "wasm";
-  return { modelId: entry.id, device };
+  return { entry, device };
 }
 
 // -- model status -----------------------------------------------------------
 
 async function handleModelStatus(): Promise<ModelStatusMsg> {
   try {
-    const { modelId, device } = await getActiveModel();
+    const { entry, device } = await getActiveModel();
     const existing = await chrome.offscreen.hasDocument?.().catch(() => false);
     if (!existing) {
       return {
         type: "model_status",
         status: "idle",
-        modelId,
-        detail: `device=${device}`,
+        modelId: entry.id,
+        detail: `dtype=${entry.dtype}, device=${device}`,
       };
     }
     const res = await chrome.runtime.sendMessage({
       type: "offscreen_status",
-      modelId,
+      modelId: entry.id,
+      repoId: entry.repoId,
+      dtype: entry.dtype,
       device,
+      allowWasmFallback: entry.supportsWasm,
     } satisfies OffscreenStatusMsg);
     const r = res as OffscreenStatusResultMsg | undefined;
     if (r?.type === "offscreen_status_result") {
       return {
         type: "model_status",
         status: r.status === "ready" ? "ready" : r.status === "error" ? "error" : "loading",
-        modelId,
-        detail: r.device ? `device=${r.device}` : r.error,
+        modelId: entry.id,
+        detail: r.device ? `dtype=${entry.dtype}, device=${r.device}` : r.error,
       };
     }
-    return { type: "model_status", status: "loading", modelId };
+    return { type: "model_status", status: "loading", modelId: entry.id };
   } catch (err) {
     return {
       type: "model_status",
@@ -228,20 +232,61 @@ async function handleModelStatus(): Promise<ModelStatusMsg> {
 async function handleOrchestrate(
   msg: OrchestrateRequestMsg,
 ): Promise<OffscreenOrchestrateResultMsg> {
+  const normalized = normalizeShoppingList(msg.text);
+  if (normalized?.ok) {
+    return {
+      type: "offscreen_orchestrate_result",
+      ok: true,
+      plan: normalized.plan,
+      debug: {
+        traceId: msg.traceId,
+        source: normalized.source,
+        input: msg.text,
+        parsedPlan: normalized.plan,
+      },
+    };
+  }
+
+  const { entry, device } = await getActiveModel();
+  if (device === "wasm" && !entry.supportsWasm) {
+    return {
+      type: "offscreen_orchestrate_result",
+      ok: false,
+      error:
+        `${entry.label} nécessite WebGPU. ` +
+        "Coche WebGPU pour tester ce modèle, ou choisis Qwen3 0.6B q4 pour le mode WASM.",
+      debug: {
+        traceId: msg.traceId,
+        modelId: entry.id,
+        repoId: entry.repoId,
+        dtype: entry.dtype,
+        promptFormat: entry.promptFormat,
+        device,
+        input: msg.text,
+        error: "Model blocked before ONNX session creation: WebGPU-only variant selected without WebGPU.",
+      },
+    };
+  }
   await ensureOffscreen();
-  const { modelId, device } = await getActiveModel();
   console.info("[mcp-leclerc-drive][background] orchestrate request", {
     traceId: msg.traceId,
     text: msg.text,
-    modelId,
+    modelId: entry.id,
+    repoId: entry.repoId,
+    dtype: entry.dtype,
+    promptFormat: entry.promptFormat,
     device,
   });
   const res = await chrome.runtime.sendMessage({
     type: "offscreen_orchestrate",
     traceId: msg.traceId,
     text: msg.text,
-    modelId,
+    modelId: entry.id,
+    repoId: entry.repoId,
+    dtype: entry.dtype,
+    promptFormat: entry.promptFormat,
     device,
+    allowWasmFallback: entry.supportsWasm,
   } satisfies OffscreenOrchestrateMsg);
   console.info("[mcp-leclerc-drive][background] orchestrate response", {
     traceId: msg.traceId,
@@ -342,11 +387,11 @@ async function handleReloadOffscreen(): Promise<ReloadOffscreenResultMsg> {
     } catch {
       /* none yet */
     }
-    const { modelId, device } = await getActiveModel();
+    const { entry, device } = await getActiveModel();
     return {
       type: "reload_offscreen_result",
       ok: true,
-      modelId,
+      modelId: entry.id,
       device,
     };
   } catch (err) {

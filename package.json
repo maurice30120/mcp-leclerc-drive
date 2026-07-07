@@ -1,7 +1,7 @@
 {
   "name": "mcp-leclerc-drive",
   "version": "1.0.0",
-  "mcpName": "io.github.skunkobi/leclerc-drive",
+  "mcpName": "io.github.maurice30120/leclerc-drive",
   "description": "Expose your Leclerc Drive as MCP tools via WebMCP — search products, manage cart, refresh natively, from any MCP client (opencode / Claude Code).",
   "type": "module",
   "files": [
@@ -13,12 +13,17 @@
     "build:all": "npm run build && npm run build:extension",
     "fetch:model": "node scripts/fetch-model.mjs",
     "dev": "tsc --watch",
+    "mobile:start": "npm --prefix drive-assistant-mobile start",
+    "mobile:ios": "npm --prefix drive-assistant-mobile run ios --",
+    "mobile:android": "npm --prefix drive-assistant-mobile run android --",
+    "mobile:typecheck": "npm --prefix drive-assistant-mobile run typecheck",
+    "mobile:test": "npm --prefix drive-assistant-mobile test",
     "test": "node --test tests/*.test.ts",
     "test:inference": "MCP_LECLERC_RUN_INFERENCE=1 node --test tests/model-inference.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.extension.json",
-    "clean": "node scripts/clean.mjs",
+    "clean": "node scripts/clean.mjs --keep-models",
     "clean:dry": "node scripts/clean.mjs --dry-run",
-    "clean:keep-models": "node scripts/clean.mjs --keep-models"
+    "clean:all": "node scripts/clean.mjs"
   },
   "keywords": [
     "mcp",
@@ -31,11 +36,11 @@
     "grocery",
     "courses"
   ],
-  "author": "skunkobi",
+  "author": "maurice30120",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/skunkobi/mcp-leclerc-drive.git"
+    "url": "git+https://github.com/maurice30120/mcp-leclerc-drive.git"
   },
   "engines": {
     "node": ">=22"

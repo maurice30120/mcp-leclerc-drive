@@ -1,20 +1,20 @@
 /**
  * Model inference tests — runs the *real* local Qwen3 model (the same
  * `@huggingface/transformers` text-generation pipeline the extension's
- * offscreen runtime uses) and checks that, for each recipe request in
- * `tests/recipes.ts`, the parsed `Plan` contains the mandatory ingredients.
+ * offscreen runtime uses) and checks that, for each explicit shopping-list
+ * request in `tests/shopping-lists.ts`, the parsed `Plan` contains the
+ * products the user actually wrote.
  *
  * This is an inference smoke test, not a parser unit test: `parsePlan` is
  * already exhaustively tested in `orchestrator-plan.test.ts`. Here we only
- * care about *what the model infers* — that asking for a spaghetti bolognaise
- * yields both "pâtes spaghetti" and "tomate", that a carbonara never yields
- * tomato, etc.
+ * care about the model contract: normalize explicit grocery items, and refuse
+ * recipe/dish-only prompts with a clarification question.
  *
  * The goal is NOT to make every assertion pass on the first run: it is to
- * surface where the local model's inference diverges from culinary common
- * sense, so the prompt in `src/orchestrator/prompt.ts` can be tightened. A
- * failing `mandatory` assertion means the model forgot a defining ingredient;
- * a failing `forbidden` assertion means it hallucinated a foreign one.
+ * surface where the local model drifts back into recipe generation or fails to
+ * preserve explicit list entries. A failing `mandatory` assertion means the
+ * model dropped an item the user wrote; a failing `forbidden` assertion means
+ * it hallucinated an item not present in the input.
  *
  * Skip behaviour: the whole suite is skipped automatically when the bundled
  * model is not present locally (so `npm test` stays green on machines that
@@ -24,22 +24,20 @@
 
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { buildMessages } from "../src/orchestrator/prompt.ts";
-import { parsePlan, type PlanItem } from "../src/orchestrator/plan.ts";
-import { RECIPES } from "./recipes.ts";
+import { buildMessages, buildPrompt } from "../src/orchestrator/prompt.ts";
+import { parsePlan, type Plan, type PlanItem } from "../src/orchestrator/plan.ts";
+import { MAX_NEW_TOKENS, MODELS, type ModelEntry } from "../src/orchestrator/models.ts";
+import { SHOPPING_LISTS } from "./shopping-lists.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Models are fetched under dist/extension/models/<org>/<repo>/... for both
 // the onnx-community family, so the root is the org-agnostic
 // models directory.
 const MODELS_ROOT = join(ROOT, "dist", "extension", "models");
-
-const MODEL_DTYPE = process.env.MCP_LECLERC_MODEL_DTYPE ?? "q4";
-const MAX_NEW_TOKENS = 512;
 
 /**
  * Enumerate every locally-present Qwen3 model (lightest → heaviest),
@@ -49,41 +47,36 @@ const MAX_NEW_TOKENS = 512;
  * Walks all org directories under the models root (onnx-community, …)
  * so the family is covered.
  */
-function resolveModelIds(): string[] {
+function resolveModelVariants(): ModelEntry[] {
   const override = process.env.MCP_LECLERC_MODEL_ID;
   const allow = override
     ? override.split(",").map((s) => s.trim()).filter(Boolean)
     : null;
-  const found: string[] = [];
+  const found: ModelEntry[] = [];
   if (existsSync(MODELS_ROOT)) {
-    for (const org of readdirSync(MODELS_ROOT)) {
-      const orgDir = join(MODELS_ROOT, org);
-      if (!statSync(orgDir).isDirectory()) continue;
-      for (const name of readdirSync(orgDir)) {
-        const modelDir = join(orgDir, name);
-        if (!statSync(modelDir).isDirectory()) continue;
-        const weight = join(modelDir, "onnx", `model_${MODEL_DTYPE}.onnx`);
-        if (existsSync(weight) && statSync(weight).size > 0) {
-          const id = `${org}/${name}`;
-          if (!allow || allow.includes(id)) found.push(id);
+    for (const entry of MODELS) {
+      // The Node smoke test runs through the CPU/WASM backend. WebGPU-only
+      // variants are covered manually from the extension popup.
+      if (!entry.supportsWasm) continue;
+      const modelDir = join(MODELS_ROOT, entry.repoId);
+      const weight = join(modelDir, "onnx", `model_${entry.dtype}.onnx`);
+      if (existsSync(weight) && statSync(weight).size > 0) {
+        if (!allow || allow.includes(entry.id) || allow.includes(entry.repoId)) {
+          found.push(entry);
         }
       }
     }
   }
   // Deterministic order: by parameter count inferred from the folder name,
   // then alphabetically to break ties (e.g. the two 0.6B models).
-  const sizeOf = (id: string): number => {
-    const m = id.match(/Qwen3\.?5?-([0-9.]+)B/);
-    return m ? parseFloat(m[1]) : 99;
-  };
-  found.sort((a, b) => sizeOf(a) - sizeOf(b) || a.localeCompare(b));
+  found.sort((a, b) => a.paramsB - b.paramsB || a.id.localeCompare(b.id));
   return found;
 }
 
-const MODEL_IDS = resolveModelIds();
+const MODEL_VARIANTS = resolveModelVariants();
 const FORCE = process.env.MCP_LECLERC_RUN_INFERENCE === "1";
 // The inference suite is opt-in: it loads a multi-hundred-MB model and runs
-// generation per recipe, which is far too heavy for the default `npm test`.
+// generation per list, which is far too heavy for the default `npm test`.
 // Enable with `MCP_LECLERC_RUN_INFERENCE=1` (or `npm run test:inference`).
 const SHOULD_RUN = FORCE;
 
@@ -105,6 +98,12 @@ function planHasAny(plan: { items: PlanItem[] }, fragments: string[]): boolean {
   return fragments.some((f) => queries.some((q) => q.includes(normalize(f))));
 }
 
+function findItem(plan: { items: PlanItem[] }, fragments: string[]): PlanItem | undefined {
+  return plan.items.find((it) =>
+    fragments.some((f) => normalize(it.query).includes(normalize(f))),
+  );
+}
+
 function describeItem(item: PlanItem): string {
   const parts = [item.query, `x${item.quantity}`];
   if (item.constraints) parts.push(`(${item.constraints})`);
@@ -119,8 +118,8 @@ type Generator = (messages: unknown, opts?: unknown) => Promise<unknown>;
 // One cached pipeline per model id (each is a separate ONNX session).
 const generators = new Map<string, Promise<Generator>>();
 
-async function getGenerator(modelId: string): Promise<Generator> {
-  let p = generators.get(modelId);
+async function getGenerator(model: ModelEntry): Promise<Generator> {
+  let p = generators.get(model.id);
   if (!p) {
     p = (async () => {
       const { env, pipeline } = await import("@huggingface/transformers");
@@ -131,13 +130,13 @@ async function getGenerator(modelId: string): Promise<Generator> {
       // the org prefix) is passed straight through — both onnx-community and
       // other repos live under this root as <org>/<repo>.
       env.localModelPath = MODELS_ROOT + "/";
-      const gen = await pipeline("text-generation", modelId, {
-        dtype: MODEL_DTYPE,
+      const gen = await pipeline("text-generation", model.repoId, {
+        dtype: model.dtype,
         device: "cpu",
       });
       return gen as unknown as Generator;
     })();
-    generators.set(modelId, p);
+    generators.set(model.id, p);
   }
   return p;
 }
@@ -160,12 +159,12 @@ function extractGeneratedText(output: unknown): string {
 }
 
 async function inferPlan(
-  modelId: string,
+  model: ModelEntry,
   request: string,
-): Promise<{ plan: { items: PlanItem[] }; raw: string }> {
-  const generator = await getGenerator(modelId);
-  const messages = buildMessages(request);
-  const output = await generator(messages, {
+): Promise<{ plan: Plan; raw: string }> {
+  const generator = await getGenerator(model);
+  const prompt = model.promptFormat === "chat" ? buildMessages(request) : buildPrompt(request);
+  const output = await generator(prompt, {
     max_new_tokens: MAX_NEW_TOKENS,
     do_sample: false,
     return_full_text: false,
@@ -174,46 +173,68 @@ async function inferPlan(
   const raw = extractGeneratedText(output);
   const parsed = parsePlan(raw);
   if (!parsed.ok) {
-    throw new Error(`parsePlan failed for "${request}" (${modelId}): ${parsed.error}\nraw output:\n${raw}`);
+    throw new Error(`parsePlan failed for "${request}" (${model.id}): ${parsed.error}\nraw output:\n${raw}`);
   }
   return { plan: parsed.plan, raw };
 }
 
 // ---- the suite ------------------------------------------------------------
 
-function runSuiteForModel(modelId: string) {
-  test(`loaded model = ${modelId} (dtype ${MODEL_DTYPE})`, async () => {
-    const generator = await getGenerator(modelId);
+function runSuiteForModel(model: ModelEntry) {
+  test(`loaded model = ${model.id} (${model.repoId}, dtype ${model.dtype})`, async () => {
+    const generator = await getGenerator(model);
     assert.ok(typeof generator === "function");
   });
 
-  for (const recipe of RECIPES) {
-    test(recipe.id + ": infers mandatory ingredients", async (t) => {
-      const { plan, raw } = await inferPlan(modelId, recipe.request);
-      t.diagnostic(`model: ${modelId}`);
-      t.diagnostic(`request: ${recipe.request}`);
+  for (const fixture of SHOPPING_LISTS) {
+    test(fixture.id + ": normalizes explicit shopping list contract", async (t) => {
+      const { plan, raw } = await inferPlan(model, fixture.request);
+      t.diagnostic(`model: ${model.id} (${model.repoId}, dtype ${model.dtype}, prompt ${model.promptFormat})`);
+      t.diagnostic(`request: ${fixture.request}`);
       t.diagnostic(`plan:\n - ${plan.items.map(describeItem).join("\n - ")}`);
+      if (plan.questions?.length) t.diagnostic(`questions:\n - ${plan.questions.join("\n - ")}`);
       t.diagnostic(`raw:\n${raw}`);
 
-      assert.ok(
-        plan.items.length > 0,
-        `le plan ne contient aucun item (output brut:\n${raw})`,
-      );
+      if (fixture.expectClarification) {
+        assert.equal(
+          plan.items.length,
+          0,
+          `la demande devait être refusée sans items (output brut:\n${raw})`,
+        );
+        assert.ok(
+          plan.questions && plan.questions.length > 0,
+          `la demande refusée doit poser une question (output brut:\n${raw})`,
+        );
+      } else {
+        assert.ok(
+          plan.items.length > 0,
+          `le plan ne contient aucun item (output brut:\n${raw})`,
+        );
+      }
 
-      const missing = recipe.mandatory.filter((alts) => !planHasAny(plan, alts));
+      const missing = (fixture.mandatory ?? []).filter((alts) => !planHasAny(plan, alts));
       if (missing.length > 0) {
         assert.fail(
-          `Ingrédients obligatoires manquants pour "${recipe.request}" [${modelId}]:\n` +
+          `Produits explicites manquants pour "${fixture.request}" [${model.id}]:\n` +
             missing.map((alts) => `  - aucun de: ${alts.join(" | ")}`).join("\n") +
             `\nPlan obtenu:\n - ${plan.items.map(describeItem).join("\n - ")}`,
         );
       }
 
-      if (recipe.forbidden) {
-        const present = recipe.forbidden.filter((alts) => planHasAny(plan, alts));
+      for (const expected of fixture.quantities ?? []) {
+        const item = findItem(plan, expected.item);
+        assert.ok(
+          item,
+          `item introuvable pour vérifier la quantité: ${expected.item.join(" | ")}`,
+        );
+        assert.equal(item.quantity, expected.quantity);
+      }
+
+      if (fixture.forbidden) {
+        const present = fixture.forbidden.filter((alts) => planHasAny(plan, alts));
         if (present.length > 0) {
           assert.fail(
-            `Ingrédients interdits présents pour "${recipe.request}" [${modelId}]:\n` +
+            `Produits halluciné(s) pour "${fixture.request}" [${model.id}]:\n` +
               present.map((alts) => `  - trouvé: ${alts.join(" | ")}`).join("\n") +
               `\nPlan obtenu:\n - ${plan.items.map(describeItem).join("\n - ")}`,
           );
@@ -226,10 +247,10 @@ function runSuiteForModel(modelId: string) {
 // Skip the whole suite unless explicitly opted in via
 // MCP_LECLERC_RUN_INFERENCE=1 (the default `npm test` stays fast); use
 // `npm run test:inference` to run it. Runs one describe block per locally
-// present model so each family is exercised against the recipe fixtures.
+// present model so each family is exercised against the shopping-list fixtures.
 if (SHOULD_RUN) {
-  if (MODEL_IDS.length === 0) {
-    describe("model inference — recipes", { concurrency: false }, () => {
+  if (MODEL_VARIANTS.length === 0) {
+    describe("model inference — shopping lists", { concurrency: false }, () => {
       test("no model found locally — run `npm run fetch:model` first", () => {
         assert.fail(
           `No local Qwen3 model found under ${MODELS_ROOT}. ` +
@@ -238,12 +259,12 @@ if (SHOULD_RUN) {
       });
     });
   } else {
-    for (const id of MODEL_IDS) {
-      describe(`model inference — ${id}`, { concurrency: false }, () =>
-        runSuiteForModel(id),
+    for (const model of MODEL_VARIANTS) {
+      describe(`model inference — ${model.id}`, { concurrency: false }, () =>
+        runSuiteForModel(model),
       );
     }
   }
 } else {
-  describe.skip("model inference — recipes", { concurrency: false }, () => {});
+  describe.skip("model inference — shopping lists", { concurrency: false }, () => {});
 }

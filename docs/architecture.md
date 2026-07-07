@@ -105,7 +105,7 @@ pour que seule ta page Leclerc puisse enregistrer des outils.
 ### 5. Registry + métadonnées de config
 
 - [`server.json`](../server.json) — métadonnées du registry MCP
-  (`io.github.skunkobi/leclerc-drive`). Annonce explicitement qu'il s'agit d'un
+  (`io.github.maurice30120/leclerc-drive`). Annonce explicitement qu'il s'agit d'un
   *relay WebMCP*, pas d'un serveur stdio classique.
 - [`opencode.example.jsonc`](../opencode.example.jsonc) — template de config
   MCP drop-in. [`opencode.jsonc`](../opencode.jsonc) est la copie dev locale.
