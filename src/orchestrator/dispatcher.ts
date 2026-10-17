@@ -68,6 +68,90 @@ export type MutationCall =
 
 export type DispatchCall = ReadCall | MutationCall;
 
+/** A single validated entry in the public WebMCP add_many batch. */
+export type AddManyCall = Extract<MutationCall, { command: "add_to_cart" }>;
+
+/** Keep a batch small enough for the browser's existing request throttle. */
+export const MAX_ADD_MANY_ITEMS = 20;
+
+export type ValidateAddManyResult =
+  | { ok: true; items: AddManyCall[] }
+  | { ok: false; error: string };
+
+/**
+ * Validate the entire batch before any cart mutation takes place.
+ * Uses exactly the same product/quantity/host rules as add_to_cart.
+ */
+export function validateAddMany(items: unknown, host?: string): ValidateAddManyResult {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { ok: false, error: "add_many: 'items' doit contenir au moins un produit." };
+  }
+  if (items.length > MAX_ADD_MANY_ITEMS) {
+    return { ok: false, error: `add_many: maximum ${MAX_ADD_MANY_ITEMS} produits par appel.` };
+  }
+
+  const validated: AddManyCall[] = [];
+  const seen = new Set<string>();
+  for (let i = 0; i < items.length; i++) {
+    const raw = items[i];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return { ok: false, error: `add_many: items[${i}] doit être un objet.` };
+    }
+    const item = raw as Record<string, unknown>;
+    const result = validateCommand(
+      "add_to_cart",
+      { product_id: item.product_id, quantity: item.quantity === undefined ? 1 : item.quantity },
+      host,
+    );
+    if (!result.ok) return { ok: false, error: `add_many: items[${i}]: ${result.error}` };
+    if (result.call.command !== "add_to_cart") {
+      return { ok: false, error: "add_many: commande inattendue." };
+    }
+    if (seen.has(result.call.productId)) {
+      return { ok: false, error: `add_many: product_id répété : ${result.call.productId}.` };
+    }
+    seen.add(result.call.productId);
+    validated.push(result.call);
+  }
+
+  return { ok: true, items: validated };
+}
+
+export interface AddManyExecutionResult<T> {
+  added: AddManyCall[];
+  failed: { productId: string; quantity: number; error: string }[];
+  /** Value returned by the last successful add; not necessarily the final cart on failure. */
+  lastResult?: T;
+}
+
+/**
+ * Execute additions sequentially, preserving the existing add_to_cart path
+ * (and its anti-DataDome throttle). A failed item does not abort later items.
+ * Completed changes are never rolled back automatically.
+ */
+export async function executeAddMany<T>(
+  items: readonly AddManyCall[],
+  addOne: (item: AddManyCall) => Promise<T>,
+): Promise<AddManyExecutionResult<T>> {
+  const added: AddManyCall[] = [];
+  const failed: AddManyExecutionResult<T>["failed"] = [];
+  let lastResult: T | undefined;
+
+  for (const item of items) {
+    try {
+      lastResult = await addOne(item);
+      added.push(item);
+    } catch (error) {
+      failed.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return { added, failed, lastResult };
+}
+
 export interface ValidateOk {
   ok: true;
   call: DispatchCall;
