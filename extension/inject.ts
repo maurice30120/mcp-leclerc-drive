@@ -5,7 +5,7 @@
  * access to the live page's fetch context: cookies, datadome, fingerprint are
  * all authentic, and the browser refreshes `datadome` on its own when needed.
  *
- * It registers the 9 Leclerc tools on `document.modelContext` (installed by
+ * It registers the 10 Leclerc tools on `document.modelContext` (installed by
  * @mcp-b/global), then loads the webmcp-local-relay `embed.js` so those tools
  * are forwarded to the local relay → opencode (or any stdio MCP client).
  *
@@ -53,6 +53,9 @@ import {
 } from "../src/orchestrator/messages.js";
 import {
   validateCommand,
+  validateAddMany,
+  executeAddMany,
+  MAX_ADD_MANY_ITEMS,
   type DispatchCall,
 } from "../src/orchestrator/dispatcher.js";
 
@@ -276,7 +279,7 @@ function scrubUntrusted(s: string): string {
     .replace(/\[\/?(system|tool|assistant)\]/gi, "");
 }
 
-// ---- The 9 tools -----------------------------------------------------------
+// ---- The 10 tools ----------------------------------------------------------
 
 function registerTools(): void {
   const mc = document.modelContext;
@@ -335,6 +338,84 @@ function registerTools(): void {
         const result = await runDispatch(v.call);
         if (result.kind !== "cart_mutation") return asError(new Error("Réponse inattendue"));
         return asText(`Ajouté.\n\n${formatCart(result.cart)}`);
+      } catch (err) {
+        return asError(err);
+      }
+    },
+  });
+
+  mc.registerTool({
+    name: "add_many",
+    title: "Ajouter plusieurs produits au panier Leclerc",
+    description:
+      "Ajoute de 1 à 20 produits au panier dans un seul appel MCP. Chaque ligne utilise " +
+      "un product_id issu de search_product et une quantity optionnelle (défaut 1). " +
+      "Les ajouts sont effectués successivement ; les échecs sont signalés par produit. " +
+      "En cas d'échec partiel, les ajouts déjà réussis restent dans le panier.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        items: {
+          type: "array",
+          minItems: 1,
+          maxItems: MAX_ADD_MANY_ITEMS,
+          description: "Produits distincts à ajouter au panier, maximum 20.",
+          items: {
+            type: "object",
+            properties: {
+              product_id: {
+                type: "string",
+                description: "Identifiant produit (champ id de search_product)",
+              },
+              quantity: {
+                type: "integer",
+                minimum: 1,
+                default: 1,
+                description: "Quantité cible pour ce produit",
+              },
+            },
+            required: ["product_id"],
+          },
+        },
+      },
+      required: ["items"],
+    },
+    annotations: { destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    async execute(args) {
+      try {
+        // Validate the whole batch before the first POST; keep the browser host guard.
+        const validation = validateAddMany((args as { items?: unknown })?.items, location.host);
+        if (!validation.ok) return asError(new Error(validation.error));
+
+        const result = await executeAddMany(validation.items, async (item) => {
+          const response = await runDispatch(item);
+          if (response.kind !== "cart_mutation") throw new Error("Réponse inattendue");
+          return response.cart;
+        });
+
+        const parts = [
+          `Ajout groupé : ${result.added.length}/${validation.items.length} produit(s) ajouté(s).`,
+        ];
+        if (result.added.length > 0) {
+          parts.push(
+            "Réussis :\n" +
+              result.added.map((item) => `• ${item.productId} × ${item.quantity}`).join("\n"),
+          );
+        }
+        if (result.failed.length > 0) {
+          parts.push(
+            "Échecs (les réussites ne sont pas annulées) :\n" +
+              result.failed.map((item) => `• ${item.productId} × ${item.quantity} : ${item.error}`).join("\n"),
+          );
+        }
+        if (result.lastResult) {
+          parts.push("Panier après le dernier ajout réussi :\n" + formatCart(result.lastResult));
+        }
+        if (result.failed.length > 0) {
+          parts.push("Vérifie get_cart avant de relancer les produits en échec.");
+        }
+
+        return { ...asText(parts.join("\n\n")), isError: result.added.length === 0 };
       } catch (err) {
         return asError(err);
       }
@@ -735,7 +816,7 @@ async function main(): Promise<void> {
   //    the relay's embed iframe relies on.
   initializeWebModelContext({ autoInitialize: true, installTestingShim: "if-missing" });
 
-  // 2) Register the 9 tools on the document's model context.
+  // 2) Register the 10 tools on the document's model context.
   registerTools();
 
   // 2b) Install the postMessage bridge so the popup orchestrator (local
@@ -751,7 +832,7 @@ async function main(): Promise<void> {
   //    ready before embed.js runs (handled by @mcp-b/global above).
 
   console.info(
-    "[mcp-leclerc-drive] WebMCP tools registered (9). Make sure @mcp-b/webmcp-local-relay " +
+    "[mcp-leclerc-drive] WebMCP tools registered (10). Make sure @mcp-b/webmcp-local-relay " +
       "is running (opencode launches it via `npx @mcp-b/webmcp-local-relay`).",
   );
 }

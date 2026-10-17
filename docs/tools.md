@@ -1,6 +1,6 @@
 # Référence des outils
 
-Les 9 outils MCP enregistrés sur `document.modelContext` par
+Les 10 outils MCP enregistrés sur `document.modelContext` par
 `extension/inject.ts`. Tous tournent **dans l'onglet Leclerc Drive connecté**,
 en utilisant le propre `fetch` de la page.
 
@@ -84,6 +84,31 @@ entier ≥ 1.
 - `POST panier.aspx?op=1` avec `cartMutationBody(…, ACTION_ADD=1, qté cible)`.
 - Parse le tableau d'événements avec `cartFromEvents` → retourne le panier
   complet.
+- Annotations : `destructiveHint: false`, `idempotentHint: true`,
+  `openWorldHint`.
+
+### `add_many(items)`
+Ajoute **1 à 20 produits distincts** dans un seul appel MCP. `items` est une
+liste d'objets `{ product_id, quantity? }`, avec `quantity=1` par défaut.
+Les identifiants viennent de `search_product`.
+
+```json
+{
+  "items": [
+    { "product_id": "123456", "quantity": 2 },
+    { "product_id": "789012" }
+  ]
+}
+```
+
+- Valide **toutes** les lignes avant de modifier le panier ; une quantité
+  invalide, un identifiant répété ou un host non-Leclerc bloque le lot.
+- Réutilise `add_to_cart` pour chaque produit, **séquentiellement**, avec
+  le throttle et les retries DataDome existants (pas un POST HTTP unique).
+  La quantité a la même sémantique cible que `add_to_cart`.
+- Renvoie le nombre de réussites et les erreurs par produit. Une ligne en
+  échec n'empêche pas les suivantes de passer ; les réussites ne sont pas
+  annulées. Après un échec partiel, consulter `get_cart` avant une relance.
 - Annotations : `destructiveHint: false`, `idempotentHint: true`,
   `openWorldHint`.
 

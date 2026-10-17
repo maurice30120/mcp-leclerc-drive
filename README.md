@@ -2,7 +2,7 @@
 
 > Expose your **E.Leclerc Drive** as MCP tools via [WebMCP](https://docs.mcp-b.ai) — search products, manage your cart and refresh natively, from any MCP client (opencode, Claude Code, Cursor…). Tools run **inside your logged-in Chrome tab**, so authentication is just "be logged in" — no cookie copy-paste, no extracted credentials.
 
-> 🟢 **v1.0 — WebMCP architecture.** Nine tools, validated live against the site. A tiny Chrome extension registers the tools in the Leclerc Drive tab; `@mcp-b/webmcp-local-relay` bridges them to your MCP client over stdio. See [`CHANGELOG.md`](CHANGELOG.md) for what changed from the old Node stdio server.
+> 🟢 **v1.0 — WebMCP architecture.** Ten tools (the original nine validated live; add_many requires a live smoke test) against the site. A tiny Chrome extension registers the tools in the Leclerc Drive tab; `@mcp-b/webmcp-local-relay` bridges them to your MCP client over stdio. See [`CHANGELOG.md`](CHANGELOG.md) for what changed from the old Node stdio server.
 
 ## Tools
 
@@ -13,6 +13,7 @@
 | `get_store()` | Show the currently selected store. |
 | `search_product(query)` | Search the catalogue → products with price, price/kg, Nutri-Score, availability, and an `id`. |
 | `add_to_cart(product_id, quantity?)` | Add a product to the cart. |
+| `add_many(items)` | Add up to 20 distinct products sequentially in one MCP call; report success/failure per item. |
 | `remove_from_cart(product_id)` | Remove a line from the cart. |
 | `update_quantity(product_id, quantity)` | Set a line's quantity (0 removes it). |
 | `get_cart()` | Read the full cart with total. |

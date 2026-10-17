@@ -4,6 +4,9 @@
 import { test, assert } from "./helpers.ts";
 import {
   validateCommand,
+  validateAddMany,
+  executeAddMany,
+  MAX_ADD_MANY_ITEMS,
   isMutationCall,
   isReadCall,
   type DispatchCall,
@@ -87,4 +90,71 @@ test("validateCommand: string product_id is accepted, numbers rejected", () => {
     validateCommand("add_to_cart", { product_id: "123", quantity: 1 }, LECRERC_HOST).ok,
     true,
   );
+});
+
+test("validateAddMany: normalizes quantities and validates the complete batch", () => {
+  const r = validateAddMany(
+    [{ product_id: "p1", quantity: 3 }, { product_id: "p2" }],
+    LECRERC_HOST,
+  );
+  assert.equal(r.ok, true);
+  if (r.ok) {
+    assert.deepEqual(r.items, [
+      { command: "add_to_cart", productId: "p1", quantity: 3 },
+      { command: "add_to_cart", productId: "p2", quantity: 1 },
+    ]);
+  }
+});
+
+test("validateAddMany: rejects empty, oversized and malformed batches", () => {
+  assert.equal(validateAddMany([], LECRERC_HOST).ok, false);
+  assert.equal(validateAddMany(null, LECRERC_HOST).ok, false);
+  assert.equal(
+    validateAddMany(Array.from({ length: MAX_ADD_MANY_ITEMS + 1 }, (_, i) => ({ product_id: String(i) })), LECRERC_HOST).ok,
+    false,
+  );
+  assert.equal(validateAddMany([{ product_id: "p1" }, null], LECRERC_HOST).ok, false);
+  assert.equal(validateAddMany([{ product_id: "p1" }, { product_id: "p2", quantity: 0 }], LECRERC_HOST).ok, false);
+  assert.equal(validateAddMany([{ product_id: 123 }], LECRERC_HOST).ok, false);
+  assert.equal(validateAddMany([{ product_id: "p1", quantity: 1.5 }], LECRERC_HOST).ok, false);
+});
+
+test("validateAddMany: rejects duplicates and non-Leclerc hosts", () => {
+  const duplicate = validateAddMany([{ product_id: "p1" }, { product_id: "p1" }], LECRERC_HOST);
+  assert.equal(duplicate.ok, false);
+  if (!duplicate.ok) assert.match(duplicate.error, /répété/i);
+
+  const invalidHost = validateAddMany([{ product_id: "p1" }], EVIL_HOST);
+  assert.equal(invalidHost.ok, false);
+  if (!invalidHost.ok) assert.match(invalidHost.error, /Host refusé/i);
+});
+
+test("executeAddMany: processes sequentially and continues after per-item failure", async () => {
+  const calls: string[] = [];
+  let running = 0;
+  let peak = 0;
+  const result = await executeAddMany(
+    [
+      { command: "add_to_cart", productId: "a", quantity: 2 },
+      { command: "add_to_cart", productId: "b", quantity: 1 },
+      { command: "add_to_cart", productId: "c", quantity: 4 },
+    ],
+    async (item) => {
+      calls.push(item.productId);
+      running++;
+      peak = Math.max(peak, running);
+      try {
+        await Promise.resolve();
+        if (item.productId === "b") throw new Error("HTTP 403");
+        return `panier-${item.productId}`;
+      } finally {
+        running--;
+      }
+    },
+  );
+  assert.deepEqual(calls, ["a", "b", "c"]);
+  assert.equal(peak, 1);
+  assert.deepEqual(result.added.map((item) => item.productId), ["a", "c"]);
+  assert.deepEqual(result.failed, [{ productId: "b", quantity: 1, error: "HTTP 403" }]);
+  assert.equal(result.lastResult, "panier-c");
 });
