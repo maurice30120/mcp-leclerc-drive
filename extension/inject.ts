@@ -398,24 +398,24 @@ function registerTools(): void {
         ];
         if (result.added.length > 0) {
           parts.push(
-            "Réussis :\\n" +
-              result.added.map((item) => `• ${item.productId} × ${item.quantity}`).join("\\n"),
+            "Réussis :\n" +
+              result.added.map((item) => `• ${item.productId} × ${item.quantity}`).join("\n"),
           );
         }
         if (result.failed.length > 0) {
           parts.push(
-            "Échecs (les réussites ne sont pas annulées) :\\n" +
-              result.failed.map((item) => `• ${item.productId} × ${item.quantity} : ${item.error}`).join("\\n"),
+            "Échecs (les réussites ne sont pas annulées) :\n" +
+              result.failed.map((item) => `• ${item.productId} × ${item.quantity} : ${item.error}`).join("\n"),
           );
         }
         if (result.lastResult) {
-          parts.push("Panier après le dernier ajout réussi :\\n" + formatCart(result.lastResult));
+          parts.push("Panier après le dernier ajout réussi :\n" + formatCart(result.lastResult));
         }
         if (result.failed.length > 0) {
           parts.push("Vérifie get_cart avant de relancer les produits en échec.");
         }
 
-        return { ...asText(parts.join("\\n\\n")), isError: result.added.length === 0 };
+        return { ...asText(parts.join("\n\n")), isError: result.added.length === 0 };
       } catch (err) {
         return asError(err);
       }
