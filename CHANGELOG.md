@@ -1,5 +1,53 @@
 # Changelog
 
+## Unreleased — orchestrateur local Transformers.js (popup)
+
+Deuxième façon d’utiliser le MCP, **sans agent CLI** : une popup Chrome
+pilote un modèle local Transformers.js qui transforme une recette ou un plat en
+liste de courses, puis en recherches produits et actions panier. Les 9 outils MCP
+publics restent inchangés ; la popup réutilise le même noyau métier côté onglet
+Leclerc.
+
+### Added
+
+- **`extension/popup/`** — popup Chrome (champ de demande, état de chargement
+  modèle, résultats par item, sélection produit/quantité, bouton *Valider*).
+- **`extension/offscreen/`** — document offscreen isolé hébergeant la runtime
+  `@huggingface/transformers` (WebGPU si disponible, fallback WASM CPU).
+  `env.allowRemoteModels = false` ; modèle embarqué sous
+  `dist/extension/models/`.
+- **`extension/content-relay.ts`** — content script monde isolé faisant le
+  relais `chrome.runtime` ↔ `window.postMessage` vers le bridge MAIN world,
+  avec corrélation `requestId` + timeout (`RequestCorrelator`).
+- **`src/orchestrator/`** — logique pure testable : `messages.ts` (contrats
+  typés), `dispatcher.ts` (validation lecture vs mutation, host Leclerc),
+  `plan.ts` (parsing/validation de la sortie modèle, droppage des
+  `product_id` hallucinés), `correlator.ts` (corrélation `requestId`).
+- **Refactor `extension/inject.ts`** — dispatcher interne structuré
+  (`runDispatch`) pour `search_products`, `get_cart`, `get_store`,
+  `add_to_cart`, `update_quantity`, `remove_from_cart`. Les 9 outils MCP
+  existants appellent ce dispatcher (aucune duplication). Nouveau pont
+  `window.postMessage` pour l’orchestrateur popup.
+- **`scripts/fetch-model.mjs` + `scripts/model-files.json`** — récupération
+  explicite du modèle ONNX (téléchargement, vérification checksums/manifest,
+  lock reproductible). `npm run fetch:model`.
+- **`scripts/build-extension.mjs`** — bundler popup/offscreen/content-relay,
+  copier les binaires `ort-wasm` d’onnxruntime-web et les modèles.
+- **Manifest** — `default_popup`, permission `offscreen`, CSP
+  `wasm-unsafe-eval` (WebGPU/WASM), `web_accessible_resources` pour
+  `models/**` et l’offscreen.
+- **`docs/orchestrator.md`** — documentation du mode orchestrateur.
+- **Tests** — `tests/orchestrator-{plan,dispatcher,correlator}.test.ts`.
+
+### Security
+
+- Aucune mutation panier avant validation utilisateur explicite (clic
+  *Valider*).
+- Le modèle ne produit jamais de `product_id` ; le parseur drope tout champ
+  `product_id`/`id` halluciné.
+- Libellés produits Leclerc rendus en `textContent` (données non fiables).
+- Host Leclerc re-vérifié par le bridge avant toute action.
+
 ## 1.0.0 — WebMCP / opencode refactor
 
 Complete rearchitecture to the **WebMCP** model (MCP-B): the Leclerc Drive

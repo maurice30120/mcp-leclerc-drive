@@ -51,7 +51,7 @@ Prerequisites: **Node 22+** (the relay requires it), and **Chrome logged into
 Leclerc Drive** (the tools run inside that tab).
 
 ```bash
-git clone https://github.com/skunkobi/mcp-leclerc-drive.git
+git clone https://github.com/maurice30120/mcp-leclerc-drive.git
 cd mcp-leclerc-drive
 npm install
 npm run typecheck        # must pass before you open a PR

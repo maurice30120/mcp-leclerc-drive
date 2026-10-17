@@ -2,23 +2,28 @@
   "manifest_version": 3,
   "name": "mcp-leclerc-drive",
   "version": "{{EXTENSION_VERSION}}",
-  "description": "Expose Leclerc Drive as MCP tools via WebMCP (for opencode / Claude Code).",
-  "permissions": ["scripting", "activeTab", "storage"],
+  "description": "Expose Leclerc Drive as MCP tools via WebMCP (for opencode / Claude Code), and drive it from a popup with a local Transformers.js model.",
+  "permissions": ["scripting", "activeTab", "storage", "offscreen"],
   "host_permissions": ["*://*.leclercdrive.fr/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
-    "default_title": "mcp-leclerc-drive"
+    "default_title": "mcp-leclerc-drive",
+    "default_popup": "popup/popup.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },
   "web_accessible_resources": [
     {
       "resources": ["inject.js", "embed.js"],
       "matches": ["*://*.leclercdrive.fr/*"]
+    },
+    {
+      "resources": ["models/**", "ort-wasm/**"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

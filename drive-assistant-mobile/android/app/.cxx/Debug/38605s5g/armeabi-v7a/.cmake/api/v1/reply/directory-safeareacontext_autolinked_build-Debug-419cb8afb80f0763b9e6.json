@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "safeareacontext_autolinked_build",
+		"source" : "/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/node_modules/react-native-safe-area-context/android/src/main/jni"
+	}
+}

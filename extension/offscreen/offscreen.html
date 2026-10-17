@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>mcp-leclerc-drive orchestrator</title>
+  </head>
+  <body>
+    <!--
+      Offscreen document hosting the local Transformers.js model runtime.
+
+      Why offscreen and not the service worker: MV3 service workers are
+      terminated on idle and have no DOM/WebGPU surface; an offscreen document
+      persists while the popup drives it and gives us a real DOM + WebGPU
+      context. The model artefacts live under chrome.runtime.getURL("models/").
+    -->
+    <script type="module" src="offscreen.js"></script>
+  </body>
+</html>

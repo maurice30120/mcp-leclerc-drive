@@ -1,0 +1,15 @@
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/CMakeFiles/appmodules.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/RNKeychainSpec_autolinked_build/CMakeFiles/react_codegen_RNKeychainSpec.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/RNKeychainSpec_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/RNKeychainSpec_autolinked_build/CMakeFiles/rebuild_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/rebuild_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/rnscreens_autolinked_build/CMakeFiles/react_codegen_rnscreens.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/rnscreens_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/rnscreens_autolinked_build/CMakeFiles/rebuild_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/react_codegen_RNCWebViewSpec.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/dhuyet/Documents/POC/mcp-leclerc-drive/drive-assistant-mobile/android/app/.cxx/Debug/38605s5g/arm64-v8a/RNCWebViewSpec_autolinked_build/CMakeFiles/rebuild_cache.dir
