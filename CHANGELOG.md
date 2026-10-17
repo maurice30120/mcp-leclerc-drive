@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — ajout groupé WebMCP
+
+- Nouvel outil public `add_many(items)` : de 1 à 20 produits distincts,
+  quantités optionnelles, validation du lot avant mutation, exécution
+  séquentielle via le dispatcher et le throttle existants.
+- Résultats détaillés par produit ; les échecs partiels ne suppriment pas
+  les ajouts réussis. Tests de validation et de comportement séquentiel.
+- La popup orchestrateur conserve ses commandes internes actuelles.
+
+
 ## Unreleased — orchestrateur local Transformers.js (popup)
 
 Deuxième façon d’utiliser le MCP, **sans agent CLI** : une popup Chrome
