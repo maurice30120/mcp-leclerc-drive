@@ -21,6 +21,7 @@ import type {
   BackgroundToPopupMsg,
   LeclercRunMsg,
   OrchestrateRequestMsg,
+  PrepareRecipeMsg,
   ReloadOffscreenMsg,
   ReloadOffscreenResultMsg,
   SetModelMsg,
@@ -40,6 +41,7 @@ import {
   addToCartCallsForSelections,
   searchCallsForPlan,
 } from "../../src/orchestrator/workflow.js";
+import { isRecipeRequest } from "../../src/sidepanel-protocol/shopping-request.js";
 
 // ---- DOM refs --------------------------------------------------------------
 
@@ -52,6 +54,7 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
 const statusEl = $<HTMLParagraphElement>("model-status");
 const promptEl = $<HTMLTextAreaElement>("prompt");
 const planBtn = $<HTMLButtonElement>("plan-btn");
+const recipeBtn = $<HTMLButtonElement>("recipe-btn");
 const planError = $<HTMLParagraphElement>("plan-error");
 const planSection = $<HTMLElement>("plan-section");
 const questionsEl = $<HTMLElement>("questions");
@@ -162,6 +165,7 @@ async function persistByok(): Promise<void> {
     next.provider = "";
   }
   await chrome.storage.local.set({ byok: next });
+  setStatus("idle");
   byokStatus.hidden = false;
   if (next.provider && !byokKeyInput.value.trim()) {
     byokStatus.className = "error";
@@ -175,9 +179,12 @@ async function persistByok(): Promise<void> {
 }
 
 byokProviderSelect.addEventListener("change", async () => {
-  // Re-render the fields for the new provider (they show its stored values)
-  // before persisting, so keys never leak across provider slots.
-  await loadByok();
+  // Re-render the fields for the newly selected provider (they show its
+  // stored values) before persisting, so keys never leak across provider
+  // slots. Do NOT call loadByok() here: it resets the select to the
+  // provider still in storage, silently reverting the user's selection.
+  const stored = await readByokStorage();
+  renderByokUi(stored);
   await persistByok();
 });
 byokKeyInput.addEventListener("change", () => void persistByok());
@@ -226,14 +233,16 @@ interface SaveCaptureReply {
 
 function setStatus(state: "idle" | "loading" | "ready" | "error", detail?: string): void {
   statusEl.className = `status ${state}`;
+  const provider = findByokProvider(byokProviderSelect.value);
+  const name = provider ? (provider.id === "vibe" ? "Mistral" : "OpenAI") : "Modèle local";
   const label =
     state === "idle"
-      ? "Modèle : en attente"
+      ? `${name} : en attente`
       : state === "loading"
-        ? "Modèle : chargement…"
+        ? `${name} : ${provider ? "requête en cours…" : "chargement…"}`
         : state === "ready"
-          ? "Modèle : prêt"
-          : "Modèle : erreur";
+          ? `${name} : prêt`
+          : `${name} : erreur`;
   statusEl.textContent = detail ? `${label} — ${detail}` : label;
 }
 
@@ -241,7 +250,12 @@ function setStatus(state: "idle" | "loading" | "ready" | "error", detail?: strin
 // popup can crash some Chrome Canary/macOS builds. The first planning run loads
 // the model explicitly.
 setStatus("idle", "chargement au lancement");
-planBtn.disabled = false;
+let popupWindowId: number | undefined;
+void chrome.windows.getCurrent().then((window) => {
+  popupWindowId = window.id;
+  planBtn.disabled = false;
+  recipeBtn.disabled = false;
+});
 
 // ---- Model picker (lightest → heaviest, default = smallest stable) ---------
 
@@ -312,7 +326,30 @@ let itemStates: ItemState[] = [];
 let activeTraceId: string | undefined;
 let debugState: Record<string, unknown> = {};
 
-planBtn.addEventListener("click", () => void onPlan());
+planBtn.addEventListener("click", () => {
+  if (isRecipeRequest(promptEl.value)) void onRecipe();
+  else void onPlan();
+});
+recipeBtn.addEventListener("click", () => void onRecipe());
+
+async function onRecipe(): Promise<void> {
+  const text = promptEl.value.trim();
+  if (!text || popupWindowId === undefined) return;
+  planError.hidden = true;
+  try {
+    // Send before any await: the worker owns the flow even if opening the
+    // side panel closes this popup. Never put this message in debug output.
+    const result = await send<{ ok: boolean; error?: string }>({
+      type: "prepare_recipe", windowId: popupWindowId, text,
+      providerId: byokProviderSelect.value,
+      apiKey: byokKeyInput.value.trim(), model: byokModelInput.value.trim(),
+    } satisfies PrepareRecipeMsg);
+    if (!result.ok) throw new Error(result.error ?? "Ouverture de l'assistant impossible.");
+  } catch (err) {
+    planError.textContent = err instanceof Error ? err.message : String(err);
+    planError.hidden = false;
+  }
+}
 
 async function onPlan(): Promise<void> {
   const text = promptEl.value.trim();
@@ -330,6 +367,10 @@ async function onPlan(): Promise<void> {
   console.info("[mcp-leclerc-drive][popup] orchestrate start", debugState);
 
   try {
+    // Persist edits before dispatch, including a key/model field that still
+    // has focus when Prepare is clicked.
+    await persistByok();
+    setStatus("loading");
     const reply = await send<OrchestrateReply>({
       type: "orchestrate",
       traceId,
@@ -661,6 +702,8 @@ chrome.runtime.onMessage.addListener((msg: unknown) => {
     (msg as { type?: unknown }).type === "model_status"
   ) {
     const m = msg as BackgroundToPopupMsg as ModelStatusReply;
+    // A previously loaded local runtime must not overwrite remote status.
+    if (findByokProvider(byokProviderSelect.value)) return false;
     if (m.status === "ready") setStatus("ready", m.detail);
     else if (m.status === "error") setStatus("error", m.detail);
   }

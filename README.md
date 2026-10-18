@@ -127,6 +127,22 @@ Open Leclerc Drive in Chrome and reload the page once to refresh the session,
 then retry. The browser re-obtains its own DataDome cookie automatically; the
 extension needs nothing from you.
 
+### Préparer les courses d'un repas dans le plugin
+
+Dans le popup Chrome, sélectionner Mistral et saisir sa clé, puis écrire par
+exemple « je veux faire un casoulet 5 personne » et cliquer **Préparer mes courses**.
+L'assistant s'ouvre dans le panneau latéral avec la même configuration Mistral :
+il génère une recette pour 5 personnes, recherche ses ingrédients dans le magasin
+connecté et prépare un aperçu des produits avec quantités et prix. En cas de
+produits ex æquo, il demande lequel choisir. Les conditionnements reconnus dans
+les libellés servent à calculer le nombre de paquets ; les unités incompatibles
+ou absentes restent signalées pour vérification. L'ajout au panier attend la
+validation de l'aperçu.
+
+Le bouton **Préparer une recette** accepte aussi un simple nom de plat. Une
+liste explicite telle que « lait 1L, œufs x6 » garde son parcours dans le popup.
+Voir le [protocole de vérification navigateur](docs/testing/sidepanel-opt-in.md).
+
 ## Development
 
 ```bash

@@ -20,9 +20,14 @@ humaine du panneau latéral.
   c'est l'onglet qui exécute réellement les recherches et les mutations du
   panier via le pont WebMCP existant. Le panneau latéral ne modifie jamais
   l'interface du site Leclerc.
-- Ouvrir le panneau : icône « panneau latéral » de la barre d'outils Chrome →
-  sélectionner **mcp-leclerc-drive**. (Le clic sur l'icône de l'extension
-  ouvre toujours le popup existant, inchangé.)
+- Ouvrir le panneau depuis le popup : sélectionner Mistral, saisir par exemple
+  « je veux faire un casoulet 5 personne », puis **Préparer mes courses**.
+  Les demandes de recette sont dirigées vers l'assistant ; **Préparer une
+  recette** permet aussi de lui envoyer un simple nom de plat. La clé et le
+  modèle choisis dans le popup sont repris pour la session, sans nouvelle saisie.
+  Les listes explicites de produits conservent leur parcours dans le popup.
+- On peut aussi ouvrir le panneau via l'icône « panneau latéral » de Chrome →
+  sélectionner **mcp-leclerc-drive**, puis choisir un fournisseur dans Réglages.
 
 ## Fournisseurs
 
@@ -51,9 +56,10 @@ La sélection du fournisseur est **explicite et manuelle** (menu Réglages) :
    - phase « Recherche produits… » avec une ligne d'activité par recherche
      (nombre de produits trouvés, aperçu des libellés) ;
    - l'**aperçu du panier** (articles, quantités, prix unitaires, totaux,
-     avertissement « données du catalogue Leclerc non garanties »). Sans
-     conditionnement structuré dans l'extraction réelle, la quantité par
-     défaut documentée (1 unité) s'applique et est signalée ;
+     avertissement « données du catalogue Leclerc non garanties »). Les poids,
+     volumes et multipacks explicites dans les libellés du catalogue permettent
+     de calculer le nombre de paquets. Si le conditionnement est absent ou son
+     unité incompatible, la quantité par défaut (1 unité) est signalée ;
    - la **validation globale** avec les deux boutons « Approuver et ajouter au
      panier » / « Refuser ».
 5. CRITIQUE : à ce stade, le panier Leclerc doit être **inchangé** — aucune
@@ -130,6 +136,18 @@ liste des exclus du panier, sans jamais inventer d'identifiant.
 3. « Supprimer » → un nouveau parcours Mistral est refusé avec le message
    « Aucune clé Mistral enregistrée. » Aucun appel réseau Mistral n'a lieu
    sans clé ni sans sélection explicite.
+
+### P7b — recette depuis le popup, nombre de personnes en langage naturel
+
+1. Dans le popup, garder Mistral sélectionné avec sa clé enregistrée.
+2. Saisir « je veux faire un casoulet 5 personne » → **Préparer mes courses**.
+3. Vérifier l'ouverture automatique du panneau, une recette de cassoulet pour
+   **5 personnes**, puis les recherches des ingrédients (et non de la phrase
+   complète). Les ambiguïtés proposent des produits réels à choisir.
+4. Vérifier l'aperçu : produits, quantités selon les conditionnements reconnus,
+   prix et validation globale. Le panier doit rester identique avant approbation.
+5. Dans le panneau, « un cassoulet pour 5 » doit également cibler 5 personnes,
+   même si le champ Convives affichait précédemment 4.
 
 ## P8 — modèle local WebGPU (optionnel)
 

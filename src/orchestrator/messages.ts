@@ -109,6 +109,16 @@ export interface OrchestrateRequestMsg {
   text: string;
 }
 
+/** Explicit recipe handoff; credentials stay inside the extension. Never log. */
+export interface PrepareRecipeMsg {
+  type: "prepare_recipe";
+  windowId: number;
+  text: string;
+  providerId: string;
+  apiKey: string;
+  model: string;
+}
+
 export interface LeclercRunMsg {
   type: "leclerc_run";
   /** Optional debug correlation id propagated from the popup. */
@@ -157,6 +167,7 @@ export interface ReloadOffscreenResultMsg {
 
 export type PopupToBackgroundMsg =
   | OrchestrateRequestMsg
+  | PrepareRecipeMsg
   | LeclercRunMsg
   | ModelStatusRequestMsg
   | ReloadOffscreenMsg

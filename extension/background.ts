@@ -32,6 +32,7 @@ import {
   type OffscreenStatusMsg,
   type OffscreenStatusResultMsg,
   type OrchestrateRequestMsg,
+  type PrepareRecipeMsg,
   type PopupToBackgroundMsg,
   type ReloadOffscreenResultMsg,
   type SetModelMsg,
@@ -86,6 +87,7 @@ import {
   type SidePanelRequestResult,
 } from "../src/sidepanel-protocol/protocol.js";
 import { LOCAL_MODEL_MANIFEST } from "../src/sidepanel-protocol/local-model.js";
+import { requestedServings, packagingFromLabel } from "../src/sidepanel-protocol/shopping-request.js";
 import {
   SimulatedProvider,
   bindingFromContract,
@@ -278,6 +280,11 @@ async function handlePopupMessage(
 ): Promise<void> {
   try {
     switch (msg.type) {
+      case "prepare_recipe": {
+        // Open immediately while the popup click still carries user activation.
+        const opened = chrome.sidePanel.open({ windowId: msg.windowId });
+        return void sendResponse(await handlePrepareRecipe(msg, opened));
+      }
       case "model_status":
         return void sendResponse(await handleModelStatus());
       case "orchestrate":
@@ -567,21 +574,8 @@ async function handleModelStatus(): Promise<ModelStatusMsg> {
 async function handleOrchestrate(
   msg: OrchestrateRequestMsg,
 ): Promise<OffscreenOrchestrateResultMsg> {
-  const normalized = normalizeShoppingList(msg.text);
-  if (normalized?.ok) {
-    return {
-      type: "offscreen_orchestrate_result",
-      ok: true,
-      plan: normalized.plan,
-      debug: {
-        traceId: msg.traceId,
-        source: normalized.source,
-        input: msg.text,
-        parsedPlan: normalized.plan,
-      },
-    };
-  }
-
+  // An explicitly selected remote provider takes precedence over every local
+  // shortcut, including deterministic parsing of otherwise simple lists.
   const byok = await getByokConfig();
   if (byok) {
     if (!byok.ok) {
@@ -600,6 +594,21 @@ async function handleOrchestrate(
       };
     }
     return await orchestrateByok(msg, byok.config);
+  }
+
+  const normalized = normalizeShoppingList(msg.text);
+  if (normalized?.ok) {
+    return {
+      type: "offscreen_orchestrate_result",
+      ok: true,
+      plan: normalized.plan,
+      debug: {
+        traceId: msg.traceId,
+        source: normalized.source,
+        input: msg.text,
+        parsedPlan: normalized.plan,
+      },
+    };
   }
 
   const { entry, device } = await getActiveModel();
@@ -972,6 +981,38 @@ function setRelayEmbedConfig(
 const SIDEPANEL_SESSION_KEY = "sidepanelSession";
 const MISTRAL_KEY_STORAGE_KEY = "sidepanelMistralApiKey";
 const MISTRAL_MODEL_ID = "mistral-small-latest";
+const MISTRAL_MODEL_STORAGE_KEY = "sidepanelMistralModel";
+
+async function handlePrepareRecipe(
+  msg: PrepareRecipeMsg,
+  opened: Promise<void>,
+): Promise<SidePanelRequestResult> {
+  await opened;
+  const session = await loadSidePanelSession();
+  if (session.getState().flowActive) {
+    return { ok: false, error: "Un parcours est déjà en cours dans l'assistant." };
+  }
+  const config = resolveByokConfig(msg.providerId, msg.apiKey, msg.model);
+  if (msg.providerId !== "vibe" || !config.ok) {
+    const error = msg.providerId !== "vibe"
+      ? "Choisis Mistral dans le plugin pour préparer une recette, ou sélectionne un fournisseur dans les réglages de l'assistant."
+      : config.ok ? "Configuration Mistral invalide." : config.error;
+    session.appendHistory("assistant", "error", error);
+    await emitSidePanelState();
+    return { ok: false, error };
+  }
+  // Reuse the explicit popup selection without asking the user to enter the
+  // same key again. Only a boolean enters the conversation snapshot.
+  session.selectProvider("mistral");
+  await chrome.storage.session.set({
+    [MISTRAL_KEY_STORAGE_KEY]: config.config.apiKey,
+    [MISTRAL_MODEL_STORAGE_KEY]: config.config.model,
+  });
+  session.setMistralKeySet(true);
+  return handleSidePanelRequest({
+    type: "start_flow", message: msg.text, servings: requestedServings(msg.text),
+  });
+}
 const MODEL_CACHE_NAME = "mcp-leclerc-drive:models";
 
 let sidepanelSession: SidePanelSession | undefined;
@@ -1073,7 +1114,10 @@ async function handleSidePanelRequest(
     case "set_mistral_key": {
       // The key goes to chrome.storage.session (memory-only, never on disk,
       // never synced) and is NEVER echoed back — only the boolean survives.
-      await chrome.storage.session.set({ [MISTRAL_KEY_STORAGE_KEY]: request.apiKey });
+      await chrome.storage.session.set({
+        [MISTRAL_KEY_STORAGE_KEY]: request.apiKey,
+        [MISTRAL_MODEL_STORAGE_KEY]: MISTRAL_MODEL_ID,
+      });
       session.setMistralKeySet(true);
       await emitSidePanelState();
       return { ok: true, state: session.getState() };
@@ -1085,14 +1129,17 @@ async function handleSidePanelRequest(
       return { ok: true, state: session.getState() };
     }
     case "start_flow": {
+      const servings = requestedServings(request.message, request.servings);
       const flowRequest: ShoppingFlowRequest = {
-        message: request.message,
-        servings: request.servings,
+        message: `${request.message}\nNombre de personnes demandé : ${servings}.${
+          request.exclusions?.length ? `\nIngrédients exclus : ${request.exclusions.join(", ")}.` : ""
+        }`,
+        servings,
         ...(request.exclusions ? { excludedIngredients: request.exclusions } : {}),
       };
       const started = session.startFlow({
         message: request.message,
-        servings: request.servings,
+        servings,
         ...(request.exclusions ? { exclusions: request.exclusions } : {}),
       });
       if (!started.ok) {
@@ -1236,7 +1283,7 @@ async function buildSidePanelProvider(
       ok: true,
       provider: createMistralByokProvider({
         apiKey,
-        model: MISTRAL_MODEL_ID,
+        model: (await chrome.storage.session.get(MISTRAL_MODEL_STORAGE_KEY))[MISTRAL_MODEL_STORAGE_KEY] ?? MISTRAL_MODEL_ID,
         fetchImpl: (url, init) => fetch(url, init),
       }),
     };
@@ -1308,6 +1355,7 @@ async function sidePanelRecipeReady(recipe: GeneratedRecipe): Promise<void> {
 // -- capability bindings through the existing dispatcher bridge --------------
 
 function bridgeProductToDomain(product: BridgeProduct): DomainProduct {
+  const packaging = packagingFromLabel(product.label);
   return {
     id: String(product.id),
     label: product.label,
@@ -1317,8 +1365,7 @@ function bridgeProductToDomain(product: BridgeProduct): DomainProduct {
     ...(product.nutriScore !== undefined ? { nutriScore: product.nutriScore } : {}),
     available: product.available,
     ...(product.imageUrl !== undefined ? { imageUrl: product.imageUrl } : {}),
-    // The live catalogue extraction does not expose a structured packaging:
-    // the flow's documented default (1 unit, explicit note) applies.
+    ...(packaging ? { packaging } : {}),
   };
 }
 

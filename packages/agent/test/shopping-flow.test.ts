@@ -98,6 +98,43 @@ const REQUEST = {
 
 // ---- A01: happy path ------------------------------------------------------------
 
+it("matches the ingredient identity across singular/plural and rejects unrelated prepared foods", async () => {
+  const store = new FakeStore();
+  store.searchIndex["haricots blancs secs"] = [
+    { id: "dry", label: "Haricot blanc sec - 500g", price: 2, available: true, packaging: "500 g" },
+    { id: "slices", label: "Tranches végé aux haricots blancs secs", price: 2, available: true },
+    { id: "meal", label: "Plat cuisiné haricots blancs secs", price: 2, available: true },
+  ];
+  const result = await runShoppingFlow({
+    provider: new SimulatedProvider({ script: [{ text: JSON.stringify({
+      ...RECIPE, servings: 5,
+      ingredients: [{ name: "haricots blancs secs", quantity: 750, unit: "g" }],
+    }) }] }),
+    bindings: store.bindings(), request: { message: "un cassoulet pour 5", servings: 5 },
+    approval: () => ({ approved: false }),
+  });
+  expect(result.preview?.lines.map((line) => [line.productId, line.quantity])).toEqual([["dry", 2]]);
+  expect(store.addCalls).toEqual([]);
+});
+
+it("counts five sausages using catalogue piece counts even when a weight is also printed", async () => {
+  const store = new FakeStore();
+  store.searchIndex["saucisses de Toulouse"] = [{
+    id: "sausages", label: "Saucisses de Toulouse x4 - 500g", price: 4, available: true,
+    packaging: "500 g / 4 pièce",
+  }];
+  const result = await runShoppingFlow({
+    provider: new SimulatedProvider({ script: [{ text: JSON.stringify({
+      ...RECIPE, servings: 5,
+      ingredients: [{ name: "saucisses de Toulouse", quantity: 5, unit: "pièce" }],
+    }) }] }),
+    bindings: store.bindings(), request: { message: "un cassoulet pour 5", servings: 5 },
+    approval: () => ({ approved: false }),
+  });
+  expect(result.preview?.lines[0].quantity).toBe(2);
+  expect(result.issues).toEqual([]);
+});
+
 describe("runShoppingFlow — happy path", () => {
   it("completes: recipe, deterministic searches, packaging ceil, approval, sequential adds", async () => {
     const store = defaultStore();

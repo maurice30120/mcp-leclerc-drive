@@ -53,6 +53,7 @@ function sendRequest(request) {
     .sendMessage({ channel: REQUEST_CHANNEL, request: request })
     .then(function (result) {
       if (result && result.ok && result.state) applyState(result.state);
+      if (result && !result.ok) appendLocalError(result.error || "Demande refusée.");
       return result;
     })
     .catch(function (err) {
@@ -92,6 +93,12 @@ chrome.runtime.onMessage.addListener(function (msg) {
 
 function applyState(next) {
   state = next;
+  if (state.flowActive) {
+    var recipes = (state.history || []).filter(function (entry) { return entry.kind === "recipe"; });
+    var latest = recipes[recipes.length - 1];
+    if (latest && latest.data) $("servings").value = String(latest.data.servings);
+  }
+  $("send-btn").disabled = !!state.flowActive;
   renderPhase();
   renderThread();
   renderSettings();
@@ -355,6 +362,12 @@ $("composer").addEventListener("submit", function (event) {
   var message = $("message").value.trim();
   if (!message) return;
   var servings = Number($("servings").value);
+  var count = message.match(/\b(\d+)\s*(?:personnes?|pers\.?|convives?|portions?)\b/i)
+    || message.match(/\bpour\s+(\d+)\b/i);
+  if (count) {
+    servings = Number(count[1]);
+    $("servings").value = String(servings);
+  }
   var exclusionsRaw = $("exclusions").value.trim();
   var request = {
     type: "start_flow",

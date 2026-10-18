@@ -468,6 +468,20 @@ async function postJson(url: string, body: string): Promise<string> {
   return res.text();
 }
 
+/**
+ * Leclerc answers cart mutations with JSON events; an invented product_id
+ * (or a DataDome/error page) yields HTML instead. A raw JSON.parse would leak
+ * a V8 message with a snippet of the page, so failures surface as a normalized
+ * French error (docs/testing/webmcp-opt-in.md, M04).
+ */
+function parseCartEvents(raw: string): never[] {
+  try {
+    return JSON.parse(raw) as never[];
+  } catch {
+    throw new Error("Réponse invalide du site Leclerc (HTML au lieu de JSON) : produit introuvable ou page d'erreur.");
+  }
+}
+
 async function getJsonRaw<T>(url: string): Promise<T> {
   const res = await throttled(() =>
     fetch(url, {
@@ -696,7 +710,7 @@ async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
       if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
       const body = cartMutationBody(call.productId, call.quantity, ACTION_ADD, s.storeId);
       const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-      const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
+      const cart = cartFromEvents(parseCartEvents(raw), s.storeId);
       return { kind: "cart_mutation", cart };
     }
     case "remove_from_cart": {
@@ -704,7 +718,7 @@ async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
       if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
       const body = cartMutationBody(call.productId, 0, ACTION_SUB, s.storeId);
       const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-      const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
+      const cart = cartFromEvents(parseCartEvents(raw), s.storeId);
       return { kind: "cart_mutation", cart };
     }
     case "update_quantity": {
@@ -713,13 +727,13 @@ async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
       if (call.quantity === 0) {
         const body = cartMutationBody(call.productId, 0, ACTION_SUB, s.storeId);
         const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-        return { kind: "cart_mutation", cart: cartFromEvents(JSON.parse(raw) as never[], s.storeId) };
+        return { kind: "cart_mutation", cart: cartFromEvents(parseCartEvents(raw), s.storeId) };
       }
       const current = await currentQuantity(call.productId);
       const action = call.quantity >= current ? ACTION_ADD : ACTION_SUB;
       const body = cartMutationBody(call.productId, call.quantity, action, s.storeId);
       const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-      return { kind: "cart_mutation", cart: cartFromEvents(JSON.parse(raw) as never[], s.storeId) };
+      return { kind: "cart_mutation", cart: cartFromEvents(parseCartEvents(raw), s.storeId) };
     }
   }
 }
