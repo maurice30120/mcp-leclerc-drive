@@ -3,7 +3,7 @@
  *
  * L'app embarque une WebView Leclerc officielle. À l'issue du login, on
  * extrait :
- *  - l'hôte backend du drive (`fdN-courses.leclercdrive.fr`),
+ *  - l'hôte courses du drive (`m-courses` ou `fdN-courses.leclercdrive.fr`),
  *  - le storeId (depuis le path `/magasin-<id>-<id>-…/`),
  *  - le User-Agent de la WebView (emprunte l'empreinte réelle).
  *
@@ -91,21 +91,21 @@ function driveAssistantStoreUrl() {
     if (links[i].href) urls.push(links[i].href);
   }
   for (var j = 0; j < urls.length; j += 1) {
-    if (/^https?:\\/\\/fd\\d+-courses\\.leclercdrive\\.fr\\/.*\\/magasin-\\d+-/i.test(urls[j])) {
+    if (/^https?:\\/\\/(?:fd\\d+-courses|m-courses)\\.leclercdrive\\.fr\\/.*\\/magasin-\\d+-/i.test(urls[j])) {
       return urls[j];
     }
   }
   var hostFromUrl = null;
   for (var k = 0; k < urls.length; k += 1) {
-    var hostMatch = urls[k].match(/fd\\d+-courses\\.leclercdrive\\.fr/i);
+    var hostMatch = urls[k].match(/(?:fd\\d+-courses|m-courses)\\.leclercdrive\\.fr/i);
     if (hostMatch && hostMatch[0]) {
       hostFromUrl = hostMatch[0];
       break;
     }
   }
-  var absolute = html.match(/https?:\\/\\/fd\\d+-courses\\.leclercdrive\\.fr\\/[^"'<>\\\\\\s]*magasin-\\d+-[^"'<>\\\\\\s]*/i);
+  var absolute = html.match(/https?:\\/\\/(?:fd\\d+-courses|m-courses)\\.leclercdrive\\.fr\\/[^"'<>\\\\\\s]*magasin-\\d+-[^"'<>\\\\\\s]*/i);
   if (absolute && absolute[0]) return absolute[0].replace(/&amp;/g, '&');
-  var host = html.match(/fd\\d+-courses\\.leclercdrive\\.fr/i);
+  var host = html.match(/(?:fd\\d+-courses|m-courses)\\.leclercdrive\\.fr/i);
   var path = html.match(/\\/magasin-\\d+-[^"'<>\\\\\\s]*/i);
   if (host && host[0] && path && path[0]) {
     return 'https://' + host[0] + path[0].replace(/&amp;/g, '&');
@@ -140,7 +140,7 @@ export const LOGIN_CONFIRM_JS = `
 (function() {
   try {
     ${STORE_URL_PICKER_JS}
-    var connected = !!document.querySelector('[href*="mon-compte"], [href*="panier.aspx"]');
+    var connected = !!document.querySelector('[href*="mon-compte"], [href*="panier.aspx"], [href*="mobile-detail-panier.aspx"]');
     window.ReactNativeWebView.postMessage(JSON.stringify({
       type: 'login_state',
       connected: connected,

@@ -135,7 +135,7 @@ export class DriveChatViewModel {
     });
     this.addLine('tool', `${pending.command} confirmé\n${content}`);
 
-    if (this.deps.ai?.isReady()) {
+    if (this.pending.size === 0 && this.deps.ai?.isReady()) {
       await this.runModelLoop();
     }
     return this.snapshot();
@@ -194,9 +194,13 @@ export class DriveChatViewModel {
       }
 
       let readToolExecuted = false;
-      for (const call of toolCalls) {
+      for (let i = 0; i < toolCalls.length; i += 1) {
+        const call = toolCalls[i];
         const result = await this.handleToolCall(call);
-        if (result === 'pending_mutation') return;
+        if (result === 'pending_mutation') {
+          this.queueDeferredToolCalls(toolCalls.slice(i + 1));
+          return;
+        }
         if (result === 'read_executed') readToolExecuted = true;
       }
 
@@ -216,21 +220,7 @@ export class DriveChatViewModel {
     }
 
     if (isMutationCommand(name)) {
-      const validation = this.validateMutation(name, args);
-      if (!validation.ok) {
-        this.pushToolResult(name, toolCallId, validation.error);
-        return 'read_executed';
-      }
-      const pending: PendingToolConfirmation = {
-        id: `pending-${++this.seq}`,
-        command: name,
-        args,
-        label: labelForArgs(args, this.productLabels),
-        toolCallId,
-      };
-      this.pending.set(pending.id, pending);
-      this.addLine('assistant', `Confirmation requise : ${pending.label}`);
-      return 'pending_mutation';
+      return this.queueMutationConfirmation(name, args, toolCallId);
     }
 
     const result = await this.runner.runTool(name, args, { host: this.deps.connector.host });
@@ -248,6 +238,45 @@ export class DriveChatViewModel {
       toolCallId,
       content,
     });
+  }
+
+  private queueMutationConfirmation(
+    command: LeclercCommandName,
+    args: Record<string, unknown>,
+    toolCallId: string,
+  ): 'read_executed' | 'pending_mutation' {
+    const validation = this.validateMutation(command, args);
+    if (!validation.ok) {
+      this.pushToolResult(command, toolCallId, validation.error);
+      return 'read_executed';
+    }
+    const pending: PendingToolConfirmation = {
+      id: `pending-${++this.seq}`,
+      command,
+      args,
+      label: labelForArgs(args, this.productLabels),
+      toolCallId,
+    };
+    this.pending.set(pending.id, pending);
+    this.addLine('assistant', `Confirmation requise : ${pending.label}`);
+    return 'pending_mutation';
+  }
+
+  private queueDeferredToolCalls(calls: MistralToolCall[]): void {
+    for (const call of calls) {
+      const name = call.function.name;
+      const args = parseToolArgs(call.function.arguments);
+      const toolCallId = call.id || `tool-${++this.seq}`;
+      if (isKnownCommand(name) && isMutationCommand(name)) {
+        this.queueMutationConfirmation(name, args, toolCallId);
+        continue;
+      }
+      this.pushToolResult(
+        name,
+        toolCallId,
+        'Appel outil non exécuté : une confirmation utilisateur est déjà en attente. Redemande cet appel après la confirmation.',
+      );
+    }
   }
 
   private validateMutation(

@@ -36,7 +36,7 @@ function makeFetch(): FetchLike & { posted: { url: string; body: string }[] } {
   return Object.assign(fetch, { posted });
 }
 
-function makeVm(responses: MistralChatTurn[]) {
+function makeVm(responses: MistralChatTurn[], onRequest?: (request: MistralChatRequest, index: number) => void) {
   const requests: MistralChatRequest[] = [];
   const fetched = makeFetch();
   const connector = new LeclercConnector({
@@ -48,6 +48,7 @@ function makeVm(responses: MistralChatTurn[]) {
     isReady: () => true,
     completeChat: async (request: MistralChatRequest) => {
       requests.push(request);
+      onRequest?.(request, requests.length);
       const next = responses.shift();
       if (!next) throw new Error('réponse IA manquante');
       return next;
@@ -138,6 +139,129 @@ test('DriveChatViewModel : suspend une mutation modèle puis l exécute après c
   assert.equal(confirmed.pending.length, 0);
   assert.equal(confirmed.rawModel, '{"choices":[{"message":{"content":"Ajout confirmé."}}]}');
   assert.equal(confirmed.lines.at(-1)?.text, 'Ajout confirmé.');
+});
+
+test('DriveChatViewModel : équilibre les réponses tool quand plusieurs mutations sont proposées', async () => {
+  const { vm, requests, fetched } = makeVm(
+    [
+      {
+        text: '',
+        raw: '{"choices":[{"finish_reason":"tool_calls","step":"search"}]}',
+        message: { content: null },
+        toolCalls: [
+          {
+            id: 'call-search',
+            type: 'function',
+            function: { name: 'search_products', arguments: { query: 'lait' } },
+          },
+        ],
+      },
+      {
+        text: 'Je vais demander confirmation.',
+        raw: '{"choices":[{"finish_reason":"tool_calls","step":"multi-add"}]}',
+        message: { content: 'Je vais demander confirmation.' },
+        toolCalls: [
+          {
+            id: 'call-add-1',
+            type: 'function',
+            function: { name: 'add_to_cart', arguments: '{"product_id":"111","quantity":1}' },
+          },
+          {
+            id: 'call-add-2',
+            type: 'function',
+            function: { name: 'add_to_cart', arguments: '{"product_id":"111","quantity":2}' },
+          },
+        ],
+      },
+      {
+        text: 'Ajout confirmé.',
+        raw: '{"choices":[{"message":{"content":"Ajout confirmé."}}]}',
+        message: { content: 'Ajout confirmé.' },
+        toolCalls: [],
+      },
+    ],
+    (request, index) => {
+      if (index === 3) {
+        const addToolMessages = request.messages
+          .filter((msg) => msg.role === 'tool')
+          .filter((msg) => msg.toolCallId === 'call-add-1' || msg.toolCallId === 'call-add-2');
+        assert.deepEqual(
+          addToolMessages.map((msg) => msg.toolCallId).sort(),
+          ['call-add-1', 'call-add-2'],
+        );
+      }
+    },
+  );
+
+  const first = await vm.sendUserMessage('ajoute du lait');
+  assert.equal(first.pending.length, 2);
+  assert.equal(fetched.posted.length, 0);
+
+  const afterFirstConfirm = await vm.confirmTool(first.pending[0].id);
+
+  assert.equal(fetched.posted.length, 1);
+  assert.equal(afterFirstConfirm.pending.length, 1);
+  assert.equal(requests.length, 2);
+
+  await vm.confirmTool(afterFirstConfirm.pending[0].id);
+
+  assert.equal(fetched.posted.length, 2);
+  assert.equal(requests.length, 3);
+});
+
+test('DriveChatViewModel : expose toutes les confirmations quand plusieurs ajouts sont proposés', async () => {
+  const { vm, requests, fetched } = makeVm([
+    {
+      text: '',
+      raw: '{"choices":[{"finish_reason":"tool_calls","step":"search"}]}',
+      message: { content: null },
+      toolCalls: [
+        {
+          id: 'call-search',
+          type: 'function',
+          function: { name: 'search_products', arguments: { query: 'lait' } },
+        },
+      ],
+    },
+    {
+      text: 'Je vais demander confirmation.',
+      raw: '{"choices":[{"finish_reason":"tool_calls","step":"multi-add"}]}',
+      message: { content: 'Je vais demander confirmation.' },
+      toolCalls: [
+        {
+          id: 'call-add-1',
+          type: 'function',
+          function: { name: 'add_to_cart', arguments: '{"product_id":"111","quantity":1}' },
+        },
+        {
+          id: 'call-add-2',
+          type: 'function',
+          function: { name: 'add_to_cart', arguments: '{"product_id":"111","quantity":2}' },
+        },
+      ],
+    },
+    {
+      text: 'Les deux ajouts sont confirmés.',
+      raw: '{"choices":[{"message":{"content":"Les deux ajouts sont confirmés."}}]}',
+      message: { content: 'Les deux ajouts sont confirmés.' },
+      toolCalls: [],
+    },
+  ]);
+
+  const first = await vm.sendUserMessage('ajoute du lait deux fois');
+  assert.equal(first.pending.length, 2);
+  assert.equal(fetched.posted.length, 0);
+
+  const afterFirstConfirm = await vm.confirmTool(first.pending[0].id);
+  assert.equal(fetched.posted.length, 1);
+  assert.equal(afterFirstConfirm.pending.length, 1);
+  assert.equal(requests.length, 2);
+
+  const afterSecondConfirm = await vm.confirmTool(afterFirstConfirm.pending[0].id);
+  assert.equal(fetched.posted.length, 2);
+  assert.equal(afterSecondConfirm.pending.length, 0);
+  assert.equal(requests.length, 3);
+  assert.equal(afterSecondConfirm.lines.at(-1)?.text, 'Les deux ajouts sont confirmés.');
 });
 
 test('DriveChatViewModel : refuse une mutation avec product_id jamais vu', async () => {

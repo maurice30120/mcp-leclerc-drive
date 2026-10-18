@@ -31,7 +31,7 @@ export function HomeScreen({ navigation }: Props) {
         {session && <Text style={styles.meta}>{session.storeId} @ {session.host}</Text>}
         <Button
           title="Ouvrir la WebView Leclerc"
-          onPress={() => navigation.navigate('WebView')}
+          onPress={() => services.setWebViewVisible(true)}
         />
       </View>
 

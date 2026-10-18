@@ -14,6 +14,18 @@ test('deriveWebSession : publie une session connectée depuis une URL magasin fd
   assert.equal(session?.userAgent, 'UA-WebView');
 });
 
+test('deriveWebSession : publie une session connectée depuis la façade mobile', () => {
+  const session = deriveWebSession(
+    'https://m-courses.leclercdrive.fr/magasin-018201-018201/recherche.aspx?TexteRecherche=lait',
+    'UA-Mobile',
+  );
+
+  assert.equal(session?.connected, true);
+  assert.equal(session?.host, 'm-courses.leclercdrive.fr');
+  assert.equal(session?.storeId, '018201');
+  assert.equal(session?.userAgent, 'UA-Mobile');
+});
+
 test('deriveWebSession : ignore une URL home Leclerc sans host magasin', () => {
   const session = deriveWebSession('https://www.leclercdrive.fr/?mag=053701-053701&sRedirect=false', 'UA-WebView');
 
@@ -51,6 +63,19 @@ test('parseStoredWebSession : recharge une session non sensible valide', () => {
 
   assert.equal(session?.host, 'fd9-courses.leclercdrive.fr');
   assert.equal(session?.storeId, '053701');
+});
+
+test('parseStoredWebSession : recharge une session mobile valide', () => {
+  const session = parseStoredWebSession(JSON.stringify({
+    host: 'm-courses.leclercdrive.fr',
+    storeId: '018201',
+    userAgent: 'UA-Mobile',
+    currentUrl: 'https://m-courses.leclercdrive.fr/magasin-018201-018201/recherche.aspx',
+    connected: true,
+  }));
+
+  assert.equal(session?.host, 'm-courses.leclercdrive.fr');
+  assert.equal(session?.storeId, '018201');
 });
 
 test('parseStoredWebSession : refuse un host non Leclerc', () => {

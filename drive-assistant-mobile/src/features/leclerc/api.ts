@@ -77,8 +77,16 @@ export function searchUrl(host: string, storeId: string, noPR: string, query: st
   )}`;
 }
 
+export function mobileSearchUrl(storeId: string, noPR: string, query: string): string {
+  return searchUrl('m-courses.leclercdrive.fr', storeId, noPR, query);
+}
+
 export function cartUrl(host: string, storeId: string, noPR: string): string {
   return `https://${host}/${storePath(storeId, noPR)}/panier.aspx?op=1`;
+}
+
+export function mobileCartUrl(host: string, storeId: string, noPR: string = storeId): string {
+  return `https://${host}/${storePath(storeId, noPR)}/mobile-detail-panier.aspx?sProvenance=SM`;
 }
 
 export function listHabitualUrl(host: string, storeId: string, noPR: string): string {
@@ -350,9 +358,19 @@ export function hostOf(url: string | undefined): string {
   }
 }
 
-/** Vrai ssi host est un backend Leclerc Drive (forme fdN-courses.leclercdrive.fr). */
-export function isLeclercHost(host: string): boolean {
+/** Vrai ssi host est un backend magasin Leclerc Drive (forme fdN-courses.leclercdrive.fr). */
+export function isLeclercBackendHost(host: string): boolean {
   return /^fd\d+-courses\.leclercdrive\.fr$/i.test(host);
+}
+
+/** Vrai ssi host est la façade mobile Leclerc Drive. */
+export function isLeclercMobileHost(host: string): boolean {
+  return /^m-courses\.leclercdrive\.fr$/i.test(host);
+}
+
+/** Vrai ssi host est un host courses Leclerc Drive autorisé côté mobile. */
+export function isLeclercHost(host: string): boolean {
+  return isLeclercBackendHost(host) || isLeclercMobileHost(host);
 }
 
 // ---- Formatage -----------------------------------------------------------

@@ -41,7 +41,12 @@ export function AssistantScreen({}: Props) {
     const sessionKey = `${session.host}|${session.storeId}|${session.userAgent}`;
     if (!vmRef.current || sessionKeyRef.current !== sessionKey || aiRef.current !== services.runtime.ai) {
       vmRef.current = new DriveChatViewModel({
-        connector: createMobileConnector(session),
+        // Le fetch passe par la WebView Leclerc (pont injecté) plutôt que par
+        // le fetch RN natif : même empreinte DataDome + cookies que la page
+        // qui a passé le challenge. Voir features/webview/fetch-bridge.ts.
+        connector: createMobileConnector(session, (input, init) =>
+          services.webViewFetchBridge.request(input, init),
+        ),
         gate: services.gate,
         logger: services.logger,
         history: services.history,

@@ -5,7 +5,6 @@ import {
   productsFromHtml,
   cartFromHtml,
   STORE_PAGE_MARKER,
-  NO_MATCH_QUERY,
 } from '../src/features/leclerc/api.ts';
 
 const LECLERC_HOST = 'fd9-courses.leclercdrive.fr';
@@ -73,18 +72,38 @@ test('searchProducts : HTTP 403 retryable puis succès', async () => {
   assert.equal(products.length, 1);
 });
 
-test('getCart : panier depuis page no-match', async () => {
+test('getCart : panier depuis la page mobile-detail-panier', async () => {
   const html =
     `<html>"lstProduitsLight":{"sTotalAPayer":"10,00 €","iQuantitePanier":2}` +
     `"lstProduits":[{"iIdProduit":1,"sLibelleLigne1":"Lait","nrPVUnitaireTTC":2,"iQuantitePanier":2,"rTotalAPayer":4,"sType":"Produit"}]` +
     `${STORE_PAGE_MARKER}</html>`;
-  const fetch = fetchMock({ [NO_MATCH_QUERY]: () => ({ status: 200, text: () => Promise.resolve(html) }) });
+  let capturedUrl = '';
+  const fetch: FetchLike = async (input) => {
+    capturedUrl = input;
+    return { status: 200, ok: true, text: () => Promise.resolve(html) };
+  };
   const c = new LeclercConnector({ fetch, session: { host: LECLERC_HOST, storeId: STORE_ID, userAgent: 'UA' } });
   const cart = await c.getCart();
+  assert.ok(capturedUrl.includes('mobile-detail-panier.aspx?sProvenance=SM'));
   assert.equal(cart.storeId, STORE_ID);
   assert.equal(cart.items.length, 1);
   assert.equal(cart.items[0].quantity, 2);
   assert.equal(cart.total, 10);
+});
+
+test('constructor : accepte la façade mobile m-courses', async () => {
+  const html = fakeSearchPage([{ id: '1', label: 'Lait', price: '1 €' }]);
+  let capturedUrl = '';
+  const fetch: FetchLike = async (input) => {
+    capturedUrl = input;
+    return { status: 200, ok: true, text: () => Promise.resolve(html) };
+  };
+  const c = new LeclercConnector({
+    fetch,
+    session: { host: 'm-courses.leclercdrive.fr', storeId: STORE_ID, userAgent: 'UA-Mobile' },
+  });
+  await c.searchProducts('lait');
+  assert.equal(capturedUrl, `https://m-courses.leclercdrive.fr/magasin-${STORE_ID}-${STORE_ID}/recherche.aspx?TexteRecherche=lait`);
 });
 
 test('addToCart : POST avec body cartMutationBody + log ok', async () => {

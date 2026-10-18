@@ -42,6 +42,7 @@ test('planHasNoHallucinatedId : id restant => offender', () => {
 
 test('hostIsLeclerc', () => {
   assert.equal(hostIsLeclerc(LECLERC_HOST), true);
+  assert.equal(hostIsLeclerc('m-courses.leclercdrive.fr'), true);
   assert.equal(hostIsLeclerc('evil.example.com'), false);
   assert.equal(hostIsLeclerc(undefined), false);
 });
