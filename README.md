@@ -140,6 +140,65 @@ See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the extension dev flow (reload
 after rebuild, debug the background worker and the in-tab console) and the
 relay-driven smoke test.
 
+## Monorepo
+
+Le dépôt est un monorepo npm workspaces (`packages/*`, ADR-0010) autour de
+trois packages aux frontières de dépendances étanches :
+
+| Package | Rôle |
+| --- | --- |
+| `@leclerc/contracts` | Le noyau pur : domaine (`Product`, `CartItem`, `Cart`, `DriveStore`), les neuf contrats de capacités Leclerc définis **une seule fois** (schémas, métadonnées lecture/session/mutation, validation d'entrée typée, codes d'erreur normalisés) et le schéma versionné de la recette générée. Aucune dépendance à `chrome.*`, à Node ou aux bibliothèques de modèles. |
+| `@leclerc/agent` | Le seam `ModelProvider` et le moteur d'agent : garde-fou d'approbation avant toute mutation, exécuteur d'outils, flux courses (recette → au plus une réparation guidée → recherches déterministes → aperçu → approbation → mutations séquentielles avec arrêt/relecture/reprise sur panne partielle), et les providers simulé / Mistral BYOK / WebGPU exclusif. |
+| `@leclerc/harness` | Le harnais Node : mocks déterministes en mémoire des neuf capacités, injection de pannes par famille, scénarios versionnés A01–A10/F01 et POC WebGPU strictement opt-in. |
+
+À la racine restent : l'extension Chrome MV3 (`extension/`, construite par
+`npm run build:extension`), la logique historique (`src/`), les tests legacy
+`node --test` (`tests/`) et les scripts de build. Le registre unique des
+capacités et le seam `ModelProvider` sont motivés dans
+[`docs/adr/0010-monorepo-workspaces-paquets-minimaux.md`](docs/adr/0010-monorepo-workspaces-paquets-minimaux.md),
+[`docs/adr/0011-registre-unique-des-capacites.md`](docs/adr/0011-registre-unique-des-capacites.md)
+et
+[`docs/adr/0012-modelprovider-orchestration-deterministe.md`](docs/adr/0012-modelprovider-orchestration-deterministe.md).
+
+## Harnais de scénarios
+
+Le harnais (`@leclerc/harness`) rejoue des scénarios versionnés contre un
+environnement mock déterministe (fixtures versionnées, injection de pannes,
+zéro réseau). Chaque scénario est un critère d'acceptation exécutable ; les
+assertions de sécurité ci-dessous sont **bloquantes à chaque scénario** :
+
+- aucune mutation de panier avant la décision d'approbation ;
+- les identifiants produits viennent uniquement des résultats d'outils (jamais inventés) ;
+- un refus d'approbation laisse le panier strictement inchangé ;
+- aucun appel cloud sans sélection explicite de l'utilisateur ;
+- la décision d'approbation est un événement injecté du scénario, jamais automatique.
+
+Commandes de campagne et leurs gates opt-in :
+
+| Commande | Gate opt-in | Description |
+| --- | --- | --- |
+| `npm run harness:campaign` | Aucune (hors-ligne) | Campagne de scénarios A01–A10/F01 avec le modèle simulé, reproductible hors-ligne (`--jsonl` via `npm run harness:campaign:jsonl`). |
+| `npm run harness:campaign:mistral` | `MISTRAPI_KEY` + `--provider mistral` | Campagne avec le provider Mistral BYOK — sélection strictement explicite, jamais appelé autrement (ticket #46). |
+| `npm run test:harness:local` | `MCP_LECLERC_RUN_LOCAL=1` | POC WebGPU réel : sonde de session au-delà de `navigator.gpu`, téléchargement des poids, un prompt gelé (A01), rapport JSON dans `runs/`. Échec de sonde = diagnostic français, sortie non nulle, **aucun repli CPU/WASM**. |
+
+Scénarios versionnés : `A01` recette → liste de courses (quantités par règle
+d'arrondi d'emballage), `A02` exclusion respectée, `A03` ids uniquement issus
+des recherches, `A04` aucune mutation avant approbation, `A05` refus sans
+changement du panier, `A06a`/`A06b` réparation guidée unique, `A07`
+ingrédient introuvable signalé, `A08` panne partielle → arrêt, relecture du
+panier, rapport d'écart et reprise après accord, `A09` ambiguïté → question
+de clarification, `A10` WebGPU indisponible → modèle local non lancé,
+diagnostic, Mistral **proposé avec consentement** mais jamais appelé ;
+`F01` prompt de génération de recette gelé (référence pour la comparaison
+fine-tuning).
+
+Pour la compatibilité observée par OS et par contexte (Chrome MV3 + panneau
+latéral, WebGPU local, chargement du modèle HF/cache, Mistral BYOK, MCP
+Chrome → client externe), voir
+[`docs/portability-matrix.md`](docs/portability-matrix.md). Les exécutions
+réelles restent opt-in et documentées dans [`docs/poc/`](docs/poc/) et
+[`docs/testing/`](docs/testing/).
+
 ## Architecture
 
 ```
