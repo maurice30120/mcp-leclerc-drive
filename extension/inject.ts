@@ -205,20 +205,9 @@ const capabilityExecutors: Record<string, (args: unknown) => Promise<ToolTextRes
 
   list_habitual_products: async () => {
     try {
-      const s = loadStore();
-      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
-      // Dérive le préfixe magasin depuis l'URL courante de l'onglet :
-      //   /magasin-018201-018201-Montauban---Sapiac/... → produits-habituels.aspx
-      const m = window.location.pathname.match(/^(\/magasin-\d+-\d+-[^/]+)\//i);
-      if (!m) {
-        throw new Error(
-          "L'onglet courant n'est pas sur une page magasin Leclerc. Ouvre ton drive " +
-            "(ex. https://fd11-courses.leclercdrive.fr/magasin-018201-018201-...) puis recharge.",
-        );
-      }
-      const url = `https://${s.host}${m[1]}/produits-habituels.aspx`;
-      const html = await getHtml(url);
-      const products = productsFromHtml(html);
+      const result = await runDispatch({ command: "list_habitual_products" });
+      if (result.kind !== "list_habitual_products") throw new Error("Réponse inattendue");
+      const products = result.products;
       if (products.length === 0) return asText("Aucun produit habituel trouvé.");
       const lines = products.map((p) => {
         const safe = { ...p, label: scrubUntrusted(p.label) };
@@ -468,6 +457,20 @@ async function postJson(url: string, body: string): Promise<string> {
   return res.text();
 }
 
+/**
+ * Leclerc answers cart mutations with JSON events; an invented product_id
+ * (or a DataDome/error page) yields HTML instead. A raw JSON.parse would leak
+ * a V8 message with a snippet of the page, so failures surface as a normalized
+ * French error (docs/testing/webmcp-opt-in.md, M04).
+ */
+function parseCartEvents(raw: string): never[] {
+  try {
+    return JSON.parse(raw) as never[];
+  } catch {
+    throw new Error("Réponse invalide du site Leclerc (HTML au lieu de JSON) : produit introuvable ou page d'erreur.");
+  }
+}
+
 async function getJsonRaw<T>(url: string): Promise<T> {
   const res = await throttled(() =>
     fetch(url, {
@@ -661,12 +664,30 @@ async function registerTools(): Promise<void> {
 
 export type DispatchResult =
   | { kind: "search_products"; products: Product[] }
+  | { kind: "list_habitual_products"; products: Product[] }
   | { kind: "get_cart"; cart: Cart }
   | { kind: "get_store"; store: { storeId: string; noPR: string; host: string; name?: string; serviceType?: string } }
   | { kind: "cart_mutation"; cart: Cart };
 
 async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
   switch (call.command) {
+    case "list_habitual_products": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      // Dérive le préfixe magasin depuis l'URL courante de l'onglet :
+      //   /magasin-018201-018201-Montauban---Sapiac/... → produits-habituels.aspx
+      const m = window.location.pathname.match(/^(\/magasin-\d+-\d+-[^/]+)\//i);
+      if (!m) {
+        throw new Error(
+          "L'onglet courant n'est pas sur une page magasin Leclerc. Ouvre ton drive " +
+            "(ex. https://fd11-courses.leclercdrive.fr/magasin-018201-018201-...) puis recharge.",
+        );
+      }
+      const url = `https://${s.host}${m[1]}/produits-habituels.aspx`;
+      const html = await getHtml(url);
+      const products = productsFromHtml(html);
+      return { kind: "list_habitual_products", products: products.map((p) => ({ ...p, label: scrubUntrusted(p.label) })) };
+    }
     case "search_products": {
       const s = loadStore();
       if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
@@ -696,7 +717,7 @@ async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
       if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
       const body = cartMutationBody(call.productId, call.quantity, ACTION_ADD, s.storeId);
       const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-      const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
+      const cart = cartFromEvents(parseCartEvents(raw), s.storeId);
       return { kind: "cart_mutation", cart };
     }
     case "remove_from_cart": {
@@ -704,7 +725,7 @@ async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
       if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
       const body = cartMutationBody(call.productId, 0, ACTION_SUB, s.storeId);
       const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-      const cart = cartFromEvents(JSON.parse(raw) as never[], s.storeId);
+      const cart = cartFromEvents(parseCartEvents(raw), s.storeId);
       return { kind: "cart_mutation", cart };
     }
     case "update_quantity": {
@@ -713,13 +734,13 @@ async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
       if (call.quantity === 0) {
         const body = cartMutationBody(call.productId, 0, ACTION_SUB, s.storeId);
         const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-        return { kind: "cart_mutation", cart: cartFromEvents(JSON.parse(raw) as never[], s.storeId) };
+        return { kind: "cart_mutation", cart: cartFromEvents(parseCartEvents(raw), s.storeId) };
       }
       const current = await currentQuantity(call.productId);
       const action = call.quantity >= current ? ACTION_ADD : ACTION_SUB;
       const body = cartMutationBody(call.productId, call.quantity, action, s.storeId);
       const raw = await postJson(buildCartUrl(s.host, s.storeId, s.noPR), body);
-      return { kind: "cart_mutation", cart: cartFromEvents(JSON.parse(raw) as never[], s.storeId) };
+      return { kind: "cart_mutation", cart: cartFromEvents(parseCartEvents(raw), s.storeId) };
     }
   }
 }

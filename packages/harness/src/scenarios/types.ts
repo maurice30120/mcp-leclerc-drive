@@ -13,6 +13,8 @@
  */
 
 import type {
+  ProductReview,
+  ProductReviewChoice,
   ApprovalDecision,
   ClarificationAnswer,
   ClarificationQuestion,
@@ -28,7 +30,7 @@ import type { FaultPlan } from "../mocks/faults.js";
 import type { MockLeclerc } from "../mocks/mock-leclerc.js";
 
 /** Bump when any scenario definition, prompt or script changes. */
-export const SCENARIOS_VERSION = 1 as const;
+export const SCENARIOS_VERSION = 2 as const;
 
 /**
  * Pinned generation parameters for every scenario (spec decision):
@@ -123,6 +125,12 @@ export interface ScenarioDefinition {
   readonly providerOverride?: ScenarioProviderOverride;
   /** Fault plan injected into the mock environment before the run. */
   readonly faults?: FaultPlan;
+  /** Explicit historical baseline; absent means the production model loop. */
+  readonly selectionMode?: "model" | "deterministic";
+  /** Independent acceptable product ids per ingredient index; empty means no valid product. */
+  readonly expectedSelections?: Readonly<Record<number, readonly string[]>>;
+  readonly reviewAnswer?: (review: ProductReview) => ProductReviewChoice[];
+
   /** The global approval decision, injected as a scenario event. */
   readonly approvalDecision: ApprovalDecision;
   /** Clarification answer injected as a scenario event (A09). */

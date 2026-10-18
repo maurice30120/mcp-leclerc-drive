@@ -29,6 +29,9 @@ test("validateCommand: search_products trims + requires non-empty query", () => 
 test("validateCommand: get_cart / get_store are valid reads", () => {
   assert.equal(validateCommand("get_cart", {}).ok, true);
   assert.equal(validateCommand("get_store", {}).ok, true);
+  const habits = validateCommand("list_habitual_products", {});
+  assert.equal(habits.ok, true);
+  if (habits.ok) assert.equal(isReadCall(habits.call), true);
 });
 
 test("validateCommand: add_to_cart requires product_id + quantity>=1", () => {

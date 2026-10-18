@@ -54,7 +54,7 @@
 
     <section>
       <h2>Clé Mistral</h2>
-      <p class="hint">La clé reste en mémoire de session et n'est jamais affichée en retour.</p>
+      <p class="hint">La clé est conservée localement par l'extension et restaurée à l'ouverture. Supprimer l'efface des stockages local et de session.</p>
       <div class="row">
         <input id="mistral-key" type="password" autocomplete="off" placeholder="Clé API Mistral">
         <button id="mistral-set">Enregistrer</button>
@@ -75,7 +75,7 @@
 
     <section>
       <h2>Session</h2>
-      <p class="hint">La conversation est conservée en mémoire pendant la session uniquement : rien ne survit à la fermeture du navigateur.</p>
+      <p class="hint">La conversation reste limitée à la session. Le suivi du panier, le fournisseur et la clé Mistral sont conservés localement après fermeture du navigateur.</p>
       <button id="reset-btn">Réinitialiser la conversation</button>
     </section>
   </details>

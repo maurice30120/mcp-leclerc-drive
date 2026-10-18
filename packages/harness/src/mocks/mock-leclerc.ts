@@ -64,6 +64,7 @@ interface CartLine {
 
 interface EnvInternals {
   products: Map<string, Product>;
+  habitualIds: readonly string[];
   cart: Map<string, CartLine>;
   store: DriveStore | undefined;
   faults: FaultPlan;
@@ -71,9 +72,10 @@ interface EnvInternals {
   faultMatches: Map<FaultRule, number>;
 }
 
-function makeInternals(faults: FaultPlan): EnvInternals {
+function makeInternals(faults: FaultPlan, products: readonly Product[] = FIXTURE_PRODUCTS, habitualIds: readonly string[] = FIXTURE_HABITUAL_PRODUCT_IDS): EnvInternals {
   return {
-    products: new Map(FIXTURE_PRODUCTS.map((p) => [p.id, { ...p }])),
+    habitualIds: [...habitualIds],
+    products: new Map(products.map((p) => [p.id, { ...p }])),
     cart: new Map(),
     store: undefined,
     faults,
@@ -187,7 +189,7 @@ const searchProduct: Handler = (state, input) => {
 const listHabitualProducts: Handler = (state) => {
   requireStore(state);
   const products: Product[] = [];
-  for (const id of FIXTURE_HABITUAL_PRODUCT_IDS) {
+  for (const id of state.habitualIds) {
     const product = state.products.get(id);
     if (product) products.push({ ...product });
   }
@@ -228,20 +230,10 @@ const addToCart: Handler = (state, input) => {
 const updateQuantity: Handler = (state, input) => {
   requireStore(state);
   const { productId, quantity } = input as unknown as { productId: string; quantity: number };
-  requireProduct(state, productId);
-  const line = state.cart.get(productId);
-  if (!line) {
-    throw toolError(
-      "CART_MUTATION_REFUSED",
-      `Produit '${productId}' absent du panier : utilisez add_to_cart.`,
-      { productId },
-    );
-  }
-  if (quantity === 0) {
-    state.cart.delete(productId);
-  } else {
-    state.cart.set(productId, { product: line.product, quantity });
-  }
+  const product = requireProduct(state, productId);
+  if (quantity > 0 && !product.available) throw toolError("PRODUCT_UNAVAILABLE", "Produit indisponible.");
+  if (quantity === 0) state.cart.delete(productId);
+  else state.cart.set(productId, { product, quantity });
   return { cart: buildCart(state) };
 };
 
@@ -316,7 +308,7 @@ export function bindCapabilities(env: MockLeclerc): CapabilityExecutor {
  * Create a fresh deterministic mock environment. State is isolated per call:
  * scenario runs never share cart, store, fault counters or fixture data.
  */
-export function createMockLeclerc(options?: { faults?: FaultPlan }): MockLeclerc {
+export function createMockLeclerc(options?: { faults?: FaultPlan; products?: readonly Product[]; habitualIds?: readonly string[] }): MockLeclerc {
   const faults = options?.faults ?? [];
   validateFaultPlan(faults);
   const env: MockLeclerc = {
@@ -335,13 +327,13 @@ export function createMockLeclerc(options?: { faults?: FaultPlan }): MockLeclerc
       if (internal) internal.faults = plan;
     },
     reset() {
-      internalsOf.set(env, makeInternals([]));
+      internalsOf.set(env, makeInternals([], options?.products, options?.habitualIds));
     },
     call(name: string, input: unknown = {}) {
       return bound(name, input);
     },
   };
-  internalsOf.set(env, makeInternals(faults));
+  internalsOf.set(env, makeInternals(faults, options?.products, options?.habitualIds));
   const bound = bindCapabilities(env);
   return env;
 }

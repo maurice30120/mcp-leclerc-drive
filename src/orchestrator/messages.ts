@@ -73,6 +73,7 @@ export function isLeclercResponse(data: unknown): data is LeclercResponse {
 
 export const READ_COMMANDS = [
   "search_products",
+  "list_habitual_products",
   "get_cart",
   "get_store",
 ] as const;
@@ -107,6 +108,16 @@ export interface OrchestrateRequestMsg {
   traceId?: string;
   /** Explicit shopping list or direct grocery request from the user. */
   text: string;
+}
+
+/** Explicit recipe handoff; credentials stay inside the extension. Never log. */
+export interface PrepareRecipeMsg {
+  type: "prepare_recipe";
+  windowId: number;
+  text: string;
+  providerId: string;
+  apiKey: string;
+  model: string;
 }
 
 export interface LeclercRunMsg {
@@ -157,6 +168,7 @@ export interface ReloadOffscreenResultMsg {
 
 export type PopupToBackgroundMsg =
   | OrchestrateRequestMsg
+  | PrepareRecipeMsg
   | LeclercRunMsg
   | ModelStatusRequestMsg
   | ReloadOffscreenMsg

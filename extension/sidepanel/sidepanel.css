@@ -7,6 +7,23 @@
   box-sizing: border-box;
 }
 
+[hidden] { display: none !important; }
+
+.review-item {
+  border-top: 1px solid #e2e5ea;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+.review-item select,
+.review-item input {
+  width: 100%;
+  max-width: 100%;
+  margin: 6px 0;
+  padding: 6px;
+  font: inherit;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -107,6 +124,18 @@ body {
 .card h3 {
   margin: 0 0 4px;
   font-size: 13px;
+}
+
+/* Collapsible cart progress: the toggle stays readable and clickable. */
+.cart-progress-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .card .meta {
@@ -313,3 +342,6 @@ button:disabled {
 #model-status.warn {
   color: #8a6d00;
 }
+
+/* Validation messages appear only after a real validation error. */
+.msg.error:empty { display: none; }

@@ -268,3 +268,10 @@ describe("Mistral BYOK provider — explicit selection only", () => {
     expect(provider.calls).toBe(1);
   });
 });
+
+it("requests native JSON output only when explicitly requested by the caller", async () => {
+  const { calls, fetch } = makeFetch([okResponse({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }] })]);
+  const provider = createMistralByokProvider({ apiKey: API_KEY, model: "m", fetchImpl: fetch });
+  await provider.generate({ messages: [{ role: "user", content: "JSON" }], responseFormat: "json_object" });
+  expect(JSON.parse(calls[0].init.body).response_format).toEqual({ type: "json_object" });
+});

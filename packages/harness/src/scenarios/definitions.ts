@@ -19,6 +19,7 @@ import {
   type ShoppingFlowResult,
   type TraceEvent,
 } from "@leclerc/agent";
+import { SELECTION_SCENARIOS } from "./selection.js";
 import { FIXTURE_PRODUCTS } from "../mocks/fixtures.js";
 import type { FaultPlan } from "../mocks/faults.js";
 import type {
@@ -297,6 +298,7 @@ const A01: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => [
@@ -323,6 +325,7 @@ const A02: ScenarioDefinition = {
   request: { message: A02_PROMPT.text, servings: 4, excludedIngredients: ["crème"] },
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -360,6 +363,7 @@ const A03: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -406,6 +410,7 @@ const A04: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -455,6 +460,7 @@ const A05: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: false, reason: "L'utilisateur refuse le panier proposé." },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -492,6 +498,7 @@ const A06a: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: INVALID_RECIPE_WITH_REFERENCE_JSON }, { text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -537,6 +544,7 @@ const A06b: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: FENCED_RECIPE_TEXT }, { text: UNKNOWN_UNIT_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -585,6 +593,7 @@ const A07: ScenarioDefinition = {
   request: { message: A07_PROMPT.text, servings: 4 },
   providerScript: [{ text: WORCESTERSHIRE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -650,6 +659,7 @@ const A08: ScenarioDefinition = {
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   faults: A08_FAULTS,
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -766,6 +776,7 @@ const A09: ScenarioDefinition = {
   providerScript: [{ text: COCO_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
   clarificationAnswer: { productId: "P-1003" },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -858,6 +869,7 @@ const A10: ScenarioDefinition = {
   providerScript: [],
   providerOverride: A10_PROVIDER_OVERRIDE,
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -917,6 +929,7 @@ const F01: ScenarioDefinition = {
   request: { message: A01_PROMPT.text, servings: 4 },
   providerScript: [{ text: BASE_CURRY_RECIPE_JSON }],
   approvalDecision: { approved: true },
+  selectionMode: "deterministic",
   version: SCENARIOS_VERSION,
   generationParams: SCENARIO_GENERATION_PARAMS,
   expectations: async (ctx) => {
@@ -973,6 +986,7 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
   A09,
   A10,
   F01,
+  ...SELECTION_SCENARIOS,
 ];
 
 export function getScenario(id: string): ScenarioDefinition | undefined {

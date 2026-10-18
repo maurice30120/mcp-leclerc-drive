@@ -110,6 +110,15 @@ export interface ErrorEvent {
 }
 
 export type TraceEvent =
+  | { type: "product_choices"; timestamp: string; choices: Array<{ ingredientIndex: number; productId?: string; skip?: true }> }
+  | { type: "preparation_authorized"; timestamp: string; flowId: string }
+  | { type: "ingredient_progress"; timestamp: string; ingredientIndex: number; status: string; message?: string }
+  | { type: "cart_intent"; timestamp: string; flowId: string; ingredientIndex: number; productId: string; before: number; target: number; operation: "add" | "remove" }
+  | { type: "cart_verified"; timestamp: string; ingredientIndex: number; productId: string; quantity: number; operation: "add" | "remove" }
+  | { type: "model_call"; timestamp: string; purpose: "recipe" | "selection"; durationMs: number; success: boolean }
+  | { type: "selection_round"; timestamp: string; round: number; durationMs: number;
+      decisions: Array<{ ingredientIndex: number; action: string; reason: string; productId?: string }> }
+  | { type: "product_review"; timestamp: string; uncertainCount: number; uncertainIngredientIndices: number[]; selectedCount: number; skippedCount: number }
   | UserMessageEvent
   | ModelTextEvent
   | ToolCallEvent

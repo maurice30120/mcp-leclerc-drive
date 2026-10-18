@@ -159,6 +159,13 @@ describe("cart mutations update quantities and totals, re-readable via get_cart"
     expect(reread.items[0].product.id).toBe("P-1001");
   });
 
+  it("update_quantity upserts an absolute quantity and retries do not duplicate it", async () => {
+    const env = envWithStore();
+    await env.call("update_quantity", { product_id: "P-1002", quantity: 2 });
+    const again = unwrap(await env.call("update_quantity", { product_id: "P-1002", quantity: 2 })) as { cart: Cart };
+    expect(again.cart.items.find((item) => item.product.id === "P-1002")?.quantity).toBe(2);
+  });
+
   it("refuses natural fault cases without touching the cart", async () => {
     const env = envWithStore();
     await env.call("add_to_cart", { product_id: "P-1001", quantity: 1 });
@@ -169,9 +176,6 @@ describe("cart mutations update quantities and totals, re-readable via get_cart"
 
     const unavailable = err(await env.call("add_to_cart", { product_id: "P-1009" }));
     expect(unavailable.code).toBe("PRODUCT_UNAVAILABLE");
-
-    const notInCart = err(await env.call("update_quantity", { product_id: "P-1002", quantity: 2 }));
-    expect(notInCart.code).toBe("CART_MUTATION_REFUSED");
 
     const removeAbsent = err(await env.call("remove_from_cart", { product_id: "P-1002" }));
     expect(removeAbsent.code).toBe("CART_MUTATION_REFUSED");

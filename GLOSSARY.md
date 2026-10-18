@@ -33,3 +33,35 @@ _À éviter_ : Déduction automatique d’équivalences sémantiques ou conversi
 
 **Validation de la liste de courses** : Vérification humaine effectuée sur le site Leclerc Drive, hors du périmètre de la bibliothèque de recettes MCP.
 _À éviter_ : Étape de confirmation ajoutée aux outils MCP de recettes
+
+## Choix des produits
+
+**Sélection de produit** : Choix d'un produit du magasin pour satisfaire un ingrédient d'une recette, ses quantités et les contraintes exprimées par l'utilisateur.
+_À éviter_ : Choix d'ingrédient (lorsqu'il s'agit de choisir le produit à acheter)
+
+**Choix étayé** : Sélection appuyée par les données disponibles sur l'adéquation à la recette, le respect des contraintes et la quantité à acheter. Une information importante manquante constitue une incertitude à résoudre.
+_À éviter_ : Choix certain, confiance déclarée par le modèle
+
+**Produit favori** : Produit explicitement préféré par l'utilisateur, prioritaire entre produits d'adéquation comparable même s'il est un peu plus cher. Cette préférence ne suffit pas à rendre un produit adapté à la recette.
+_À éviter_ : Produit automatiquement adapté, produit habituel (sans préférence explicitement établie)
+
+**Produit habituel** : Produit signalé par le magasin comme faisant partie des habitudes d'achat de l'utilisateur. Il renseigne ses habitudes sans établir à lui seul une préférence explicite ou l'adéquation à une recette.
+_À éviter_ : Produit favori (sans préférence explicitement établie)
+
+**Clarification de produit** : Choix demandé à l'utilisateur lorsqu'une incertitude importante persiste sur le produit à acheter. Elle présente au maximum trois propositions, une recommandation lorsqu'elle est justifiable et la raison précise du doute.
+_À éviter_ : Validation globale du panier
+
+**Substitution compatible** : Changement de marque ou de conditionnement qui satisfait le même besoin sans modifier la préparation ni les contraintes exprimées. Un remplacement qui modifie la préparation nécessite l'accord de l'utilisateur.
+_À éviter_ : Équivalence automatique (pour un remplacement qui modifie la préparation)
+
+**Révision des choix** : Étape regroupant les clarifications des ingrédients encore incertains pendant que les produits déjà vérifiés remplissent le panier. Chaque réponse de l'utilisateur permet d'ajouter le produit choisi.
+_À éviter_ : Validation globale avant ajout
+
+**Autorisation de préparation** : Autorisation donnée par la demande de préparation des courses pour ajouter progressivement les produits dont le choix et les quantités sont vérifiés. Les choix incertains nécessitent une réponse de l'utilisateur.
+_À éviter_ : Approbation globale préalable du panier
+
+**Contribution du parcours** : Quantité effectivement ajoutée par l'agent pour un besoin, confirmée dans le panier, diminuée des suppressions confirmées de ce même ajout. Elle exclut les quantités déjà présentes avant le parcours.
+_À éviter_ : Quantité totale du produit dans le panier
+
+**Révision finale du panier** : Vérification du panier déjà rempli et du bilan du parcours, avec possibilité de supprimer les contributions non désirées. « Terminer la vérification » clôt cette révision sans ajouter de produit.
+_À éviter_ : Autorisation d'ajout, aperçu avant approbation

@@ -19,13 +19,15 @@
     </section>
 
     <section id="input-section">
-      <label for="prompt">Ta liste de courses</label>
+      <label for="prompt">Ton repas ou ta liste de courses</label>
       <textarea
         id="prompt"
         rows="3"
-        placeholder="ex. lait demi-écrémé 1L, oeufs x6, farine 1 kg"
+        placeholder="Ex. je veux faire un cassoulet pour 5 personnes, ou lait 1L, œufs x6"
       ></textarea>
-      <button id="plan-btn" type="button" disabled>Préparer la liste</button>
+      <button id="plan-btn" type="button" disabled>Préparer mes courses</button>
+      <button id="recipe-btn" type="button" class="secondary" disabled>Préparer une recette</button>
+      <p class="note">Pour un repas, l'assistant génère la recette, cherche les ingrédients et prépare les produits pour le nombre de personnes indiqué. Tu valides l'aperçu avant l'ajout au panier.</p>
       <p id="plan-error" class="error" hidden></p>
     </section>
 

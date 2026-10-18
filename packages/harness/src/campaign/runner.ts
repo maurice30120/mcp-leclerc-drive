@@ -28,6 +28,7 @@ import { join } from "node:path";
 import type { ModelProvider, ShoppingFlowResult, TraceEvent } from "@leclerc/agent";
 import type { ProviderIdentity } from "./providers.js";
 import { sanitize } from "../sanitizer.js";
+import { selectionMetrics } from "../selection-metrics.js";
 import {
   runScenario,
   SCENARIOS_VERSION,
@@ -91,6 +92,8 @@ export interface CampaignScenarioRecord {
     errorCode?: string;
   };
   trace: unknown;
+  selectionMode: "model" | "deterministic";
+  selectionMetrics?: ReturnType<typeof selectionMetrics>;
 }
 
 export interface CampaignReport {
@@ -179,6 +182,8 @@ function recordForScenario(
     checkCounts: { total: checks.length, passed: checks.length - failed.length, failed: failed.length },
     notableErrors: failed.map((check) => `${check.name} : ${check.detail}`),
     resultSummary: summarizeResult(result),
+    selectionMode: scenario.selectionMode ?? "model",
+    selectionMetrics: selectionMetrics(result, trace, scenario.expectedSelections),
     trace: [...trace],
   };
 }
@@ -201,6 +206,7 @@ function recordForCrash(
     checkCounts: { total: 1, passed: 0, failed: 1 },
     notableErrors: [`exécution interrompue : ${message}`],
     resultSummary: { status: "crashed", issues: 0, hasGapReport: false },
+    selectionMode: scenario.selectionMode ?? "model",
     trace: [],
   };
 }
@@ -237,6 +243,17 @@ function summaryMarkdown(report: CampaignReport): string {
   }
   lines.push("");
   const failing = report.scenarios.filter((record) => record.status === "failed");
+  lines.push("## Évaluation du choix des produits");
+  lines.push("");
+  lines.push("Les erreurs et questions évitables sont mesurées contre les produits acceptables des fixtures. « — » signifie non évalué.");
+  lines.push("");
+  lines.push("| Scénario | Sélection | Tours | Appels modèle / outils | Clarifications | Erreurs | Questions évitables |");
+  lines.push("| --- | --- | --- | --- | --- | --- | --- |");
+  for (const record of report.scenarios) {
+    const m = record.selectionMetrics;
+    lines.push(`| ${record.id} | ${record.selectionMode} | ${m?.selectionRounds ?? "—"} | ${m?.modelCalls ?? "—"} / ${m?.toolCalls ?? "—"} | ${m?.clarificationCount ?? "—"} | ${m?.selectionErrors ?? "—"} | ${m?.avoidableQuestions ?? "—"} |`);
+  }
+  lines.push("");
   if (failing.length > 0) {
     lines.push("## Erreurs notables, par scénario");
     lines.push("");

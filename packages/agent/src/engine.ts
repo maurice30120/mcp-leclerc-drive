@@ -133,14 +133,14 @@ export class ToolExecutor {
       return validated;
     }
 
-    if (binding.mutation && !this.gate.isApproved()) {
+    if (binding.mutation && !this.gate.permits(name, validated.value)) {
       this.trace.safetyBlock(
         name,
-        "Approbation globale de l'utilisateur requise avant toute mutation du panier.",
+        "Autorisation utilisateur requise pour cette référence et cette quantité.",
       );
       const err = toolError(
         "APPROVAL_REQUIRED",
-        "Mutation refusée : approbation globale du panier requise avant tout ajout au panier.",
+        "Mutation refusée : aucune autorisation valide pour cette référence et cette quantité.",
         { capability: name },
       );
       this.trace.toolResult(name, callId, err, Date.now() - started);

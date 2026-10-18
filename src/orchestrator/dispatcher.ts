@@ -31,7 +31,7 @@ import type {
  * a `.js` specifier to `.ts`, and Node16 forbids `.ts` specifiers).
  * Keep in sync with messages.ts.
  */
-const READ_COMMANDS = new Set<string>(["search_products", "get_cart", "get_store"]);
+const READ_COMMANDS = new Set<string>(["search_products", "list_habitual_products", "get_cart", "get_store"]);
 const MUTATION_COMMANDS = new Set<string>([
   "add_to_cart",
   "update_quantity",
@@ -57,6 +57,7 @@ function isLeclercHost(host: string): boolean {
 /** A validated, ready-to-run read command. */
 export type ReadCall =
   | { command: "search_products"; query: string }
+  | { command: "list_habitual_products" }
   | { command: "get_cart" }
   | { command: "get_store" };
 
@@ -119,6 +120,7 @@ export function validateCommand(
   }
 
   if (command === "get_cart") return { ok: true, call: { command: "get_cart" } };
+  if (command === "list_habitual_products") return { ok: true, call: { command: "list_habitual_products" } };
   if (command === "get_store") return { ok: true, call: { command: "get_store" } };
 
   // Mutations: require productId + host check.

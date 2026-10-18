@@ -48,6 +48,21 @@ function stepClock(): () => number {
 }
 
 describe("harnais de campagne (ticket #46)", () => {
+  it("mesure les appels et questions évitables contre les fixtures du parcours progressif", async () => {
+    const outDir = await makeTempDir();
+    const { report, files } = await runCampaign({ scenarios: scenarioIds(["S01", "S02", "S03", "S04"]),
+      providerInfo: SIMULATED_INFO, outDir, runId: "progressive-metrics", generationParams: PINNED_PARAMS });
+    expect(report.totals).toEqual({ scenarios: 4, passed: 4, failed: 0 });
+    const solid = report.scenarios.find((record) => record.id === "S01")!;
+    expect(solid.selectionMode).toBe("model");
+    expect(solid.selectionMetrics).toMatchObject({ modelCalls: 2, toolCalls: 11, selectionRounds: 1, automaticSelections: 2, clarificationCount: 0, selectionErrors: 0, avoidableQuestions: 0 });
+    const invalid = report.scenarios.find((record) => record.id === "S02")!;
+    expect(invalid.selectionMetrics).toMatchObject({ selectionErrors: 0, avoidableQuestions: 1 });
+    const summary = await readFile(files.summaryMd, "utf8");
+    expect(summary).toContain("Questions évitables");
+    expect(summary).toContain("| S01 | model | 1 | 2 / 11 | 0 | 0 | 0 |");
+  });
+
   it(" produit results.json et summary.md exploitables pour un run simulé hors ligne", async () => {
     const outDir = await makeTempDir();
     const outcome = await runCampaign({
@@ -71,7 +86,7 @@ describe("harnais de campagne (ticket #46)", () => {
     expect(report.kind).toBe("campaign-report");
     expect(report.runId).toBe("run-test-1");
     expect(report.timestamp).toBe(new Date(1005).toISOString());
-    expect(report.scenariosVersion).toBe(1);
+    expect(report.scenariosVersion).toBe(2);
     expect(report.provider).toEqual(SIMULATED_INFO);
     expect(report.generationParams).toEqual(PINNED_PARAMS);
     expect(report.totals).toEqual({ scenarios: 3, passed: 3, failed: 0 });

@@ -58,6 +58,8 @@ export interface GenerateRequest {
   /** Seed when the provider controls it — recorded in campaign reports. */
   seed?: number;
   maxTokens?: number;
+  /** Structured text output when the provider supports it. */
+  responseFormat?: "json_object";
   /** Cooperative cancellation. */
   signal?: AbortSignal;
 }

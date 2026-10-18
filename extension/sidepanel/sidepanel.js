@@ -8,9 +8,9 @@
  * below MUST stay in sync with that module.
  *
  * Safety invariants mirrored here:
- *   - the approval buttons appear only while an approval is pending, and the
- *     wording is explicit ("Approuver et ajouter au panier") — a refusal
- *     leaves the cart untouched;
+ *   - uncertain ingredients require a grouped human choice;
+ *   - final review removes only the run's confirmed contributions;
+ *   - finishing review never adds a product;
  *   - catalogue labels (Leclerc data, untrusted) are rendered with
  *     textContent only, never as HTML;
  *   - the Mistral key is sent once and never displayed back;
@@ -32,6 +32,7 @@ var PHASE_LABELS = {
   preview: "Aperçu du panier",
   awaiting_approval: "En attente de ton approbation",
   mutating: "Ajout au panier…",
+  reviewing: "Révision du panier",
   done: "Terminé",
   error: "Erreur",
 };
@@ -53,6 +54,7 @@ function sendRequest(request) {
     .sendMessage({ channel: REQUEST_CHANNEL, request: request })
     .then(function (result) {
       if (result && result.ok && result.state) applyState(result.state);
+      if (result && !result.ok) appendLocalError(result.error || "Demande refusée.");
       return result;
     })
     .catch(function (err) {
@@ -92,6 +94,12 @@ chrome.runtime.onMessage.addListener(function (msg) {
 
 function applyState(next) {
   state = next;
+  if (state.flowActive) {
+    var recipes = (state.history || []).filter(function (entry) { return entry.kind === "recipe"; });
+    var latest = recipes[recipes.length - 1];
+    if (latest && latest.data) $("servings").value = String(latest.data.servings);
+  }
+  $("send-btn").disabled = !!state.flowActive || !!(state.cartProgress && !state.cartProgress.finished);
   renderPhase();
   renderThread();
   renderSettings();
@@ -101,7 +109,7 @@ function renderPhase() {
   var chip = $("phase-chip");
   var phase = state ? state.phase : "idle";
   chip.dataset.phase = phase;
-  chip.textContent = PHASE_LABELS[phase] || phase;
+  chip.textContent = state && state.pendingReview ? "Choix nécessaires" : PHASE_LABELS[phase] || phase;
 }
 
 function textNode(parent, tag, text, className) {
@@ -120,9 +128,18 @@ function renderThread() {
   for (var i = 0; i < history.length; i++) {
     renderEntry(thread, history[i], i === history.length - 1);
   }
+  if (state.pendingReview) renderProductReview(thread, state.pendingReview, true);
+  if (state.cartProgress) renderCartProgress(thread, state.cartProgress);
   var resumeBar = $("resume-bar");
-  resumeBar.hidden = !state.resumeAvailable;
-  thread.scrollTop = thread.scrollHeight;
+  resumeBar.hidden = !state.resumeAvailable || state.flowActive;
+  if (state.pendingReview) {
+    // The review card is the actionable step; keep it in view instead of the
+    // bottom of the (longer) cart progress card.
+    var reviewCard = thread.querySelectorAll("div").filter(function (el) { return el.className.indexOf("product-review") !== -1; })[0];
+    if (reviewCard) reviewCard.scrollIntoView();
+  } else {
+    thread.scrollTop = thread.scrollHeight;
+  }
 }
 
 function renderEntry(thread, entry, isLast) {
@@ -135,6 +152,8 @@ function renderEntry(thread, entry, isLast) {
       break;
     case "approval":
       renderApprovalCard(thread, entry, isLast);
+      break;
+    case "review":
       break;
     case "clarification":
       renderClarificationCard(thread, entry, isLast);
@@ -247,6 +266,180 @@ function renderApprovalCard(thread, entry, isLast) {
   thread.appendChild(card);
 }
 
+var cartProgressExpanded = false;
+var cartProgressFlowId;
+
+function renderCartProgress(thread, progress) {
+  // New cart, fresh card: collapse again for each new run.
+  if (cartProgressFlowId !== progress.flowId) {
+    cartProgressFlowId = progress.flowId;
+    cartProgressExpanded = false;
+  }
+  var card = document.createElement("div");
+  card.className = "card cart-progress";
+  var labels = { searching: "Recherche", verifying: "Vérification", added: "Ajouté", choice_needed: "Choix nécessaire", failed: "Échec", verification_pending: "Résultat à vérifier", skipped: "Non ajouté", removed: "Ajout supprimé" };
+  var entries = progress.entries || [];
+  var summary = [];
+  var addedCount = entries.filter(function (entry) { return entry.added > entry.removed; }).length;
+  var choiceCount = entries.filter(function (entry) { return entry.status === "choice_needed"; }).length;
+  var failedCount = entries.filter(function (entry) { return entry.status === "failed"; }).length;
+  if (addedCount) summary.push(addedCount + " ajouté(s)");
+  if (choiceCount) summary.push(choiceCount + " à choisir");
+  if (failedCount) summary.push(failedCount + " échec(s)");
+  var toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "cart-progress-toggle";
+  toggle.textContent = (progress.finished ? "Panier vérifié" : "Panier en cours de préparation")
+    + (summary.length ? " — " + summary.join(", ") : "")
+    + (cartProgressExpanded ? " — réduire" : " — étendre");
+  toggle.addEventListener("click", function () {
+    cartProgressExpanded = !cartProgressExpanded;
+    renderThread();
+  });
+  card.appendChild(toggle);
+  var body = document.createElement("div");
+  body.className = "cart-progress-body";
+  body.hidden = !cartProgressExpanded;
+  entries.forEach(function (entry) {
+    var row = document.createElement("div");
+    row.className = "review-item";
+    textNode(row, "div", entry.ingredient + " — " + (labels[entry.status] || entry.status));
+    if (entry.line) textNode(row, "div", entry.line.label + " — " + (entry.added - entry.removed) + " paquet(s) ajouté(s) par ce parcours", "meta");
+    if (entry.error) textNode(row, "div", entry.error, "msg error");
+    if (entry.added > entry.removed && !progress.finished) {
+      var remove = document.createElement("button");
+      remove.className = "danger";
+      remove.textContent = "Supprimer l'ajout de l'agent";
+      remove.disabled = !!state.flowActive || !!progress.intent;
+      remove.addEventListener("click", function () {
+        remove.disabled = true;
+        sendRequest({ type: "remove_prepared", flowId: progress.flowId, ingredientIndex: entry.ingredientIndex }).then(function (result) { if (!result || !result.ok) remove.disabled = false; });
+      });
+      row.appendChild(remove);
+    }
+    body.appendChild(row);
+  });
+  if (progress.cart) {
+    textNode(body, "h4", "Dernier panier confirmé");
+    textNode(body, "div", "Inclut les produits présents avant ce parcours. Une suppression retire uniquement les quantités ajoutées par l'agent.", "meta");
+    var list = document.createElement("ul");
+    (progress.cart.items || []).forEach(function (item) { textNode(list, "li", item.product.label + " × " + item.quantity + " — " + item.lineTotal.toFixed(2) + " €"); });
+    body.appendChild(list);
+    textNode(body, "div", "Total du panier : " + progress.cart.total.toFixed(2) + " €", "meta");
+  }
+  card.appendChild(body);
+  if (!progress.finished) {
+    var actions = document.createElement("div");
+    actions.className = "actions";
+    if (addedCount > 0) {
+      var cancel = document.createElement("button");
+      cancel.className = "danger";
+      cancel.textContent = "Annuler les ajouts du parcours";
+      cancel.disabled = !!state.flowActive || !!progress.intent;
+      cancel.addEventListener("click", function () {
+        cancel.disabled = true;
+        sendRequest({ type: "cancel_prepared", flowId: progress.flowId }).then(function (result) { if (!result || !result.ok) cancel.disabled = false; });
+      });
+      actions.appendChild(cancel);
+    }
+    var finish = document.createElement("button");
+    finish.className = "primary";
+    finish.textContent = "Terminer la vérification";
+    finish.disabled = !!state.flowActive || !!progress.intent;
+    finish.addEventListener("click", function () {
+      finish.disabled = true;
+      sendRequest({ type: "finish_review", flowId: progress.flowId }).then(function (result) { if (!result || !result.ok) finish.disabled = false; });
+    });
+    actions.appendChild(finish);
+    card.appendChild(actions);
+  }
+  thread.appendChild(card);
+}
+
+function renderProductReview(thread, review, pending) {
+  var card = document.createElement("div");
+  card.className = "card product-review";
+  textNode(card, "h3", "Choix nécessaires");
+  textNode(card, "div", "Les produits déjà vérifiés sont dans le panier. Choisis parmi ces propositions pour ajouter les ingrédients encore incertains.", "meta");
+  var fields = [];
+  (review.items || []).forEach(function (item) {
+    var row = document.createElement("div");
+    row.className = "review-item";
+    textNode(row, "h4", item.ingredient + (item.uncertain ? " — à vérifier" : " — sélectionné"));
+    textNode(row, "div", item.reason, "meta");
+    var select = document.createElement("select");
+    select.setAttribute("aria-label", "Produit pour " + item.ingredient);
+    select.disabled = !pending;
+    var empty = document.createElement("option");
+    empty.value = "";
+    empty.textContent = "Choisir un produit ou passer cet ingrédient";
+    select.appendChild(empty);
+    (item.candidates || []).forEach(function (candidate, index) {
+      var option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = candidate.label + " — " + candidate.price.toFixed(2) + " € / paquet"
+        + (candidate.packaging ? " — " + candidate.packaging : "")
+        + (candidate.quantityNote ? " — quantité à préciser" : " — × " + candidate.quantity + " = " + (candidate.quantity * candidate.price).toFixed(2) + " €")
+        + (candidate.habitual ? " — habituel" : "")
+        + (candidate.productId === item.recommendedProductId ? " — recommandé" : "");
+      option.selected = candidate.productId === item.selectedProductId;
+      select.appendChild(option);
+    });
+    var skip = document.createElement("option");
+    skip.value = "skip";
+    skip.textContent = "Ne pas ajouter cet ingrédient";
+    select.appendChild(skip);
+    var note = textNode(row, "div", "", "meta");
+    var quantity = document.createElement("input");
+    quantity.type = "number";
+    quantity.min = "1";
+    quantity.max = "999";
+    quantity.step = "1";
+    quantity.placeholder = "Nombre de paquets à acheter";
+    quantity.setAttribute("aria-label", "Nombre de paquets pour " + item.ingredient);
+    quantity.disabled = !pending;
+    function refreshCandidate() {
+      var candidate = item.candidates[Number(select.value)];
+      if (select.value === "" || select.value === "skip") candidate = undefined;
+      note.textContent = candidate ? [candidate.quantityNote, candidate.preparationChange ? "Ce choix peut modifier la préparation : vérifie la recette." : ""].filter(Boolean).join(" ") : "";
+      quantity.hidden = !candidate || !candidate.quantityNote;
+    }
+    select.addEventListener("change", function () { quantity.value = ""; refreshCandidate(); });
+    refreshCandidate();
+    row.appendChild(select);
+    row.appendChild(quantity);
+    card.appendChild(row);
+    fields.push({ item: item, select: select, quantity: quantity });
+  });
+  var error = textNode(card, "div", "", "msg error");
+  var submit = document.createElement("button");
+  submit.className = "primary";
+  submit.textContent = "Ajouter les produits choisis";
+  submit.disabled = !pending;
+  submit.addEventListener("click", function () {
+    var choices = [];
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      if (!field.select.value) { error.textContent = "Choisis un produit ou passe chaque ingrédient incertain."; return; }
+      if (field.select.value === "skip") { choices.push({ ingredientIndex: field.item.ingredientIndex, skip: true }); continue; }
+      var candidate = field.item.candidates[Number(field.select.value)];
+      var choice = { ingredientIndex: field.item.ingredientIndex, productId: candidate.productId };
+      if (candidate.quantityNote) {
+        var count = Number(field.quantity.value);
+        if (!Number.isSafeInteger(count) || count < 1 || count > 999) { error.textContent = "Indique le nombre de paquets à acheter (1 à 999)."; return; }
+        choice.quantity = count;
+      }
+      choices.push(choice);
+    }
+    submit.disabled = true;
+    sendRequest({ type: "review_answer", flowId: state.cartProgress.flowId, choices: choices }).then(function (result) {
+      if (!result || !result.ok) submit.disabled = false;
+    });
+  });
+  card.appendChild(submit);
+  thread.appendChild(card);
+}
+
 function renderClarificationCard(thread, entry, isLast) {
   var card = document.createElement("div");
   card.className = "card";
@@ -355,6 +548,12 @@ $("composer").addEventListener("submit", function (event) {
   var message = $("message").value.trim();
   if (!message) return;
   var servings = Number($("servings").value);
+  var count = message.match(/\b(\d+)\s*(?:personnes?|pers\.?|convives?|portions?)\b/i)
+    || message.match(/\bpour\s+(\d+)\b/i);
+  if (count) {
+    servings = Number(count[1]);
+    $("servings").value = String(servings);
+  }
   var exclusionsRaw = $("exclusions").value.trim();
   var request = {
     type: "start_flow",

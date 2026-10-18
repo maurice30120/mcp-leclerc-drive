@@ -23,7 +23,7 @@ import {
   type SidePanelRequest,
 } from "../src/sidepanel-protocol/protocol.ts";
 import { parseRecipeText } from "@leclerc/contracts";
-import { validateModelManifest } from "@leclerc/agent";
+import { validateModelManifest, type CartProgress } from "@leclerc/agent";
 import { LOCAL_MODEL_MANIFEST } from "../src/sidepanel-protocol/local-model.ts";
 
 const PREVIEW = {
@@ -53,6 +53,72 @@ const QUESTION = {
   ],
   message: "Plusieurs produits correspondent à « lait de coco ». Lequel faut-il ajouter ?",
 };
+
+function progressiveSnapshot(): CartProgress {
+  return { formatVersion: 1, flowId: "flow-test", storeId: "053701", baseline: { "P-1001": 3 }, finished: false,
+    recipe: { schemaVersion: 1, title: "Poulet", servings: 4, ingredients: [{ name: "poulet", quantity: 800, unit: "g" }], steps: ["Cuire."] },
+    request: { message: "Poulet pour 4", servings: 4 },
+    entries: [{ ingredientIndex: 0, ingredient: "poulet", status: "verifying", added: 0, removed: 0 }],
+    intent: { ingredientIndex: 0, productId: "P-1001", before: 3, target: 5, delta: 2, operation: "add" },
+  };
+}
+
+test("progressive session: the preparation intent permits only its exact target without a global click", () => {
+  const session = new SidePanelSession();
+  session.selectProvider("mistral");
+  session.startFlow({ message: "Poulet pour 4", servings: 4 });
+  session.setCartProgress(progressiveSnapshot());
+  assert.equal(session.assertMutationPermitted("P-1001", 5).ok, true);
+  assert.equal(session.assertMutationPermitted("P-1001", 6).ok, false);
+  assert.equal(session.assertMutationPermitted("P-9999", 5).ok, false);
+  assert.equal(session.assertMutationPermitted().ok, false);
+  assert.equal(session.getState().pendingApproval, undefined);
+});
+
+test("progressive session: interruption preserves the exact pending intent and contribution ledger", () => {
+  const session = new SidePanelSession();
+  session.selectProvider("mistral");
+  session.startFlow({ message: "Poulet pour 4", servings: 4 });
+  const progress = progressiveSnapshot();
+  progress.entries[0].status = "verification_pending";
+  session.setCartProgress(progress);
+  const restored = SidePanelSession.restore(structuredClone(session.serialize()));
+  restored.finishFlow("cancelled");
+  assert.equal(restored.getState().phase, "reviewing");
+  assert.equal(restored.getState().resumeAvailable, true);
+  assert.deepEqual(restored.getState().cartProgress?.intent, progress.intent);
+  assert.equal(restored.finishReview().ok, false, "unknown mutation results cannot be discarded");
+});
+
+test("progressive session: final verification ends the run without authorizing a new mutation", () => {
+  const session = new SidePanelSession();
+  session.selectProvider("mistral");
+  session.startFlow({ message: "Poulet pour 4", servings: 4 });
+  const progress = progressiveSnapshot();
+  progress.intent = undefined;
+  progress.entries[0].added = 2;
+  progress.entries[0].status = "added";
+  session.setCartProgress(progress);
+  session.finishFlow("completed");
+  assert.equal(session.startFlow({ message: "Encore", servings: 4 }).ok, false);
+  assert.equal(session.finishReview().ok, true);
+  assert.equal(session.getState().phase, "done");
+  assert.equal(session.assertMutationPermitted("P-1001", 5).ok, false);
+  assert.equal(session.startFlow({ message: "Autre recette", servings: 4 }).ok, true);
+});
+
+test("progressive session: grouped human choices reject unknown ids, omissions and unknown package counts", () => {
+  const session = new SidePanelSession();
+  session.selectProvider("mistral");
+  session.startFlow({ message: "Poulet pour 4", servings: 4 });
+  session.markSearching();
+  session.awaitProductReview({ items: [{ ingredientIndex: 0, ingredient: "poulet", uncertain: true, reason: "Poids inconnu", candidates: [{ productId: "P-1001", label: "Poulet", price: 3, quantity: 1, quantityNote: "Poids inconnu", habitual: false, preparationChange: false }] }] });
+  assert.equal(session.answerProductReview([]).ok, false);
+  assert.equal(session.answerProductReview([{ ingredientIndex: 0, productId: "alien", quantity: 1 }]).ok, false);
+  assert.equal(session.answerProductReview([{ ingredientIndex: 0, productId: "P-1001" }]).ok, false);
+  assert.equal(session.answerProductReview([{ ingredientIndex: 0, productId: "P-1001", quantity: 2 }]).ok, true);
+  assert.equal(session.getState().pendingReview, undefined);
+});
 
 /** Drive a session up to the approval wait (the observable UI journey). */
 function driveToAwaitingApproval(session: SidePanelSession): void {
@@ -127,7 +193,7 @@ test("sidepanel: aucune mutation permise avant l'événement d'approbation (règ
   const blocked = session.assertMutationPermitted();
   assert.ok(!blocked.ok, "la mutation doit être bloquée avant l'approbation");
   assert.equal(blocked.code, "APPROVAL_REQUIRED");
-  assert.match(blocked.message, /approbation/i);
+  assert.match(blocked.message, /autorisation/i);
   // The explicit approval event opens the door — and only it.
   const approved = session.approve();
   assert.ok(approved.ok);
@@ -327,6 +393,13 @@ test("sidepanel: isSidePanelRequestEnvelope accepte les requêtes valides et rej
   assert.ok(isSidePanelRequestEnvelope(ok({ type: "set_provider", providerId: "webgpu" })));
   assert.ok(isSidePanelRequestEnvelope(ok({ type: "approve" })));
   assert.ok(isSidePanelRequestEnvelope(ok({ type: "clarify_answer", answer: { skip: true } })));
+  assert.ok(isSidePanelRequestEnvelope(ok({ type: "cancel_prepared", flowId: "flow-1" })));
+  assert.ok(
+    !isSidePanelRequestEnvelope({
+      channel: SIDEPANEL_REQUEST_CHANNEL,
+      request: { type: "cancel_prepared" },
+    }),
+  );
   assert.ok(!isSidePanelRequestEnvelope({ channel: "autre", request: { type: "get_state" } }));
   assert.ok(!isSidePanelRequestEnvelope({ channel: SIDEPANEL_REQUEST_CHANNEL }));
   assert.ok(
