@@ -50,6 +50,7 @@ import {
   type ByokConfig,
 } from "../src/orchestrator/byok.js";
 import { buildMessages } from "../src/orchestrator/prompt.js";
+import { LECLERC_DOMAIN, isLeclercDomainHost } from "../src/leclerc/api.js";
 import { parsePlan } from "../src/orchestrator/plan.js";
 import { normalizeShoppingList } from "../src/orchestrator/shopping-list.js";
 import { buildCaptureRecord } from "../src/recipes/capture.js";
@@ -122,7 +123,7 @@ import {
 import type { Cart as BridgeCart, Product as BridgeProduct } from "../src/types.js";
 
 const LECRERC_URL_FILTER = {
-  url: [{ hostSuffix: "leclercdrive.fr" }],
+  url: [{ hostSuffix: LECLERC_DOMAIN }],
 };
 
 // The WebMCP runtime and tool registrations are injected in MAIN world. The
@@ -173,7 +174,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 async function reinjectAllLeclercTabs(): Promise<void> {
   try {
-    const tabs = await chrome.tabs.query({ url: "*://*.leclercdrive.fr/*" });
+    const tabs = await chrome.tabs.query({ url: `*://*.${LECLERC_DOMAIN}/*` });
     for (const tab of tabs) {
       if (tab.id == null) continue;
       try {
@@ -233,7 +234,9 @@ async function awaitWebMcpReady(): Promise<boolean> {
 function isLeclercUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    return u.protocol === "https:" && u.hostname.endsWith(".leclercdrive.fr");
+    // Domain check shared with src/leclerc/api.ts (ADR-0004): any
+    // *.leclercdrive.fr page, not just the fdN-courses backend shape.
+    return u.protocol === "https:" && isLeclercDomainHost(u.hostname);
   } catch {
     return false;
   }
@@ -850,7 +853,7 @@ async function runLeclercCommand(
 }
 
 async function findLeclercTabId(): Promise<number> {
-  const tabs = await chrome.tabs.query({ url: "*://*.leclercdrive.fr/*" });
+  const tabs = await chrome.tabs.query({ url: `*://*.${LECLERC_DOMAIN}/*` });
   // Prefer the active tab if it's a Leclerc tab, else the first match.
   const active = tabs.find((t) => t.active);
   const chosen = active ?? tabs[0];
