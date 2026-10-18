@@ -1,27 +1,13 @@
 /**
- * Shopping flow (ticket #44): the vertical slice "une recette → un panier".
+ * Recipe-to-cart flow shared by Chrome and the Node harness.
  *
- * Orchestration is deliberately DETERMINISTIC wherever possible — the model is
- * used exactly once per recipe attempt (plus at most one guided repair), and
- * every step after that is code:
+ * The default path (ADR-0013) generates and validates a recipe, then evaluates
+ * observed products in bounded batches. Solid choices are added immediately
+ * through a write-ahead ledger and verified cart reads. Uncertain choices are
+ * grouped for the human; the final cart is reviewed after addition.
  *
- *   recipe generation (frozen prompt, pinned params)
- *     → strict parse (@leclerc/contracts parseRecipeText)
- *     → at most ONE guided repair (buildRepairPrompt)
- *     → servings + exclusion checks (else recipe_invalid, zero mutations)
- *     → deterministic product requests from ingredients (never catalogue refs)
- *     → deterministic search_product calls via the engine executor
- *     → explicit matching rule (token score, deterministic tie order,
- *       ambiguity → clarification callback event)
- *     → packaging ceil rule for purchase quantities (explicit default on
- *       missing/incompatible packaging)
- *     → cart preview → global approval (injected scenario event)
- *     → ONLY after approval: sequential add_to_cart; first failure stops the
- *       rest, cart is re-read, gap report + resume object are produced.
- *
- * A ProviderUnavailableError from the provider never launches anything else:
- * the outcome carries the diagnostic and a consent-only Mistral proposal that
- * is plain data — never instantiated, never called.
+ * The explicit deterministic mode preserves the version-1 approval-gated
+ * baseline for historical comparisons. No provider fallback is implicit.
  */
 
 import type { Cart, Product, ToolError } from "@leclerc/contracts";
@@ -45,6 +31,11 @@ import { GENERATION_PARAMS, RECIPE_SYSTEM_PROMPT } from "./prompts.js";
 import type { ModelProvider, ProviderProposal, ProviderMessage } from "./provider.js";
 import { ProviderUnavailableError } from "./provider.js";
 import { createTraceBuilder, type TraceBuilder, type TraceEvent } from "./trace.js";
+import { fold, matchIngredient, purchaseQuantity } from "./product-matching.js";
+import { type ProductReviewHandler } from "./product-selection.js";
+import type { CartProgress, ProgressCheckpoint } from "./cart-progress.js";
+import { runProgressiveSelection } from "./progressive-flow.js";
+export { purchaseQuantity } from "./product-matching.js";
 
 // ---- public types -------------------------------------------------------------
 
@@ -78,10 +69,15 @@ export interface ShoppingFlowConfig {
   /** Capability bindings (real adapter in Chrome, harness mocks in Node). */
   bindings: readonly ToolBinding[];
   request: ShoppingFlowRequest;
-  /** Global approval decision, injected as a scenario event. Never automatic. */
-  approval: ApprovalDecisionHandler;
+  /** Historical deterministic baseline only; progressive preparation needs no global click. */
+  approval?: ApprovalDecisionHandler;
   /** Optional clarification answers, injected as scenario events. */
   clarification?: ClarificationHandler;
+  /** Historical baseline for version-1 scenarios; live runs use model selection. */
+  selectionMode?: "model" | "deterministic";
+  review?: ProductReviewHandler;
+  progress?: CartProgress;
+  checkpoint?: ProgressCheckpoint;
   limits?: ShoppingFlowLimits;
   signal?: AbortSignal;
 }
@@ -127,6 +123,7 @@ export interface ShoppingFlowError {
 export interface ShoppingFlowResult {
   status: ShoppingOutcomeStatus;
   trace: TraceEvent[];
+  progress?: CartProgress;
   recipe?: GeneratedRecipe;
   preview?: CartPreview;
   issues: ShoppingFlowIssue[];
@@ -164,136 +161,6 @@ export interface ResumeShoppingFlowConfig {
 
 // ---- deterministic matching and quantity rules ---------------------------------
 
-const STOPWORDS = new Set([
-  "de", "du", "des", "le", "la", "les", "l", "d", "a", "au", "aux", "et", "en", "un", "une",
-]);
-
-function fold(text: string): string {
-  return text.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
-}
-
-function tokenize(text: string): string[] {
-  return fold(text)
-    .split(/[^a-z0-9]+/)
-    .filter((token) => token.length > 0 && !STOPWORDS.has(token))
-    .map((token) => token.length > 3 && token.endsWith("s") && !token.endsWith("us") ? token.slice(0, -1) : token);
-}
-
-function matchesIngredientIdentity(ingredient: string, label: string): boolean {
-  const tokens = tokenize(ingredient);
-  const productTokens = new Set(tokenize(label));
-  // A shared adjective is insufficient: e.g. « blancs » in an unrelated food.
-  if (!tokens[0] || !productTokens.has(tokens[0])) return false;
-  // Search results may contain ready meals and substitutes named after the
-  // requested ingredient. Never treat them as that ingredient automatically.
-  const transformations = [
-    /\b(vege|vegetal\w*|vegetarien\w*|vegan)\b/,
-    /\bplat(?:s)? cuisine\w*\b/,
-    /\b(cassoulet|choucroute|pizza|quiche|soupe|veloute|puree|croquette)\b/,
-  ];
-  return transformations.every((pattern) => !pattern.test(fold(label)) || pattern.test(fold(ingredient)));
-}
-
-/**
- * Explicit matching rule: a product's score for an ingredient is the number
- * of the ingredient's meaningful tokens found in the product label, with
- * singular/plural normalization. Candidates must also match the ingredient's
- * first meaningful word and pass the prepared-food/substitute filter. Ties
- * are ordered by ascending product id and resolved by clarification.
- */
-function matchScore(ingredientTokens: string[], labelTokens: Set<string>): number {
-  let score = 0;
-  for (const token of ingredientTokens) {
-    if (labelTokens.has(token)) score++;
-  }
-  return score;
-}
-
-type MatchOutcome =
-  | { kind: "selected"; product: Product; score: number }
-  | { kind: "ambiguous"; candidates: Product[]; score: number }
-  | { kind: "none" };
-
-function matchIngredient(ingredientName: string, products: Product[]): MatchOutcome {
-  const ingredientTokens = tokenize(ingredientName);
-  const scored = products
-    .filter((product) => matchesIngredientIdentity(ingredientName, product.label))
-    .map((product) => ({
-      product,
-      score: matchScore(ingredientTokens, new Set(tokenize(product.label))),
-    }))
-    .filter((entry) => entry.score >= 1);
-  if (scored.length === 0) return { kind: "none" };
-  const best = Math.max(...scored.map((entry) => entry.score));
-  const top = scored
-    .filter((entry) => entry.score === best)
-    .sort((a, b) => (a.product.id < b.product.id ? -1 : a.product.id > b.product.id ? 1 : 0));
-  if (top.length === 1) return { kind: "selected", product: top[0].product, score: best };
-  return { kind: "ambiguous", candidates: top.map((entry) => entry.product), score: best };
-}
-
-// ---- packaging ceil rule -------------------------------------------------------
-
-type UnitFamily = "mass" | "volume" | "count";
-
-const MASS_FACTORS: Record<string, number> = { g: 1, gr: 1, gramme: 1, grammes: 1, kg: 1000 };
-const VOLUME_FACTORS: Record<string, number> = { ml: 1, cl: 10, l: 1000 };
-const COUNT_FACTORS: Record<string, number> = {
-  piece: 1, pieces: 1, tranche: 1, tranches: 1, gousse: 1, gousses: 1,
-  sachet: 1, sachets: 1, boite: 1, boites: 1, pot: 1, pots: 1, botte: 1, bottes: 1,
-};
-
-function unitFactor(unit: string): { family: UnitFamily; factor: number } | undefined {
-  const folded = fold(unit).trim();
-  if (folded in MASS_FACTORS) return { family: "mass", factor: MASS_FACTORS[folded] };
-  if (folded in VOLUME_FACTORS) return { family: "volume", factor: VOLUME_FACTORS[folded] };
-  if (folded in COUNT_FACTORS) return { family: "count", factor: COUNT_FACTORS[folded] };
-  return undefined;
-}
-
-/**
- * DOCUMENTED EXPLICIT RULE — packaging ceil: the purchase quantity is the
- * number of sales packages needed to cover the ingredient quantity:
- * ceil(needed amount in base unit / packaging amount in base unit), minimum 1.
- * It applies only when the ingredient unit and the packaging unit belong to
- * the same family (mass, volume, count). When the packaging is missing or
- * incompatible, an EXPLICIT DEFAULT of 1 package is applied and reported as
- * an issue (never an invented quantity).
- */
-export function purchaseQuantity(
-  needed: { quantity: number; unit: string },
-  packaging: string | undefined,
-): { quantity: number; note?: string } {
-  if (packaging === undefined) {
-    return {
-      quantity: 1,
-      note: "Conditionnement inconnu : quantité par défaut de 1 unité.",
-    };
-  }
-  const need = unitFactor(needed.unit);
-  const measurements = fold(packaging).split(" / ")
-    .map((part) => part.match(/^([0-9]+(?:[.,][0-9]+)?)\s*([a-z ]+)$/))
-    .filter((part) => part !== null);
-  const parsed = measurements.find((part) => unitFactor(part[2])?.family === need?.family) ?? measurements[0];
-  if (!parsed) {
-    return {
-      quantity: 1,
-      note: `Conditionnement « ${packaging} » non exploitable : quantité par défaut de 1 unité.`,
-    };
-  }
-  const packAmount = parseFloat(parsed[1].replace(",", "."));
-  const pack = unitFactor(parsed[2]);
-  if (!pack || !need || pack.family !== need.family || packAmount <= 0) {
-    return {
-      quantity: 1,
-      note: `Unité « ${needed.unit} » incompatible avec le conditionnement « ${packaging} » : quantité par défaut de 1 unité.`,
-    };
-  }
-  const neededBase = needed.quantity * need.factor;
-  const packBase = packAmount * pack.factor;
-  return { quantity: Math.max(1, Math.ceil(neededBase / packBase)) };
-}
-
 function round2(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
@@ -302,7 +169,7 @@ function round2(amount: number): number {
 
 class CallBudget {
   used = 0;
-  constructor(readonly max: number) {}
+  constructor(public max: number) {}
   /** Consume one slot; false when the budget is exhausted. */
   take(): boolean {
     if (this.used >= this.max) return false;
@@ -382,7 +249,7 @@ export async function runShoppingFlow(config: ShoppingFlowConfig): Promise<Shopp
   const maxTurns = config.limits?.maxTurns ?? DEFAULT_MAX_TURNS;
   const budget = new CallBudget(config.limits?.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS);
   const trace = createTraceBuilder();
-  const gate = new ApprovalGate(config.approval);
+  const gate = new ApprovalGate(config.approval ?? (() => ({ approved: false })));
   const executor = new ToolExecutor({ bindings: config.bindings, gate, trace });
   const issues: ShoppingFlowIssue[] = [];
 
@@ -398,23 +265,33 @@ export async function runShoppingFlow(config: ShoppingFlowConfig): Promise<Shopp
   // -- recipe generation (frozen prompt, pinned params) --
 
   let generationCalls = 0;
-  const generateRaw = async (messages: ProviderMessage[]): Promise<RawGenerationOutcome> => {
+  const generateRaw = async (messages: ProviderMessage[], maxTokens: number = GENERATION_PARAMS.maxTokens): Promise<RawGenerationOutcome> => {
     if (signal?.aborted) return { ok: false, kind: "cancelled" };
     if (generationCalls >= maxTurns) return { ok: false, kind: "limits_exceeded" };
     const started = Date.now();
+    let success = false;
+    generationCalls++;
     try {
       const response = await provider.generate({
         messages,
         ...GENERATION_PARAMS,
+        maxTokens,
+        responseFormat: "json_object",
         ...(signal ? { signal } : {}),
       });
-      generationCalls++;
+      success = response.finishReason !== "error" && response.finishReason !== "cancelled";
       const durationMs = Date.now() - started;
       if (signal?.aborted || response.finishReason === "cancelled") {
         return { ok: false, kind: "cancelled" };
       }
       const text = response.text ?? "";
       if (text !== "") trace.modelText(text, durationMs);
+      if (maxTokens === 4096 && response.finishReason === "error") {
+        return { ok: false, kind: "provider_error", message: text || "Évaluation du modèle impossible." };
+      }
+      if (maxTokens === 4096 && response.finishReason === "length") {
+        return { ok: false, kind: "provider_error", message: "Réponse du modèle tronquée pendant la sélection. Reprends le parcours pour réessayer." };
+      }
       // A scripted provider error still flows into the strict parse: an
       // unreadable output is a recipe problem, handled by the repair rule.
       return { ok: true, text };
@@ -431,8 +308,28 @@ export async function runShoppingFlow(config: ShoppingFlowConfig): Promise<Shopp
       const message = err instanceof Error ? err.message : String(err);
       trace.error("PROVIDER_ERROR", `Appel du modèle impossible : ${message}`);
       return { ok: false, kind: "provider_error", message };
+    } finally {
+      trace.events.push({ type: "model_call", timestamp: trace.now(), purpose: maxTokens === 4096 ? "selection" : "recipe", durationMs: Date.now() - started, success });
     }
   };
+
+  const runPrepared = (recipe: GeneratedRecipe) => {
+    budget.max = config.limits?.maxToolCalls ?? Math.max(DEFAULT_MAX_TOOL_CALLS, recipe.ingredients.length * 6 + 4);
+    return runProgressiveSelection({
+      recipe, request: config.progress?.request ?? request, executor, gate, trace, signal,
+      progress: config.progress, checkpoint: config.checkpoint, review: config.review, clarification,
+      takeRead: () => budget.used < budget.max - 3 && budget.take(),
+      takeMutationCall: () => budget.take(),
+      generate: async (messages) => {
+        const result = await generateRaw(messages, 4096);
+        if (!result.ok && result.kind !== "limits_exceeded" && result.kind !== "cancelled") {
+          throw new Error("diagnostic" in result ? result.diagnostic : "message" in result ? result.message : "Évaluation du modèle impossible.");
+        }
+        return result.ok ? result.text : undefined;
+      },
+    });
+  };
+  if (config.progress) return runPrepared(config.progress.recipe);
 
   const generationMessages: ProviderMessage[] = [
     { role: "system", content: RECIPE_SYSTEM_PROMPT },
@@ -559,6 +456,7 @@ export async function runShoppingFlow(config: ShoppingFlowConfig): Promise<Shopp
   // -- deterministic product requests + searches + matching --
 
   const lines: CartPreviewLine[] = [];
+  if (config.selectionMode === "deterministic") {
   for (const ingredient of recipe.ingredients) {
     if (signal?.aborted) return cancelledResult();
     if (!budget.take()) {
@@ -661,6 +559,10 @@ export async function runShoppingFlow(config: ShoppingFlowConfig): Promise<Shopp
       matchScore: score,
       ...(purchase.note ? { note: purchase.note } : {}),
     });
+  }
+
+  } else {
+    return runPrepared(recipe);
   }
 
   // -- cart preview --

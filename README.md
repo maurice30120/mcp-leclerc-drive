@@ -133,14 +133,15 @@ Dans le popup Chrome, sélectionner Mistral et saisir sa clé, puis écrire par
 exemple « je veux faire un casoulet 5 personne » et cliquer **Préparer mes courses**.
 L'assistant s'ouvre dans le panneau latéral avec la même configuration Mistral :
 il génère une recette pour 5 personnes, recherche ses ingrédients dans le magasin
-connecté et prépare un aperçu des produits avec quantités et prix. En cas de
-produits ex æquo, il demande lequel choisir. Les conditionnements reconnus dans
+connecté et prépare un aperçu des produits avec quantités et prix. Les choix étayés sont ajoutés progressivement au panier ; les doutes sont regroupés avec au maximum trois propositions par ingrédient. Les conditionnements reconnus dans
 les libellés servent à calculer le nombre de paquets ; les unités incompatibles
-ou absentes restent signalées pour vérification. L'ajout au panier attend la
-validation de l'aperçu.
+ou absentes restent signalées pour vérification. La demande autorise les ajouts vérifiés. La révision finale permet de retirer les seules quantités ajoutées par l'agent ; **Terminer la vérification** clôt le parcours.
 
 Le bouton **Préparer une recette** accepte aussi un simple nom de plat. Une
 liste explicite telle que « lait 1L, œufs x6 » garde son parcours dans le popup.
+La clé Mistral, le modèle et le fournisseur choisi sont mémorisés localement et
+restaurés après fermeture du navigateur. Le bouton **Supprimer** efface la clé
+persistante et sa copie de session.
 Voir le [protocole de vérification navigateur](docs/testing/sidepanel-opt-in.md).
 
 ## Development
@@ -164,8 +165,8 @@ trois packages aux frontières de dépendances étanches :
 | Package | Rôle |
 | --- | --- |
 | `@leclerc/contracts` | Le noyau pur : domaine (`Product`, `CartItem`, `Cart`, `DriveStore`), les neuf contrats de capacités Leclerc définis **une seule fois** (schémas, métadonnées lecture/session/mutation, validation d'entrée typée, codes d'erreur normalisés) et le schéma versionné de la recette générée. Aucune dépendance à `chrome.*`, à Node ou aux bibliothèques de modèles. |
-| `@leclerc/agent` | Le seam `ModelProvider` et le moteur d'agent : garde-fou d'approbation avant toute mutation, exécuteur d'outils, flux courses (recette → au plus une réparation guidée → recherches déterministes → aperçu → approbation → mutations séquentielles avec arrêt/relecture/reprise sur panne partielle), et les providers simulé / Mistral BYOK / WebGPU exclusif. |
-| `@leclerc/harness` | Le harnais Node : mocks déterministes en mémoire des neuf capacités, injection de pannes par famille, scénarios versionnés A01–A10/F01 et POC WebGPU strictement opt-in. |
+| `@leclerc/agent` | Le seam `ModelProvider` et le moteur d'agent : garde de mutation par référence et quantité cible, exécuteur d'outils, flux courses (recette → au plus une réparation guidée → sélection étayée → ajouts progressifs → choix humains regroupés → révision et suppressions des contributions), journal vérifié et reprise sans doublons, et les providers simulé / Mistral BYOK / WebGPU exclusif. |
+| `@leclerc/harness` | Le harnais Node : mocks déterministes en mémoire des neuf capacités, injection de pannes par famille, scénarios historiques A01–A10/F01, scénarios de sélection S01–S04, tests de panier progressif et POC WebGPU strictement opt-in. |
 
 À la racine restent : l'extension Chrome MV3 (`extension/`, construite par
 `npm run build:extension`), la logique historique (`src/`), les tests legacy
@@ -183,11 +184,17 @@ environnement mock déterministe (fixtures versionnées, injection de pannes,
 zéro réseau). Chaque scénario est un critère d'acceptation exécutable ; les
 assertions de sécurité ci-dessous sont **bloquantes à chaque scénario** :
 
-- aucune mutation de panier avant la décision d'approbation ;
-- les identifiants produits viennent uniquement des résultats d'outils (jamais inventés) ;
-- un refus d'approbation laisse le panier strictement inchangé ;
-- aucun appel cloud sans sélection explicite de l'utilisateur ;
-- la décision d'approbation est un événement injecté du scénario, jamais automatique.
+- les identifiants produits viennent uniquement des résultats d'outils ;
+- les ajouts progressifs suivent une intention vérifiée autorisée par la demande de préparation ;
+- les choix incertains restent en attente de la réponse humaine (trois propositions maximum) ;
+- les mutations sont relues, les reprises ne doublent pas les besoins et les suppressions préservent les quantités préexistantes ;
+- aucun appel cloud sans sélection explicite du fournisseur.
+
+Les scénarios A01–F01 conservent explicitement le mode déterministe historique,
+avec leurs assertions d'approbation préalable. Les scénarios S et les tests
+progressifs vérifient le parcours décrit dans l'[ADR-0013](docs/adr/0013-selection-produits-etayee-par-le-modele.md).
+Les rapports distinguent les deux modes et mesurent tours, appels, durée,
+erreurs de sélection et questions évitables contre les fixtures.
 
 Commandes de campagne et leurs gates opt-in :
 

@@ -205,20 +205,9 @@ const capabilityExecutors: Record<string, (args: unknown) => Promise<ToolTextRes
 
   list_habitual_products: async () => {
     try {
-      const s = loadStore();
-      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
-      // Dérive le préfixe magasin depuis l'URL courante de l'onglet :
-      //   /magasin-018201-018201-Montauban---Sapiac/... → produits-habituels.aspx
-      const m = window.location.pathname.match(/^(\/magasin-\d+-\d+-[^/]+)\//i);
-      if (!m) {
-        throw new Error(
-          "L'onglet courant n'est pas sur une page magasin Leclerc. Ouvre ton drive " +
-            "(ex. https://fd11-courses.leclercdrive.fr/magasin-018201-018201-...) puis recharge.",
-        );
-      }
-      const url = `https://${s.host}${m[1]}/produits-habituels.aspx`;
-      const html = await getHtml(url);
-      const products = productsFromHtml(html);
+      const result = await runDispatch({ command: "list_habitual_products" });
+      if (result.kind !== "list_habitual_products") throw new Error("Réponse inattendue");
+      const products = result.products;
       if (products.length === 0) return asText("Aucun produit habituel trouvé.");
       const lines = products.map((p) => {
         const safe = { ...p, label: scrubUntrusted(p.label) };
@@ -675,12 +664,30 @@ async function registerTools(): Promise<void> {
 
 export type DispatchResult =
   | { kind: "search_products"; products: Product[] }
+  | { kind: "list_habitual_products"; products: Product[] }
   | { kind: "get_cart"; cart: Cart }
   | { kind: "get_store"; store: { storeId: string; noPR: string; host: string; name?: string; serviceType?: string } }
   | { kind: "cart_mutation"; cart: Cart };
 
 async function runDispatch(call: DispatchCall): Promise<DispatchResult> {
   switch (call.command) {
+    case "list_habitual_products": {
+      const s = loadStore();
+      if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);
+      // Dérive le préfixe magasin depuis l'URL courante de l'onglet :
+      //   /magasin-018201-018201-Montauban---Sapiac/... → produits-habituels.aspx
+      const m = window.location.pathname.match(/^(\/magasin-\d+-\d+-[^/]+)\//i);
+      if (!m) {
+        throw new Error(
+          "L'onglet courant n'est pas sur une page magasin Leclerc. Ouvre ton drive " +
+            "(ex. https://fd11-courses.leclercdrive.fr/magasin-018201-018201-...) puis recharge.",
+        );
+      }
+      const url = `https://${s.host}${m[1]}/produits-habituels.aspx`;
+      const html = await getHtml(url);
+      const products = productsFromHtml(html);
+      return { kind: "list_habitual_products", products: products.map((p) => ({ ...p, label: scrubUntrusted(p.label) })) };
+    }
     case "search_products": {
       const s = loadStore();
       if (!isLeclercHost(s.host)) throw new Error("Host non-Leclerc : " + s.host);

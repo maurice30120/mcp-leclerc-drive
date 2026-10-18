@@ -291,7 +291,7 @@ export const updateQuantity = defineCapability<
   name: "update_quantity",
   title: "Modifier la quantité d'un produit du panier",
   description:
-    "Fixe la quantité d'un produit déjà présent dans le panier (0 le retire). Mutation : nécessite l'approbation globale de l'utilisateur.",
+    "Fixe la quantité absolue d'un produit du catalogue, y compris s'il est absent du panier (0 le retire). Mutation : nécessite une autorisation utilisateur ; une demande de préparation autorise les quantités vérifiées de ce parcours.",
   kind: "mutation",
   inputSchema: {
     type: "object",

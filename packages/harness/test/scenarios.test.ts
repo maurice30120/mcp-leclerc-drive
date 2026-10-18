@@ -20,6 +20,10 @@ const EXPECTED_IDS = [
   "A09",
   "A10",
   "F01",
+  "S01",
+  "S02",
+  "S03",
+  "S04",
 ] as const;
 
 /** Every check of a run must pass; report the failing ones verbatim. */
@@ -37,7 +41,7 @@ function expectAllChecksPass(scenario: ScenarioDefinition, checks: { name: strin
 describe("registre des scénarios (tickets #44/#45)", () => {
   it("expose la suite ordonnée A01–A10 + F01, versionnée", () => {
     expect(SCENARIOS.map((scenario) => scenario.id)).toEqual([...EXPECTED_IDS]);
-    expect(SCENARIOS_VERSION).toBe(1);
+    expect(SCENARIOS_VERSION).toBe(2);
     for (const scenario of SCENARIOS) {
       expect(scenario.version).toBe(SCENARIOS_VERSION);
     }

@@ -34,6 +34,9 @@
  */
 
 import type {
+  CartProgress,
+  ProductReview,
+  ProductReviewChoice,
   ClarificationAnswer,
   ClarificationQuestion,
   CartPreview,
@@ -70,6 +73,7 @@ export type SidePanelPhase =
   | "preview"
   | "awaiting_approval"
   | "mutating"
+  | "reviewing"
   | "done"
   | "error";
 
@@ -78,6 +82,7 @@ export type SidePanelHistoryKind =
   | "recipe"
   | "preview"
   | "approval"
+  | "review"
   | "clarification"
   | "tool_activity"
   | "flow_result"
@@ -128,6 +133,8 @@ export interface SidePanelState {
   pendingApproval?: { summary: string; preview: CartPreview };
   /** Pending clarification question, shown with the candidate buttons. */
   pendingClarification?: ClarificationQuestion;
+  pendingReview?: ProductReview;
+  cartProgress?: CartProgress;
   /** Whether a resume of an interrupted run is available. */
   resumeAvailable: boolean;
   /** True while a flow run is in progress (in this service worker instance). */
@@ -146,6 +153,10 @@ export type SidePanelRequest =
   | { type: "approve" }
   | { type: "refuse"; reason?: string }
   | { type: "clarify_answer"; answer: ClarificationAnswer }
+  | { type: "remove_prepared"; flowId: string; ingredientIndex: number }
+  | { type: "finish_review"; flowId: string }
+  | { type: "cancel_prepared"; flowId: string }
+  | { type: "review_answer"; flowId: string; choices: ProductReviewChoice[] }
   | { type: "resume" }
   | { type: "reset_session" }
   | { type: "model_download_consent"; accepted: boolean }
@@ -205,6 +216,16 @@ function isSidePanelRequest(value: unknown): value is SidePanelRequest {
     }
     case "refuse":
       return value.reason === undefined || typeof value.reason === "string";
+    case "finish_review":
+    case "cancel_prepared":
+      return isNonEmptyString(value.flowId);
+    case "remove_prepared":
+      return isNonEmptyString(value.flowId) && Number.isSafeInteger(value.ingredientIndex) && Number(value.ingredientIndex) >= 0;
+    case "review_answer":
+      return isNonEmptyString(value.flowId) && Array.isArray(value.choices) && value.choices.every((choice) => isObject(choice)
+        && Number.isInteger(choice.ingredientIndex)
+        && ((choice.skip === true && choice.productId === undefined) || (isNonEmptyString(choice.productId) && choice.skip === undefined))
+        && (choice.quantity === undefined || (Number.isSafeInteger(choice.quantity) && Number(choice.quantity) >= 1 && Number(choice.quantity) <= 999)));
     case "clarify_answer":
       return isClarificationAnswer(value.answer);
     case "model_download_consent":
@@ -330,6 +351,8 @@ export interface SidePanelSessionSnapshot {
   history: SidePanelHistoryEntry[];
   pendingApproval?: { summary: string; preview: CartPreview };
   pendingClarification?: ClarificationQuestion;
+  pendingReview?: ProductReview;
+  cartProgress?: CartProgress;
   resume?: ShoppingFlowResume;
 }
 
@@ -342,7 +365,7 @@ export type SessionMutationCheck =
 export type SessionResult = { ok: true } | { ok: false; error: string };
 
 const MUTATION_BLOCKED_MESSAGE =
-  "Mutation refusée : l'approbation globale de l'utilisateur est requise avant toute écriture au panier.";
+  "Mutation refusée : aucune autorisation valide pour cette référence et cette quantité.";
 
 /**
  * The session state machine of the side panel.
@@ -363,6 +386,8 @@ export class SidePanelSession {
   private history: SidePanelHistoryEntry[] = [];
   private pendingApproval: { summary: string; preview: CartPreview } | undefined;
   private pendingClarification: ClarificationQuestion | undefined;
+  private pendingReview: ProductReview | undefined;
+  private cartProgress: CartProgress | undefined;
   private resume: ShoppingFlowResume | undefined;
   private modelState: SidePanelModelState = { cacheState: "unknown" };
   private lastPreview: CartPreview | undefined;
@@ -375,7 +400,9 @@ export class SidePanelSession {
       history: [...this.history],
       ...(this.pendingApproval ? { pendingApproval: { ...this.pendingApproval } } : {}),
       ...(this.pendingClarification ? { pendingClarification: this.pendingClarification } : {}),
-      resumeAvailable: this.resume !== undefined,
+      ...(this.pendingReview ? { pendingReview: this.pendingReview } : {}),
+      ...(this.cartProgress ? { cartProgress: this.cartProgress } : {}),
+      resumeAvailable: this.resume !== undefined || !!(this.cartProgress && !this.cartProgress.finished && (this.cartProgress.intent || this.cartProgress.entries.some((entry) => ["failed", "verification_pending", "searching", "verifying", "choice_needed"].includes(entry.status)))),
       flowActive: this.flowActive,
       model: this.modelState,
     };
@@ -406,6 +433,7 @@ export class SidePanelSession {
   // -- flow lifecycle --------------------------------------------------------
 
   startFlow(request: { message: string; servings: number; exclusions?: string[] }): SessionResult {
+    if (this.cartProgress && !this.cartProgress.finished) return { ok: false, error: "Termine la vérification du panier précédent ou reprends ce parcours." };
     if (this.flowActive) {
       return { ok: false, error: "Un parcours est déjà en cours." };
     }
@@ -431,8 +459,10 @@ export class SidePanelSession {
     this.mutationApproved = false;
     this.pendingApproval = undefined;
     this.pendingClarification = undefined;
+    this.pendingReview = undefined;
     this.resume = undefined;
     this.lastPreview = undefined;
+    this.cartProgress = undefined;
     this.appendHistory("user", "message", request.message.trim());
     return { ok: true };
   }
@@ -501,11 +531,13 @@ export class SidePanelSession {
   }
 
   /**
-   * BLOCKING SAFETY RULE: no mutation request may be emitted before the
-   * approval event. The background's add_to_cart binding MUST consult this
-   * before sending anything toward the Leclerc tab.
+   * Progressive writes require the exact durable intent. Historical snapshots
+   * retain their explicit approval gate. Bindings consult this before dispatch.
    */
-  assertMutationPermitted(): SessionMutationCheck {
+  assertMutationPermitted(productId?: string, quantity?: number): SessionMutationCheck {
+    const progress = this.cartProgress;
+    const intent = progress?.intent;
+    if (progress && !progress.finished && intent && intent.productId === productId && intent.target === quantity) return { ok: true };
     if (this.mutationApproved) return { ok: true };
     return { ok: false, code: "APPROVAL_REQUIRED", message: MUTATION_BLOCKED_MESSAGE };
   }
@@ -530,7 +562,51 @@ export class SidePanelSession {
       return { ok: false, error: "Réponse de clarification invalide." };
     }
     this.pendingClarification = undefined;
+    this.pendingReview = undefined;
     return { ok: true, answer };
+  }
+
+  setCartProgress(progress: CartProgress): void {
+    if (this.cartProgress && this.cartProgress.flowId !== progress.flowId && !this.cartProgress.finished) throw new Error("Un autre panier est encore en révision.");
+    this.cartProgress = progress;
+  }
+
+  getCartProgress(): CartProgress | undefined { return this.cartProgress; }
+
+  beginProgressiveResume(): SessionResult {
+    if (this.flowActive || !this.cartProgress || this.cartProgress.finished) return { ok: false, error: "Reprise indisponible." };
+    this.flowActive = true;
+    this.phase = "searching";
+    this.pendingReview = undefined;
+    return { ok: true };
+  }
+
+  finishReview(): SessionResult {
+    if (this.flowActive || !this.cartProgress || this.cartProgress.intent) return { ok: false, error: "Une vérification ou une mutation reste en attente." };
+    this.cartProgress.finished = true;
+    this.phase = "done";
+    return { ok: true };
+  }
+
+  awaitProductReview(review: ProductReview): void {
+    if (this.phase !== "searching" || this.pendingReview) throw new Error("Révision des choix indisponible.");
+    this.pendingReview = review;
+    this.appendHistory("assistant", "review", "Vérifie les choix et les ingrédients incertains.", review);
+  }
+
+  answerProductReview(choices: ProductReviewChoice[]): SessionResult {
+    const review = this.pendingReview;
+    if (!review || !isSidePanelRequest({ type: "review_answer", flowId: this.cartProgress?.flowId ?? "legacy-review", choices })) return { ok: false, error: "Révision invalide ou absente." };
+    if (choices.length !== review.items.length || review.items.some((item) => {
+      const matches = choices.filter((choice) => choice.ingredientIndex === item.ingredientIndex);
+      if (matches.length !== 1) return true;
+      const choice = matches[0];
+      if (choice.skip) return false;
+      const product = item.candidates.find((candidate) => candidate.productId === choice.productId);
+      return !product || (product.quantityNote !== undefined && choice.quantity === undefined);
+    })) return { ok: false, error: "Choisis un produit et sa quantité, ou passe chaque ingrédient." };
+    this.pendingReview = undefined;
+    return { ok: true };
   }
 
   // -- termination + resume ------------------------------------------------------
@@ -541,7 +617,10 @@ export class SidePanelSession {
     this.mutationApproved = false;
     this.pendingApproval = undefined;
     this.pendingClarification = undefined;
-    if (status === "refused" || status === "cancelled") {
+    this.pendingReview = undefined;
+    if (this.cartProgress && !this.cartProgress.finished) {
+      this.phase = "reviewing";
+    } else if (status === "refused" || status === "cancelled") {
       this.phase = "idle";
     } else if (status === "completed") {
       this.phase = "done";
@@ -568,6 +647,7 @@ export class SidePanelSession {
     this.mutationApproved = false;
     this.pendingApproval = undefined;
     this.pendingClarification = undefined;
+    this.pendingReview = undefined;
     this.lastPreview = preview;
     this.appendHistory(
       "assistant",
@@ -611,6 +691,7 @@ export class SidePanelSession {
     this.mutationApproved = false;
     this.pendingApproval = undefined;
     this.pendingClarification = undefined;
+    this.pendingReview = undefined;
     this.resume = undefined;
     this.lastPreview = undefined;
   }
@@ -628,6 +709,8 @@ export class SidePanelSession {
       history: [...this.history],
       ...(this.pendingApproval ? { pendingApproval: this.pendingApproval } : {}),
       ...(this.pendingClarification ? { pendingClarification: this.pendingClarification } : {}),
+      ...(this.pendingReview ? { pendingReview: this.pendingReview } : {}),
+      ...(this.cartProgress ? { cartProgress: this.cartProgress } : {}),
       ...(this.resume ? { resume: this.resume } : {}),
     };
   }
@@ -645,6 +728,8 @@ export class SidePanelSession {
     session.history = Array.isArray(snapshot.history) ? [...snapshot.history] : [];
     session.pendingApproval = snapshot.pendingApproval;
     session.pendingClarification = snapshot.pendingClarification;
+    session.pendingReview = snapshot.pendingReview;
+    session.cartProgress = snapshot.cartProgress;
     session.resume = snapshot.resume;
     return session;
   }

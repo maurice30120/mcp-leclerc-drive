@@ -17,7 +17,7 @@
     "build:all": "npm run build && npm run build:extension",
     "fetch:model": "node scripts/fetch-model.mjs",
     "dev": "tsc --watch",
-    "harness:campaign": "npm run campaign --workspace @leclerc/harness",
+    "harness:campaign": "npm run campaign --workspace @leclerc/harness --",
     "harness:campaign:jsonl": "npm run campaign --workspace @leclerc/harness -- --jsonl",
     "test:harness:local": "npm run campaign:webgpu --workspace @leclerc/harness",
     "test": "node --test tests/*.test.ts && npm run test --workspaces --if-present",

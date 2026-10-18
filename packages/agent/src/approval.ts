@@ -1,15 +1,8 @@
 /**
- * Approval gate (ticket #44): the ONLY door to cart mutation tools.
- *
- * The gate holds one global decision for a whole shopping flow. The decision
- * is never automatic: the flow injects a handler (a scenario event in the
- * harness, a UI callback in the extension) which the gate calls when an
- * approval is requested. The engine's tool executor consults the gate BEFORE
- * any mutation call — an unapproved mutation is never executed.
- *
- * The payload of an approval request is the cart preview: the single,
- * complete list of planned mutations the user approves (or refuses) as a
- * whole. That is why the preview types live here.
+ * Mutation authorization gate. The progressive preparation path permits only
+ * an exact catalogue reference and absolute quantity from its durable intent.
+ * Historical deterministic scenarios retain their explicit global decision.
+ * Models cannot grant either authorization through tool output.
  */
 
 import type { Cart, Product } from "@leclerc/contracts";
@@ -76,12 +69,28 @@ export type ApprovalDecisionHandler = (
  */
 export class ApprovalGate {
   private decision: ApprovalDecision | undefined;
+  private prepared: { productId: string; quantity: number } | undefined;
 
   constructor(private readonly handler: ApprovalDecisionHandler) {}
 
   /** True only after the handler approved the submitted request. */
   isApproved(): boolean {
     return this.decision?.approved === true;
+  }
+
+  /** A preparation request authorizes only this verified, absolute mutation. */
+  permitPreparedQuantity(productId: string, quantity: number): void {
+    if (!productId || !Number.isSafeInteger(quantity) || quantity < 0 || quantity > 999) throw new Error("Quantité préparée invalide.");
+    this.prepared = { productId, quantity };
+  }
+
+  clearPreparedQuantity(): void { this.prepared = undefined; }
+
+  permits(name: string, input: unknown): boolean {
+    if (this.isApproved()) return true;
+    if (name !== "update_quantity" || !input || typeof input !== "object") return false;
+    const value = input as { productId?: unknown; quantity?: unknown };
+    return this.prepared !== undefined && value.productId === this.prepared.productId && value.quantity === this.prepared.quantity;
   }
 
   /** The decision that was taken, when one was requested. */

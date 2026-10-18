@@ -73,6 +73,7 @@ export function isLeclercResponse(data: unknown): data is LeclercResponse {
 
 export const READ_COMMANDS = [
   "search_products",
+  "list_habitual_products",
   "get_cart",
   "get_store",
 ] as const;

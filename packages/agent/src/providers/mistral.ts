@@ -148,6 +148,7 @@ export class MistralByokProvider implements ModelProvider {
       }));
       body.tool_choice = "auto";
     }
+    if (request.responseFormat) body.response_format = { type: request.responseFormat };
     if (request.temperature !== undefined) body.temperature = request.temperature;
     if (request.seed !== undefined) body.random_seed = request.seed;
     if (request.maxTokens !== undefined) body.max_tokens = request.maxTokens;

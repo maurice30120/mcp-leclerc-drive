@@ -2,6 +2,8 @@
 
 Date : 2026-10-18
 Statut : accepté
+Évolution : le point 2 concernant la sélection des produits est remplacé par
+[ADR-0013](0013-selection-produits-etayee-par-le-modele.md). Les autres décisions restent applicables.
 Tickets : #40 (spécification), #44 (agent), #47 (POC tool calling), #48 (Mistral BYOK),
 #49 (WebGPU exclusif).
 

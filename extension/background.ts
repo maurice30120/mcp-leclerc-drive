@@ -89,6 +89,12 @@ import {
 import { LOCAL_MODEL_MANIFEST } from "../src/sidepanel-protocol/local-model.js";
 import { requestedServings, packagingFromLabel } from "../src/sidepanel-protocol/shopping-request.js";
 import {
+  ApprovalGate,
+  ToolExecutor,
+  ProgressiveCart,
+  createTraceBuilder,
+  isCartProgress,
+  type CartProgress,
   SimulatedProvider,
   bindingFromContract,
   createMistralByokProvider,
@@ -99,6 +105,8 @@ import {
   type ApprovalDecision,
   type ApprovalDecisionHandler,
   type CachedModelFile,
+  type ProductReviewChoice,
+  type ProductReviewHandler,
   type ClarificationAnswer,
   type ClarificationHandler,
   type ModelCacheStore,
@@ -115,6 +123,8 @@ import {
 import {
   addToCart,
   getCart,
+  listHabitualProducts,
+  updateQuantity,
   parseRecipeText,
   searchProduct,
   toolError,
@@ -969,19 +979,19 @@ function setRelayEmbedConfig(
 //     elsewhere;
 //   - the capabilities run through the SAME dispatcher bridge as the popup
 //     (runLeclercCommand → content relay → MAIN bridge on the Leclerc tab);
-//   - the BLOCKING safety rule: the add_to_cart binding consults
-//     session.assertMutationPermitted() BEFORE any mutation request is
-//     emitted — nothing reaches the Leclerc tab before the explicit approval
-//     event, and a refusal leaves the cart untouched;
+//   - progressive mutations require an exact durable preparation intent;
+//     historical approval-gated snapshots keep their original authorization;
 //   - the conversation lives in chrome.storage.session (survives MV3 service
 //     worker suspensions, cleared when the browser closes) and NEVER in
-//     chrome.storage.local; the Mistral key lives in chrome.storage.session
-//     too and is never echoed back to the UI.
+//     chrome.storage.local. The contribution journal and Mistral settings are
+//     stored separately in chrome.storage.local; the key is never echoed back.
 
 const SIDEPANEL_SESSION_KEY = "sidepanelSession";
+const CART_PROGRESS_STORAGE_KEY = "preparedCartProgress";
 const MISTRAL_KEY_STORAGE_KEY = "sidepanelMistralApiKey";
 const MISTRAL_MODEL_ID = "mistral-small-latest";
 const MISTRAL_MODEL_STORAGE_KEY = "sidepanelMistralModel";
+const SIDEPANEL_PROVIDER_STORAGE_KEY = "sidepanelProvider";
 
 async function handlePrepareRecipe(
   msg: PrepareRecipeMsg,
@@ -1004,10 +1014,8 @@ async function handlePrepareRecipe(
   // Reuse the explicit popup selection without asking the user to enter the
   // same key again. Only a boolean enters the conversation snapshot.
   session.selectProvider("mistral");
-  await chrome.storage.session.set({
-    [MISTRAL_KEY_STORAGE_KEY]: config.config.apiKey,
-    [MISTRAL_MODEL_STORAGE_KEY]: config.config.model,
-  });
+  await saveMistralConfig(config.config.apiKey, config.config.model);
+  await chrome.storage.local.set({ [SIDEPANEL_PROVIDER_STORAGE_KEY]: "mistral" });
   session.setMistralKeySet(true);
   return handleSidePanelRequest({
     type: "start_flow", message: msg.text, servings: requestedServings(msg.text),
@@ -1020,10 +1028,12 @@ let sidepanelSessionLoaded = false;
 
 /** The live flow of THIS service worker instance (dies with the worker). */
 interface LiveSidePanelFlow {
+  reviewResolver?: (choices: ProductReviewChoice[]) => void;
   approvalResolver?: (decision: ApprovalDecision) => void;
   clarificationResolver?: (answer: ClarificationAnswer) => void;
 }
 let liveSidePanelFlow: LiveSidePanelFlow | undefined;
+let cartReviewMutation = false;
 
 /**
  * Loads (and on first call restores) the session snapshot from
@@ -1032,32 +1042,72 @@ let liveSidePanelFlow: LiveSidePanelFlow | undefined;
  * is kept so the user can still approve (the completion then goes through
  * the resume path with a fresh gate).
  */
+let sidepanelSessionLoading: Promise<SidePanelSession> | undefined;
+let sidepanelStateWrites: Promise<void> = Promise.resolve();
+
 async function loadSidePanelSession(): Promise<SidePanelSession> {
-  if (sidepanelSessionLoaded) {
-    return sidepanelSession as SidePanelSession;
-  }
-  sidepanelSessionLoaded = true;
-  sidepanelSession = new SidePanelSession();
-  try {
-    const stored = (await chrome.storage.session.get(SIDEPANEL_SESSION_KEY)) as Record<
-      string,
-      unknown
-    >;
+  if (sidepanelSessionLoaded) return sidepanelSession!;
+  if (sidepanelSessionLoading) return sidepanelSessionLoading;
+  sidepanelSessionLoading = (async () => {
+    const session = new SidePanelSession();
+    const stored = await chrome.storage.session.get(SIDEPANEL_SESSION_KEY);
     const snapshot = stored[SIDEPANEL_SESSION_KEY];
     if (snapshot !== undefined) {
       const restored = SidePanelSession.restore(snapshot);
       markInterruptedSidePanelFlow(restored);
       sidepanelSession = restored;
+    } else sidepanelSession = session;
+    // The durable contribution journal is authoritative across browser restarts.
+    // Credentials are restored separately; they never enter the contribution journal.
+    const local = await chrome.storage.local.get([CART_PROGRESS_STORAGE_KEY, MISTRAL_KEY_STORAGE_KEY, MISTRAL_MODEL_STORAGE_KEY, SIDEPANEL_PROVIDER_STORAGE_KEY, "byok"]);
+    const volatile = await chrome.storage.session.get([MISTRAL_KEY_STORAGE_KEY, MISTRAL_MODEL_STORAGE_KEY]);
+    const legacy = local.byok as { provider?: string; vibeKey?: string; vibeModel?: string } | undefined;
+    const key = local[MISTRAL_KEY_STORAGE_KEY] ?? volatile[MISTRAL_KEY_STORAGE_KEY]
+      ?? (legacy?.provider === "vibe" ? legacy.vibeKey : undefined);
+    if (typeof key === "string" && key.trim()) {
+      const model = local[MISTRAL_MODEL_STORAGE_KEY] ?? volatile[MISTRAL_MODEL_STORAGE_KEY] ?? legacy?.vibeModel;
+      await saveMistralConfig(key, typeof model === "string" && model.trim() ? model : MISTRAL_MODEL_ID);
+      sidepanelSession!.setMistralKeySet(true);
+    } else sidepanelSession!.setMistralKeySet(false);
+    const provider = local[SIDEPANEL_PROVIDER_STORAGE_KEY] ?? (legacy?.provider === "vibe" ? "mistral" : undefined);
+    if (sidepanelSession!.getState().provider === "none" && ["simulated", "webgpu", "mistral"].includes(String(provider))) {
+      sidepanelSession!.selectProvider(provider as "simulated" | "webgpu" | "mistral");
     }
-  } catch (err) {
-    console.error("[mcp-leclerc-drive][sidepanel] restauration de session impossible :", err);
-  }
-  return sidepanelSession;
+    const progress = local[CART_PROGRESS_STORAGE_KEY] as CartProgress | undefined;
+    if (progress !== undefined) {
+      if (!isCartProgress(progress)) throw new Error("Journal de panier invalide : aucune mutation autorisée.");
+      sidepanelSession!.setCartProgress(progress);
+      if (!progress.finished) {
+        sidepanelSession!.finishFlow("cancelled");
+        if (snapshot === undefined) sidepanelSession!.appendHistory("assistant", "message", "Panier préparé retrouvé : les quantités confirmées sont conservées. Reprendre vérifiera le panier réel.");
+      }
+    }
+    sidepanelSessionLoaded = true;
+    return sidepanelSession;
+  })();
+  try { return await sidepanelSessionLoading; }
+  catch (error) { sidepanelSessionLoading = undefined; throw error; }
+}
+
+function writeSidePanelSnapshot(): Promise<void> {
+  if (!sidepanelSession) return Promise.reject(new Error("Session non chargée."));
+  const snapshot = structuredClone(sidepanelSession.serialize());
+  const write = sidepanelStateWrites.catch(() => {}).then(async () => {
+    if (snapshot.cartProgress) await chrome.storage.local.set({ [CART_PROGRESS_STORAGE_KEY]: snapshot.cartProgress });
+    await chrome.storage.session.set({ [SIDEPANEL_SESSION_KEY]: snapshot });
+  });
+  sidepanelStateWrites = write;
+  return write;
 }
 
 function markInterruptedSidePanelFlow(restored: SidePanelSession): void {
   const state = restored.getState();
   if (!state.flowActive) return;
+  if (state.cartProgress) {
+    restored.appendHistory("assistant", "error", "Parcours interrompu : les ajouts confirmés sont conservés. Reprendre relira le panier avant toute mutation.");
+    restored.finishFlow("cancelled");
+    return;
+  }
   if (state.phase === "awaiting_approval") {
     return; // still approvable through the resume path
   }
@@ -1073,7 +1123,7 @@ async function persistSidePanelSession(): Promise<void> {
   const current = sidepanelSession;
   if (!current) return;
   try {
-    await chrome.storage.session.set({ [SIDEPANEL_SESSION_KEY]: current.serialize() });
+    await writeSidePanelSnapshot();
   } catch (err) {
     console.error("[mcp-leclerc-drive][sidepanel] persistance de session impossible :", err);
   }
@@ -1108,22 +1158,27 @@ async function handleSidePanelRequest(
     }
     case "set_provider": {
       const result = session.selectProvider(request.providerId);
+      if (result.ok) await chrome.storage.local.set({ [SIDEPANEL_PROVIDER_STORAGE_KEY]: request.providerId });
       await emitSidePanelState();
       return result.ok ? { ok: true, state: session.getState() } : { ok: false, error: result.error };
     }
     case "set_mistral_key": {
-      // The key goes to chrome.storage.session (memory-only, never on disk,
-      // never synced) and is NEVER echoed back — only the boolean survives.
-      await chrome.storage.session.set({
-        [MISTRAL_KEY_STORAGE_KEY]: request.apiKey,
-        [MISTRAL_MODEL_STORAGE_KEY]: MISTRAL_MODEL_ID,
-      });
+      // Persist locally for browser restarts; only a boolean enters UI snapshots.
+      const savedModel = (await chrome.storage.session.get(MISTRAL_MODEL_STORAGE_KEY))[MISTRAL_MODEL_STORAGE_KEY];
+      await saveMistralConfig(request.apiKey, typeof savedModel === "string" && savedModel.trim() ? savedModel : MISTRAL_MODEL_ID);
       session.setMistralKeySet(true);
       await emitSidePanelState();
       return { ok: true, state: session.getState() };
     }
     case "delete_mistral_key": {
+      await chrome.storage.local.remove(MISTRAL_KEY_STORAGE_KEY);
       await chrome.storage.session.remove(MISTRAL_KEY_STORAGE_KEY);
+      // Remove the older popup copy as well, so migration cannot resurrect it.
+      const legacy = (await chrome.storage.local.get("byok")).byok;
+      if (legacy && typeof legacy === "object" && "vibeKey" in legacy) {
+        const { vibeKey: _deleted, ...rest } = legacy;
+        await chrome.storage.local.set({ byok: rest });
+      }
       session.setMistralKeySet(false);
       await emitSidePanelState();
       return { ok: true, state: session.getState() };
@@ -1165,6 +1220,65 @@ async function handleSidePanelRequest(
       await emitSidePanelState();
       return { ok: true, state: session.getState() };
     }
+    case "remove_prepared": {
+      if (liveSidePanelFlow || cartReviewMutation) return { ok: false, error: "Une opération est déjà en cours." };
+      const progress = session.getCartProgress();
+      if (!progress || progress.flowId !== request.flowId || progress.finished || !progress.entries[request.ingredientIndex]) return { ok: false, error: "Ajout du parcours introuvable." };
+      cartReviewMutation = true;
+      try {
+        const gate = new ApprovalGate(() => ({ approved: false }));
+        const trace = createTraceBuilder();
+        const cart = new ProgressiveCart(progress, new ToolExecutor({ bindings: makeSidePanelBindings(), gate, trace }), gate, trace, checkpointCartProgress);
+        await cart.remove(request.ingredientIndex);
+        await emitSidePanelState();
+        return { ok: true, state: session.getState() };
+      } catch (error) {
+        await emitSidePanelState();
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      } finally { cartReviewMutation = false; }
+    }
+    case "cancel_prepared": {
+      if (liveSidePanelFlow || cartReviewMutation) return { ok: false, error: "Une opération est encore en cours." };
+      const progress = session.getCartProgress();
+      if (!progress || progress.flowId !== request.flowId) return { ok: false, error: "Cette révision concerne un ancien parcours." };
+      if (progress.finished) return { ok: false, error: "La révision de ce parcours est terminée." };
+      cartReviewMutation = true;
+      try {
+        const gate = new ApprovalGate(() => ({ approved: false }));
+        const trace = createTraceBuilder();
+        const cart = new ProgressiveCart(progress, new ToolExecutor({ bindings: makeSidePanelBindings(), gate, trace }), gate, trace, checkpointCartProgress);
+        for (const entry of progress.entries) {
+          if (entry.added > entry.removed) await cart.remove(entry.ingredientIndex);
+        }
+        const finished = session.finishReview();
+        if (!finished.ok) return { ok: false, error: finished.error };
+        await writeSidePanelSnapshot();
+        await emitSidePanelState();
+        return { ok: true, state: session.getState() };
+      } catch (error) {
+        await emitSidePanelState();
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      } finally { cartReviewMutation = false; }
+    }
+    case "finish_review": {
+      if (liveSidePanelFlow || cartReviewMutation) return { ok: false, error: "Une opération est encore en cours." };
+      if (session.getCartProgress()?.flowId !== request.flowId) return { ok: false, error: "Cette révision concerne un ancien parcours." };
+      const finished = session.finishReview();
+      if (!finished.ok) return { ok: false, error: finished.error };
+      await writeSidePanelSnapshot();
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "review_answer": {
+      if (session.getCartProgress()?.flowId !== request.flowId) return { ok: false, error: "Ce choix concerne un ancien parcours." };
+      if (!liveSidePanelFlow?.reviewResolver) return { ok: false, error: "Parcours interrompu : relance la recette." };
+      const answered = session.answerProductReview(request.choices);
+      if (!answered.ok) return { ok: false, error: answered.error };
+      liveSidePanelFlow.reviewResolver(request.choices);
+      liveSidePanelFlow.reviewResolver = undefined;
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
     case "clarify_answer": {
       const answered = session.answerClarification(request.answer);
       if (!answered.ok) {
@@ -1175,6 +1289,15 @@ async function handleSidePanelRequest(
       return { ok: true, state: session.getState() };
     }
     case "resume": {
+      const progress = session.getCartProgress();
+      if (progress && !progress.finished) {
+        if (cartReviewMutation || liveSidePanelFlow) return { ok: false, error: "Une opération est déjà en cours." };
+        const begun = session.beginProgressiveResume();
+        if (!begun.ok) return { ok: false, error: begun.error };
+        await emitSidePanelState();
+        void runSidePanelFlow(progress.request, progress);
+        return { ok: true, state: session.getState() };
+      }
       const resume = session.getResume();
       if (!resume) {
         return { ok: false, error: "Aucune reprise disponible." };
@@ -1188,6 +1311,7 @@ async function handleSidePanelRequest(
       return { ok: true, state: session.getState() };
     }
     case "reset_session": {
+      if (session.getCartProgress() && !session.getCartProgress()!.finished) return { ok: false, error: "Termine la vérification du panier avant de réinitialiser." };
       session.reset();
       await emitSidePanelState();
       return { ok: true, state: session.getState() };
@@ -1302,6 +1426,12 @@ async function buildSidePanelProvider(
   return { ok: false, error: "Aucun fournisseur sélectionné." };
 }
 
+async function saveMistralConfig(apiKey: string, model: string): Promise<void> {
+  const config = { [MISTRAL_KEY_STORAGE_KEY]: apiKey, [MISTRAL_MODEL_STORAGE_KEY]: model };
+  await chrome.storage.local.set(config);
+  await chrome.storage.session.set(config);
+}
+
 async function getStoredMistralKey(): Promise<string | undefined> {
   const stored = (await chrome.storage.session.get(MISTRAL_KEY_STORAGE_KEY)) as Record<
     string,
@@ -1408,6 +1538,13 @@ async function reportSidePanelToolActivity(
  */
 function makeSidePanelBindings(): ToolBinding[] {
   return [
+    bindingFromContract(listHabitualProducts, async () => {
+      const result = await runLeclercCommand("list_habitual_products", {});
+      if (!result.ok) return toolError("CAPABILITY_FAILED", "Lecture des produits habituels impossible.");
+      const products = (result.data as { products?: BridgeProduct[] }).products ?? [];
+      await reportSidePanelToolActivity("list_habitual_products", true, `${products.length} produit(s) habituel(s) consulté(s).`);
+      return { ok: true as const, output: { products: products.map(bridgeProductToDomain) } };
+    }),
     bindingFromContract(searchProduct, async (input: { query: string }) => {
       const result = await runLeclercCommand("search_products", { query: input.query });
       if (!result.ok) {
@@ -1445,6 +1582,15 @@ function makeSidePanelBindings(): ToolBinding[] {
       if (!cart) {
         return toolError("CAPABILITY_FAILED", "Réponse du pont Leclerc sans panier.");
       }
+      return { ok: true as const, output: { cart: bridgeCartToDomain(cart) } };
+    }),
+    bindingFromContract(updateQuantity, async (input: { productId: string; quantity: number }) => {
+      const permitted = (await loadSidePanelSession()).assertMutationPermitted(input.productId, input.quantity);
+      if (!permitted.ok) return toolError("APPROVAL_REQUIRED", permitted.message);
+      const result = await runLeclercCommand("update_quantity", { product_id: input.productId, quantity: input.quantity });
+      if (!result.ok) return toolError("CART_MUTATION_REFUSED", result.error);
+      const cart = (result.data as { cart?: BridgeCart }).cart;
+      if (!cart) return toolError("CAPABILITY_FAILED", "Réponse sans panier ; résultat à vérifier.");
       return { ok: true as const, output: { cart: bridgeCartToDomain(cart) } };
     }),
     bindingFromContract(addToCart, async (input: { productId: string; quantity: number }) => {
@@ -1488,26 +1634,6 @@ function makeSidePanelBindings(): ToolBinding[] {
 
 // -- approval / clarification handlers (answered ONLY by UI events) ----------
 
-function makeFlowApprovalHandler(live: LiveSidePanelFlow): ApprovalDecisionHandler {
-  return (request) =>
-    new Promise<ApprovalDecision>((resolve) => {
-      void (async () => {
-        const session = await loadSidePanelSession();
-        session.presentPreview(request.preview);
-        session.awaitApproval(request.summary);
-        await emitSidePanelEvent({ type: "preview", preview: request.preview });
-        await emitSidePanelEvent({
-          type: "approval_request",
-          summary: request.summary,
-          preview: request.preview,
-        });
-        await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
-        await emitSidePanelState();
-      })();
-      live.approvalResolver = resolve;
-    });
-}
-
 function makeResumeApprovalHandler(live: LiveSidePanelFlow): ApprovalDecisionHandler {
   return (request) =>
     new Promise<ApprovalDecision>((resolve) => {
@@ -1526,26 +1652,38 @@ function makeResumeApprovalHandler(live: LiveSidePanelFlow): ApprovalDecisionHan
     });
 }
 
-function makeClarificationHandler(live: LiveSidePanelFlow): ClarificationHandler {
-  return (question) =>
-    new Promise<ClarificationAnswer>((resolve) => {
-      void (async () => {
-        const session = await loadSidePanelSession();
-        session.awaitClarification(question);
-        await emitSidePanelEvent({ type: "clarification", question });
-        await emitSidePanelState();
-      })();
-      live.clarificationResolver = resolve;
-    });
+async function checkpointCartProgress(progress: CartProgress): Promise<void> {
+  const session = await loadSidePanelSession();
+  session.setCartProgress(progress);
+  // Unlike disposable UI updates, this write must succeed before any cart mutation.
+  await writeSidePanelSnapshot();
+  await emitSidePanelEvent({ type: "state", state: session.getState() });
+}
+
+function makeProductReviewHandler(live: LiveSidePanelFlow): ProductReviewHandler {
+  return (review) => new Promise((resolve, reject) => {
+    live.reviewResolver = resolve;
+    void (async () => {
+      const session = await loadSidePanelSession();
+      session.awaitProductReview(review);
+      await emitSidePanelState();
+    })().catch(reject);
+  });
 }
 
 // -- flow runs ----------------------------------------------------------------
 
-async function runSidePanelFlow(request: ShoppingFlowRequest): Promise<void> {
+async function runSidePanelFlow(request: ShoppingFlowRequest, progress?: CartProgress): Promise<void> {
   const session = await loadSidePanelSession();
   const live: LiveSidePanelFlow = {};
   liveSidePanelFlow = live;
-  const built = await buildSidePanelProvider(request);
+  if (progress?.selection && !progress.selection.complete && progress.selection.decisions.length === 0
+    && Object.values(progress.selection.problems).some((reason) => reason.startsWith("Évaluation du modèle indisponible ou invalide"))) {
+    progress.selection.evaluationsComplete = false;
+  }
+  const built = progress?.selection && (progress.selection.complete || progress.selection.evaluationsComplete || progress.selection.round >= 3)
+    ? { ok: true as const, provider: new SimulatedProvider({ id: "resume:cart-only", script: [] }) }
+    : await buildSidePanelProvider(request);
   if (!built.ok) {
     session.appendHistory("assistant", "error", built.error);
     session.finishFlow("provider_unavailable");
@@ -1560,8 +1698,9 @@ async function runSidePanelFlow(request: ShoppingFlowRequest): Promise<void> {
       provider: wrapProviderForRecipeEvents(built.provider),
       bindings: makeSidePanelBindings(),
       request,
-      approval: makeFlowApprovalHandler(live),
-      clarification: makeClarificationHandler(live),
+      review: makeProductReviewHandler(live),
+      progress,
+      checkpoint: checkpointCartProgress,
     });
     liveSidePanelFlow = undefined;
     await finishSidePanelFlow(result);
@@ -1617,14 +1756,23 @@ function toFlowResultPayload(result: ShoppingFlowResult): FlowResultPayload {
 }
 
 function flowResultSummary(result: ShoppingFlowResult): string {
+  if (result.progress) {
+    const entries = result.progress.entries;
+    const confirmed = entries.filter((entry) => entry.added > entry.removed).length;
+    const failed = entries.filter((entry) => entry.status === "failed").length;
+    const unknown = entries.filter((entry) => entry.status === "verification_pending").length;
+    const remaining = entries.filter((entry) => ["searching", "verifying", "choice_needed"].includes(entry.status)).length;
+    return `${confirmed} ajout(s) confirmé(s), ${failed} échec(s), ${unknown} résultat(s) à vérifier, ${remaining} ingrédient(s) restant(s). ${result.error?.message ?? "Vérifie le panier rempli puis termine la vérification."}`;
+  }
   switch (result.status) {
     case "completed":
       return `Parcours terminé : ${result.gap?.applied.length ?? result.preview?.lines.length ?? 0} article(s) ajouté(s) au panier.`;
     case "partial_failure": {
+      if (result.error && !result.gap) return `${result.error.message} Aucun ajout confirmé ; ${result.recipe?.ingredients.length ?? 0} ingrédient(s) restant(s) à traiter.`;
       const applied = result.gap?.applied.length ?? 0;
       const failed = result.gap?.failed.length ?? 0;
       const notAttempted = result.gap?.notAttempted.length ?? 0;
-      return `Échec partiel : ${applied} ajouté(s), ${failed} en échec, ${notAttempted} non tenté(s). Le panier a été relu ; reprise possible après ton accord.`;
+      return `Échec partiel : ${applied} ajouté(s), ${failed} en échec, ${notAttempted} non tenté(s). Reprendre relira le panier pour éviter les doublons.`;
     }
     case "recipe_invalid":
       return result.error?.message ?? "Recette invalide : aucune recherche ni mutation du panier n'a été effectuée.";
@@ -1642,6 +1790,7 @@ function flowResultSummary(result: ShoppingFlowResult): string {
 async function finishSidePanelFlow(result: ShoppingFlowResult): Promise<void> {
   const session = await loadSidePanelSession();
   const payload = toFlowResultPayload(result);
+  if (result.progress) session.setCartProgress(result.progress);
   if (result.status === "partial_failure" && result.resume) {
     session.setResume(result.resume);
   }

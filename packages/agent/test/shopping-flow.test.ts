@@ -106,6 +106,7 @@ it("matches the ingredient identity across singular/plural and rejects unrelated
     { id: "meal", label: "Plat cuisiné haricots blancs secs", price: 2, available: true },
   ];
   const result = await runShoppingFlow({
+      selectionMode: "deterministic",
     provider: new SimulatedProvider({ script: [{ text: JSON.stringify({
       ...RECIPE, servings: 5,
       ingredients: [{ name: "haricots blancs secs", quantity: 750, unit: "g" }],
@@ -124,6 +125,7 @@ it("counts five sausages using catalogue piece counts even when a weight is also
     packaging: "500 g / 4 pièce",
   }];
   const result = await runShoppingFlow({
+      selectionMode: "deterministic",
     provider: new SimulatedProvider({ script: [{ text: JSON.stringify({
       ...RECIPE, servings: 5,
       ingredients: [{ name: "saucisses de Toulouse", quantity: 5, unit: "pièce" }],
@@ -139,6 +141,7 @@ describe("runShoppingFlow — happy path", () => {
   it("completes: recipe, deterministic searches, packaging ceil, approval, sequential adds", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_JSON }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -176,6 +179,7 @@ describe("runShoppingFlow — happy path", () => {
   it("records ZERO mutation tool calls before the approval decision (A04 ordering)", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_JSON }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -195,6 +199,7 @@ describe("runShoppingFlow — happy path", () => {
   it("keeps the trace evaluable: user_message, model_text, tool events, approval, all timestamped", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_JSON }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -218,6 +223,7 @@ describe("runShoppingFlow — refusal", () => {
   it("refused approval: no mutation executed at all", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_JSON }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -238,6 +244,7 @@ describe("runShoppingFlow — recipe validation", () => {
   it("repairs an invalid recipe exactly once (A06a)", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: "voici la recette : ```json {...}```" }, { text: RECIPE_JSON }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -251,6 +258,7 @@ describe("runShoppingFlow — recipe validation", () => {
   it("gives up with an explicit error after one failed repair (A06b), zero mutations", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: "pas du json" }, { text: "toujours pas du json" }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -268,6 +276,7 @@ describe("runShoppingFlow — recipe validation", () => {
     const wrongServings = JSON.stringify({ ...RECIPE, servings: 2 });
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: wrongServings }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -284,6 +293,7 @@ describe("runShoppingFlow — recipe validation", () => {
     });
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: withCreme }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -305,6 +315,7 @@ describe("runShoppingFlow — matching", () => {
       ingredients: [...RECIPE.ingredients, { name: "sauce worcestershire", quantity: 5, unit: "cl" }],
     });
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: recipe }] }),
       bindings: store.bindings(),
       request: { message: "poulet au curry", servings: 4 },
@@ -323,6 +334,7 @@ describe("runShoppingFlow — matching", () => {
     });
     const questions: unknown[] = [];
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: recipe }] }),
       bindings: store.bindings(),
       request: { message: "curry au lait de coco", servings: 4 },
@@ -348,6 +360,7 @@ describe("runShoppingFlow — matching", () => {
       ingredients: [{ name: "lait de coco", quantity: 400, unit: "ml" }],
     });
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: recipe }] }),
       bindings: store.bindings(),
       request: { message: "curry", servings: 4 },
@@ -359,20 +372,24 @@ describe("runShoppingFlow — matching", () => {
     expect(result.preview?.lines).toEqual([]);
   });
 
-  it("applies an explicit default quantity of 1 when packaging is missing or incompatible", async () => {
+  it("applies an explicit default quantity of 1 when packaging is missing or of another family", async () => {
     const store = defaultStore();
     const noPack: Product = { id: "P-1010", label: "Bouillon de volaille", price: 1.5, available: true };
     store.searchIndex["bouillon de volaille"] = [noPack];
+    const boxed: Product = { id: "P-1011", label: "Lait de coco en boîte", price: 2, available: true, packaging: "1 boîte" };
+    store.searchIndex["lait de coco"] = [boxed];
     const garlic: Product = { id: "P-1006", label: "Ail 200 g", price: 1.1, available: true, packaging: "200 g" };
     store.searchIndex["ail"] = [garlic];
     const recipe = JSON.stringify({
       ...RECIPE,
       ingredients: [
         { name: "bouillon de volaille", quantity: 3, unit: "pièce" },
+        { name: "lait de coco", quantity: 400, unit: "ml" },
         { name: "ail", quantity: 2, unit: "gousse" },
       ],
     });
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: recipe }] }),
       bindings: store.bindings(),
       request: { message: "bouillon ail", servings: 4 },
@@ -381,9 +398,39 @@ describe("runShoppingFlow — matching", () => {
     expect(result.status).toBe("completed");
     expect(result.preview?.lines.map((l) => [l.productId, l.quantity])).toEqual([
       ["P-1010", 1],
+      ["P-1011", 1],
       ["P-1006", 1],
     ]);
     expect(result.issues.filter((i) => i.kind === "packaging_default").length).toBe(2);
+  });
+
+  it("accepts a larger package for kitchen units and counted needs without an issue", async () => {
+    const store = defaultStore();
+    store.searchIndex["huile d'olive"] = [{ id: "P-1020", label: "Huile d'olive vierge extra - 1.5 l", price: 9, available: true, packaging: "1.5 l" }];
+    store.searchIndex["sel"] = [{ id: "P-1021", label: "Sel fin - 500 g", price: 1, available: true, packaging: "500 g" }];
+    store.searchIndex["citron"] = [{ id: "P-1022", label: "Citron jaune - 1 kg", price: 3, available: true, packaging: "1 kg" }];
+    const recipe = JSON.stringify({
+      ...RECIPE,
+      ingredients: [
+        { name: "huile d'olive", quantity: 2, unit: "cuillère à soupe" },
+        { name: "sel", quantity: 1, unit: "pincée" },
+        { name: "citron", quantity: 1, unit: "pièce" },
+      ],
+    });
+    const result = await runShoppingFlow({
+      selectionMode: "deterministic",
+      provider: new SimulatedProvider({ script: [{ text: recipe }] }),
+      bindings: store.bindings(),
+      request: { message: "poulet au citron", servings: 4 },
+      approval: () => ({ approved: true }),
+    });
+    expect(result.status).toBe("completed");
+    expect(result.preview?.lines.map((l) => [l.productId, l.quantity])).toEqual([
+      ["P-1020", 1],
+      ["P-1021", 1],
+      ["P-1022", 1],
+    ]);
+    expect(result.issues.filter((i) => i.kind === "packaging_default")).toEqual([]);
   });
 });
 
@@ -396,6 +443,7 @@ describe("runShoppingFlow — cancellation and limits", () => {
     const controller = new AbortController();
     controller.abort();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider,
       bindings: store.bindings(),
       request: REQUEST,
@@ -410,6 +458,7 @@ describe("runShoppingFlow — cancellation and limits", () => {
   it("stops with limits_exceeded when the tool-call budget runs out before mutations", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_JSON }] }),
       bindings: store.bindings(),
       request: REQUEST,
@@ -447,6 +496,7 @@ describe("runShoppingFlow — provider unavailable", () => {
     const store = defaultStore();
     const provider = new UnavailableProvider(true);
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider,
       bindings: store.bindings(),
       request: REQUEST,
@@ -463,6 +513,7 @@ describe("runShoppingFlow — provider unavailable", () => {
   it("attaches the default consent-only Mistral proposal when the error carries none", async () => {
     const store = defaultStore();
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new UnavailableProvider(false),
       bindings: store.bindings(),
       request: REQUEST,
@@ -480,6 +531,7 @@ describe("runShoppingFlow — partial failure and resume", () => {
     const store = defaultStore();
     store.failAddFor = "P-1002";
     const result = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_3_JSON }] }),
       bindings: store.bindings(),
       request: { message: "poulet au curry avec riz", servings: 4 },
@@ -506,6 +558,7 @@ describe("runShoppingFlow — partial failure and resume", () => {
     const store = defaultStore();
     store.failAddFor = "P-1002";
     const partial = await runShoppingFlow({
+      selectionMode: "deterministic",
       provider: new SimulatedProvider({ script: [{ text: RECIPE_3_JSON }] }),
       bindings: store.bindings(),
       request: { message: "poulet au curry avec riz", servings: 4 },

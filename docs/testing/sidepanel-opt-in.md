@@ -5,7 +5,7 @@ de bout en bout — extension chargée dans Chrome, onglet Leclerc Drive connect
 panier réel du drive — ce que la CI ne peut pas fournir (et ne doit pas : aucune
 session ne sort jamais de l'onglet, cf. ADR-0001/ADR-0004). Les tests
 automatisés du dépôt couvrent la partie pure (`tests/sidepanel-protocol.test.ts` :
-machine à états, portail d'approbation, aller-retour de clarification,
+machine à états, intentions de mutation, clarifications regroupées,
 sémantique session-only de l'historique) ; ce document décrit la vérification
 humaine du panneau latéral.
 
@@ -34,97 +34,75 @@ humaine du panneau latéral.
 La sélection du fournisseur est **explicite et manuelle** (menu Réglages) :
 
 - **Scénario simulé** — script déterministe hors ligne : la recette est
-  générée sans réseau, mais les recherches produits, l'aperçu, l'approbation
-  et le panier sont RÉELS. C'est le chemin recommandé pour ce protocole.
+  générée sans réseau, mais les recherches et le panier sont réels. Le script de recette seul ne fournit pas d'évaluation des produits : ils sont alors soumis au choix humain.
 - **Modèle local (WebGPU)** — génération via le document offscreen (le seul
   contexte avec accès WebGPU) ; exclusif WebGPU, aucun repli CPU/WASM.
 - **Mistral (clé personnelle)** — uniquement si une clé est enregistrée
-  (Réglages → Clé Mistral). La clé reste en mémoire de session
-  (`chrome.storage.session`), n'est jamais affichée en retour et disparaît à
-  la fermeture du navigateur.
+  (Réglages → Clé Mistral). La clé, le modèle et le fournisseur choisi sont conservés localement puis restaurés après fermeture du navigateur. La clé n'est jamais affichée en retour ; **Supprimer** efface ses copies locale et de session.
 
-## P1 — parcours complet : demande → recette → recherche → aperçu → approbation → panier réel
+## P1 — demande → vérifications → ajouts progressifs → révision finale
 
-1. Réglages : sélectionne « Scénario simulé ».
-2. Sans envoyer de demande, vérifie que le bouton d'approbation n'existe pas
-   encore et note l'état du panier Leclerc (nombre de lignes).
-3. Saisis « un poulet au curry pour 4, sans crème », convives 4, exclusion
-   « crème » → **Envoyer**.
-4. Attendu, dans l'ordre :
-   - phase « Génération de la recette… », puis la **recette** (titre, convives,
-     ingrédients, étapes ; durées affichées « indicatives, non vérifiées ») ;
-   - phase « Recherche produits… » avec une ligne d'activité par recherche
-     (nombre de produits trouvés, aperçu des libellés) ;
-   - l'**aperçu du panier** (articles, quantités, prix unitaires, totaux,
-     avertissement « données du catalogue Leclerc non garanties »). Les poids,
-     volumes et multipacks explicites dans les libellés du catalogue permettent
-     de calculer le nombre de paquets. Si le conditionnement est absent ou son
-     unité incompatible, la quantité par défaut (1 unité) est signalée ;
-   - la **validation globale** avec les deux boutons « Approuver et ajouter au
-     panier » / « Refuser ».
-5. CRITIQUE : à ce stade, le panier Leclerc doit être **inchangé** — aucune
-   écriture n'a lieu avant l'approbation.
-6. Clique « Approuver et ajouter au panier ». Attendu : phase « Ajout au
-   panier… », puis résultat « Parcours terminé » ; les articles apparaissent
-   dans le panier réel de l'onglet Leclerc (les quantités sont arrondies au
-   nombre de conditionnements, cf. règle du plafond documentée).
+1. Choisir explicitement Mistral avec sa clé, ou le modèle local disponible.
+2. Noter les quantités du panier initial. Envoyer « un cassoulet pour 5 personnes ».
+3. Vérifier les recherches et la consultation des habitudes d'achat, puis les
+   états par ingrédient : recherche, vérification, ajouté, choix nécessaire, échec.
+4. Dès qu'un choix est étayé, vérifier son ajout dans le panier réel sans clic
+   d'approbation globale et sans attendre les autres ingrédients. La quantité
+   doit couvrir le besoin selon le conditionnement réel.
+5. Vérifier les doutes regroupés, trois propositions maximum par ingrédient.
+   Si trois choix restent plausibles, aucun ne doit être ajouté automatiquement.
+6. Choisir un produit ou passer chaque ingrédient. Un conditionnement inconnu
+   exige le nombre de paquets explicite. « Ajouter les produits choisis » ajoute
+   les seuls produits choisis, puis le panier est relu.
+7. La révision finale présente le panier déjà rempli. « Terminer la vérification »
+   clôt la révision et ne déclenche aucune mutation.
 
-## P2 — refus : le panier reste inchangé
+## P2 — suppression d'une contribution avec produit préexistant
 
-Recommence P1 avec une autre demande, mais clique **Refuser** à la validation.
-Attendu : message « Ajout au panier refusé : aucun article n'a été ajouté »,
-parcours arrêté (phase « Prêt »), panier Leclerc strictement identique à
-l'état d'avant la demande.
+1. Placer au préalable deux unités d'un produit qui sera sélectionné.
+2. Préparer la recette et noter le nombre de paquets ajoutés par le parcours.
+3. Cliquer « Supprimer l'ajout de l'agent ». Vérifier que les deux unités
+   préexistantes restent et que seule la contribution du parcours est supprimée.
+4. Un nouvel essai de la même suppression ne doit rien retirer de plus. Pour deux
+   ingrédients utilisant le même produit, supprimer l'un préserve l'autre.
 
-## P3 — échec partiel : arrêt, relecture du panier, reprise après accord
+## P3 — mutation échouée ou réponse perdue, reprise sans doublon
 
-1. Déclenche une mutation qui échoue en cours d'ajout : le plus simple est de
-   fermer l'onglet Leclerc (ou couper le réseau) après l'approbation, pendant
-   la phase « Ajout au panier… ».
-2. Attendu : la parcours s'arrête au premier échec, relit l'état réel du
-   panier, affiche le rapport d'écart (ajoutés / en échec / non tentés) et
-   propose « Reprendre le parcours restant ».
-3. Rouvre l'onglet Leclerc, reconnecte-toi si besoin, puis « Reprendre le
-   parcours restant » → une **nouvelle validation globale** est demandée
-   (l'approbation précédente ne porte jamais sur la reprise). Après accord,
-   les articles restants sont ajoutés.
+1. Couper le réseau pendant un ajout ou sa relecture.
+2. Vérifier le bilan : ajouts confirmés, échec ou résultat à vérifier, besoins
+   restant à traiter. Une réponse perdue ne doit pas être annoncée comme un ajout confirmé.
+3. Rétablir la connexion et cliquer « Reprendre le parcours restant ».
+4. La reprise relit le panier avant toute mutation et ne régénère pas la recette.
+   Un ajout déjà appliqué n'est pas doublé. Un ajout non appliqué utilise la même
+   quantité cible absolue. Une suppression interrompue reprend comme suppression.
+5. En cas de quantité externe incompatible ou de changement de magasin, vérifier
+   le diagnostic et l'absence d'écriture automatique risquant d'altérer le panier.
 
-## P4 — survie à une suspension du service worker MV3
+## P4 — suspension du service worker
 
-1. Lance une demande et attends la validation globale SANS cliquer.
-2. Force la suspension du service worker : `chrome://extensions` →
-   mcp-leclerc-drive → « Service worker » → dans les DevTools ouverts, bouton
-   « Terminate », ou attends le délai d'inactivité (ferme le panneau pour
-   couper le keep-alive).
-3. Attends la relance (rouvre le panneau : le `get_state` initial réveille le
-   worker).
-4. Attendu :
-   - l'historique de la conversation est **intact** (chrome.storage.session) ;
-   - l'approbation en attente est toujours là, et « Approuver et ajouter au
-     panier » fonctionne : l'aperçu stocké est appliqué via le chemin de
-     reprise (le clic EST la décision) ;
-   - si la suspension a eu lieu pendant une phase d'exécution (génération,
-     recherche, ajout), un message explicite signale le parcours interrompu ;
-     aucune écriture orpheline n'est émise.
+1. Suspendre le worker pendant une vérification, une mutation ou un choix humain.
+2. Rouvrir le panneau : le journal de session et les quantités confirmées restent
+   visibles ; une mutation en attente conserve sa référence et sa cible.
+3. Reprendre et vérifier que l'intention est réconciliée avec le panier réel avant
+   de continuer. Aucun besoin déjà ajouté n'est ajouté une deuxième fois.
 
-## P5 — historique de session uniquement
+## P5 — fermeture du navigateur et journal local
 
-1. Ferme entièrement Chrome, rouvre-le, recharge l'extension si nécessaire,
-   rouvre le panneau.
-2. Attendu : conversation vide (rien ne survit à la fermeture du navigateur ;
-   l'historique ne va jamais dans `chrome.storage.local`). Seule la sélection
-   de fournisseur — un réglage — est conservée dans l'instantané de session.
-3. En cours de session, « Réinitialiser la conversation » vide l'historique et
-   l'état du parcours en gardant les réglages.
+Le journal des contributions et la configuration Mistral sont conservés séparément dans `chrome.storage.local`. La conversation reste en `chrome.storage.session`.
 
-## P6 — clarification (produit ambigu)
+1. Fermer entièrement le navigateur pendant un parcours, puis rouvrir le panneau.
+2. Vérifier que le bilan et l'intention en attente sont retrouvés, avec le fournisseur Mistral et le modèle précédemment choisis. « Clé enregistrée » est affiché, sans réafficher la clé elle-même.
+3. Si la recette nécessite encore une évaluation, reprendre sans nouvelle saisie de la clé. La reprise réutilise la recette enregistrée. Vérifier ensuite **Supprimer**, fermer et rouvrir : la clé supprimée ne doit pas réapparaître.
+4. Une réconciliation ou suppression après sélection complète ne doit pas exiger
+   de nouveau modèle. Terminer la vérification avant de commencer un autre parcours.
 
-Si la règle de correspondance déterministe ne peut pas trancher entre deux
-produits ex æquo (par ex. deux conditionnements de lait de coco), une
-**question** apparaît avec un bouton par candidat (libellé, prix,
-conditionnement) et « Ne pas ajouter cet ingrédient ». Répondre par un clic
-poursuit le parcours avec le produit choisi ; passer ajoute l'ingrédient à la
-liste des exclus du panier, sans jamais inventer d'identifiant.
+## P6 — boucle bornée et doutes humains
+
+Vérifier deux tours d'évaluation, un troisième uniquement si une recherche peut
+encore apporter une information utile, et trois recherches distinctes maximum
+par ingrédient. Les habitudes ne rendent pas un produit inadapté acceptable.
+Des haricots cuits à la place de secs nécessitent un choix humain ; un changement
+de marque ou de taille de paquet compatible peut être automatique.
 
 ## P7 — Mistral BYOK (optionnel, nécessite une clé)
 
@@ -145,7 +123,7 @@ liste des exclus du panier, sans jamais inventer d'identifiant.
    **5 personnes**, puis les recherches des ingrédients (et non de la phrase
    complète). Les ambiguïtés proposent des produits réels à choisir.
 4. Vérifier l'aperçu : produits, quantités selon les conditionnements reconnus,
-   prix et validation globale. Le panier doit rester identique avant approbation.
+   prix et ajouts progressifs. Les choix incertains attendent une réponse humaine ; la révision finale permet les suppressions.
 5. Dans le panneau, « un cassoulet pour 5 » doit également cibler 5 personnes,
    même si le champ Convives affichait précédemment 4.
 
