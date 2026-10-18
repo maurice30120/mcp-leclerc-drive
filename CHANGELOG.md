@@ -10,6 +10,13 @@ Leclerc.
 
 ### Added
 
+- **BYOK (Bring Your Own Key)** — remplacer le modèle local par une clé API
+  `openai` (clé perso) ou `vibe` (Mistral La Plateforme, incluse dans le
+  forfait) : popup « Moteur d'inférence », stockage par fournisseur dans
+  `chrome.storage.local`, appel chat-completions OpenAI-compatible depuis le
+  background (aucun chargement ONNX), même prompt et même validation de plan
+  que le modèle local, clé scrubée de tous les logs/debug
+  (`src/orchestrator/byok.ts`).
 - **`extension/popup/`** — popup Chrome (champ de demande, état de chargement
   modèle, résultats par item, sélection produit/quantité, bouton *Valider*).
 - **`extension/offscreen/`** — document offscreen isolé hébergeant la runtime

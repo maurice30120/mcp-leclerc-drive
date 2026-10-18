@@ -81,6 +81,44 @@ logique). Le pont `window.postMessage` (bridge) valide chaque commande via
 - `src/orchestrator/plan.ts` parse + valide la sortie, et **drope** tout champ
   `product_id`/`id` halluciné.
 
+## BYOK — clé API à la place du modèle local (Bring Your Own Key)
+
+Le modèle local (~0,9 Go à télécharger) peut être remplacé par une clé API :
+`openai` (clé perso platform.openai.com) ou `vibe` (clé Mistral La Plateforme,
+incluse dans le forfait Vibe). Les deux fournisseurs parlent le même format
+OpenAI-compatible (`POST {base}/chat/completions`), donc un seul chemin de code
+les couvre. Objectif : faire ses courses **uniquement via le plugin**, sans
+modèle local et sans agent CLI.
+
+Ordre de résolution dans `handleOrchestrate` :
+
+1. normaliseur déterministe (`shopping-list.ts`) — inchangé, prioritaire ;
+2. **BYOK** si `chrome.storage.local.byok.provider` est défini et que la clé
+   est présente — le background fetch l'API distante, parse la sortie avec le
+   même `plan.ts` qu'en local (debug `source: "byok"`) ;
+3. sinon, modèle local offscreen Transformers.js (comportement historique).
+
+Points-clés :
+
+- `src/orchestrator/byok.ts` — pur, sans fetch : catalogue des fournisseurs,
+  validation de config, construction de requête, extraction de réponse,
+  scrubbing de clé. Unit-testé dans `tests/byok.test.ts`.
+- La clé ne vit **que** dans le header `Authorization` de la requête, jamais
+  dans le body ; toute erreur/debug passe par `scrubApiKey` avant affichage ou
+  log.
+- Aucun document offscreen n'est créé sur le chemin BYOK : pas de chargement
+  ONNX du tout.
+- La popup masque le picker de modèle local et le toggle WebGPU quand un
+  fournisseur distant est actif ; les clés sont stockées par fournisseur
+  (`openaiKey`/`vibeKey`) dans `chrome.storage.local` (jamais `sync`).
+- Le prompt système est partagé avec le modèle local (`prompt.ts`) : mêmes
+  règles, jamais de `product_id`, même validation `plan.ts`.
+- Timeout de 30 s via `AbortController` ; une config BYOK invalide (fournisseur
+  choisi sans clé) est une erreur explicite, pas un fallback silencieux vers le
+  modèle local.
+- `manifest.json` accorde `host_permissions` uniquement à
+  `api.openai.com` et `api.mistral.ai`.
+
 ### Stabilité Chrome : variantes modèle
 
 `extension/offscreen/offscreen.ts` force actuellement ONNX Runtime WASM en
