@@ -1,0 +1,29 @@
+{
+  "name": "@leclerc/agent",
+  "version": "0.1.0",
+  "description": "Provider-agnostic shopping agent engine: ModelProvider seam, approval guard, deterministic orchestration of the recipe-to-cart slice. Runs unchanged in Chrome and Node.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@leclerc/contracts": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.5"
+  }
+}

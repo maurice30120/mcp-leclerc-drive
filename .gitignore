@@ -24,3 +24,6 @@ scripts/model-lock.json
 
 # Agent scratchpad (throwaway harnesses, notes, fixtures)
 .scratch/
+
+# Campaign harness outputs (results.json, summary.md, exports)
+runs/
