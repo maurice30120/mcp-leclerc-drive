@@ -3,3 +3,8 @@ export * from "./providers/simulated.js";
 export * from "./byok.js";
 export * from "./providers/mistral.js";
 export * from "./providers/webgpu.js";
+export * from "./prompts.js";
+export * from "./trace.js";
+export * from "./approval.js";
+export * from "./engine.js";
+export * from "./shopping-flow.js";
