@@ -1,9 +1,19 @@
 /**
  * Fabrique de LeclercConnector à partir de la session WebView courante.
  *
- * Par défaut, on utilise le fetch React Native et le cookie jar natif partagé
- * avec la WebView (`sharedCookiesEnabled`). Le fetch reste injectable pour les
- * tests et pour remplacer ce comportement par un adaptateur cookies dédié.
+ * EN PRODUCTION : passer `fetchImpl = services.webViewFetchBridge.request`.
+ * Le fetch s'exécute alors *à l'intérieur* de la WebView Leclerc (pont par
+ * `injectJavaScript`), ce qui réutilise le client HTTP, les cookies et
+ * l'empreinte DataDome authentiques de la page qui a passé le challenge —
+ * équivalent mobile de l'injecteur MAIN-world du MCP. Voir
+ * `features/webview/fetch-bridge.ts`.
+ *
+ * Par défaut (sans `fetchImpl`), on retombe sur le fetch React Native natif
+ * (OkHttp/NSURLSession). CE CHEMIN EST CASSÉ EN PROD : empreinte TLS
+ * distincte du Chromium WebView et `sharedCookiesEnabled` peu fiable (surtout
+ * iOS) → challenge DataDome systématique. Il ne subsiste que pour les tests
+ * unitaires (mock fetch global) et comme garde-fou si aucune WebView n'est
+ * attachée.
  */
 
 import { LeclercConnector, type FetchLike } from './connector.ts';

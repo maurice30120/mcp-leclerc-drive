@@ -8,6 +8,7 @@
 
 import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react';
 import { parseStoredWebSession, type WebSession } from '@features/webview/session';
+import { WebViewFetchBridge } from '@features/webview/fetch-bridge';
 import type { AIRuntime, RuntimeState } from '@features/ai/runtime';
 import { McpLogger } from '@features/mcp/logs';
 import { SessionHistory } from '@features/mcp/history';
@@ -17,6 +18,11 @@ export interface AppServices {
   session: { state: WebSession | null };
   runtime: { state: RuntimeState; initialize: () => Promise<void>; ai: AIRuntime | null };
   setSession: (s: WebSession | null) => void;
+  /** Pont fetch exécuté à l'intérieur de la WebView Leclerc (anti-DataDome). */
+  webViewFetchBridge: WebViewFetchBridge;
+  /** Visibilité de l'overlay WebView persistant (racine). */
+  webViewVisible: boolean;
+  setWebViewVisible: (v: boolean) => void;
   logger: McpLogger;
   history: SessionHistory;
   gate: InMemoryPermissionGate;
@@ -30,10 +36,12 @@ export function AppServicesProvider({ children }: { children: React.ReactNode })
   const [session, setSession] = useState<WebSession | null>(null);
   const [runtimeState, setRuntimeState] = useState<RuntimeState>({ status: 'idle' });
   const [aiRuntime, setAiRuntime] = useState<AIRuntime | null>(null);
+  const [webViewVisible, setWebViewVisible] = useState(false);
 
   const logger = useMemo(() => new McpLogger(), []);
   const history = useMemo(() => new SessionHistory(), []);
   const gate = useMemo(() => new InMemoryPermissionGate(), []);
+  const webViewFetchBridge = useMemo(() => new WebViewFetchBridge(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,12 +101,15 @@ export function AppServicesProvider({ children }: { children: React.ReactNode })
       session: { state: session },
       runtime: { state: runtimeState, initialize: initializeAI, ai: aiRuntime },
       setSession: setSessionPersisted,
+      webViewFetchBridge,
+      webViewVisible,
+      setWebViewVisible,
       logger,
       history,
       gate,
       initializeAI,
     }),
-    [session, runtimeState, initializeAI, aiRuntime, setSessionPersisted, logger, history, gate],
+    [session, runtimeState, initializeAI, aiRuntime, setSessionPersisted, webViewFetchBridge, webViewVisible, setWebViewVisible, logger, history, gate],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

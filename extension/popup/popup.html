@@ -11,6 +11,13 @@
       <p id="model-status" class="status idle">Modèle : inconnu</p>
     </header>
 
+    <section id="capture-section">
+      <h2>Recette sur cette page</h2>
+      <p class="note">Sauvegarde l'URL et un extrait de la page active ; ton agent MCP pourra ensuite la transformer en recette.</p>
+      <button id="capture-btn" type="button">Sauvegarder la page</button>
+      <p id="capture-status" class="note" hidden></p>
+    </section>
+
     <section id="input-section">
       <label for="prompt">Ta liste de courses</label>
       <textarea
@@ -40,6 +47,31 @@
     <section id="debug-section" hidden>
       <h2>Debug</h2>
       <pre id="debug-output"></pre>
+    </section>
+
+    <section id="byok-section">
+      <h2>Moteur d'inférence</h2>
+      <p class="note">
+        Par défaut, un modèle local est téléchargé (~0,9 Go). Tu peux le
+        remplacer par une clé API : tout se fait alors depuis le plugin, sans
+        modèle local.
+      </p>
+      <label class="picker">
+        <span>Fournisseur</span>
+        <select id="byok-provider-select"></select>
+      </label>
+      <div id="byok-fields" hidden>
+        <label class="byok-field">
+          <span>Clé API</span>
+          <input id="byok-key" type="password" autocomplete="off" spellcheck="false" />
+        </label>
+        <label class="byok-field">
+          <span>Modèle (optionnel)</span>
+          <input id="byok-model" type="text" autocomplete="off" spellcheck="false" />
+        </label>
+        <p id="byok-help" class="note"></p>
+        <p id="byok-status" class="note" hidden></p>
+      </div>
     </section>
 
     <footer>

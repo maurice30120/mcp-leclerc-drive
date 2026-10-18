@@ -160,9 +160,123 @@ export type PopupToBackgroundMsg =
   | LeclercRunMsg
   | ModelStatusRequestMsg
   | ReloadOffscreenMsg
-  | SetModelMsg;
+  | SetModelMsg
+  | SaveCaptureMsg;
 
-export type BackgroundToPopupMsg = LeclercRunResultMsg | ModelStatusMsg;
+export type BackgroundToPopupMsg =
+  | LeclercRunResultMsg
+  | ModelStatusMsg
+  | SaveCaptureResultMsg;
+
+// ---- Popup ↔ background: recipe page capture ------------------------------
+
+/**
+ * Explicit user action: capture the visible content of the active tab (the
+ * one the user clicked the extension on — `activeTab` access) into the local
+ * capture library, in wait of structuring by the MCP client's model.
+ */
+export interface SaveCaptureMsg {
+  type: "save_capture";
+}
+
+/** Result of a {@link SaveCaptureMsg}. `ok:false` never hides a storage failure. */
+export interface SaveCaptureResultMsg {
+  type: "save_capture_result";
+  ok: boolean;
+  /** Stored capture on success (identifier, URL, title). */
+  capture?: { id: string; url: string; title?: string };
+  error?: string;
+}
+
+// ---- MAIN bridge ↔ background: recipe storage channel ---------------------
+
+/**
+ * A recipe-capability storage request sent by the MAIN-world bridge (the
+ * recipe MCP tools run in the Leclerc tab and have no chrome.* access) to
+ * the background service worker, relayed through the isolated-world content
+ * relay. Correlated by `requestId` across the postMessage + chrome.runtime
+ * hops. Only recipe operations travel here — the Leclerc commands keep their
+ * own channel, and the relay still only runs on Leclerc tabs.
+ */
+/** Channel marker for bridge → background storage requests. */
+export const RECIPE_STORAGE_REQUEST_SOURCE = "mcp-leclerc-drive:storage-request";
+/** Channel marker for background → bridge storage responses. */
+export const RECIPE_STORAGE_RESPONSE_SOURCE = "mcp-leclerc-drive:storage-response";
+
+export interface RecipeStorageRequest {
+  /** Channel marker, always {@link RECIPE_STORAGE_REQUEST_SOURCE}. */
+  source: typeof RECIPE_STORAGE_REQUEST_SOURCE;
+  requestId: string;
+  command: RecipeStorageCommand;
+  args: Record<string, unknown>;
+}
+
+/** The bounded recipe storage vocabulary. */
+export type RecipeStorageCommand =
+  | "list_captures"
+  | "get_capture"
+  | "save_recipe"
+  | "abandon_capture"
+  | "get_personal_recipe"
+  | "personal_recipes"
+  | "claim_new_recipes";
+
+/** Successful response to a {@link RecipeStorageRequest}. */
+export interface RecipeStorageOk {
+  /** Channel marker, always {@link RECIPE_STORAGE_RESPONSE_SOURCE}. */
+  source: "mcp-leclerc-drive:storage-response";
+  requestId: string;
+  ok: true;
+  data: unknown;
+}
+
+/** Failure response to a {@link RecipeStorageRequest}. */
+export interface RecipeStorageErr {
+  source: "mcp-leclerc-drive:storage-response";
+  requestId: string;
+  ok: false;
+  error: string;
+}
+
+export type RecipeStorageResponse = RecipeStorageOk | RecipeStorageErr;
+
+/** Discriminator: is a window MessageEvent payload a bridge storage request? */
+export function isRecipeStorageRequest(data: unknown): data is RecipeStorageRequest {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as { source?: unknown }).source === RECIPE_STORAGE_REQUEST_SOURCE &&
+    typeof (data as { requestId?: unknown }).requestId === "string" &&
+    typeof (data as { command?: unknown }).command === "string" &&
+    (data as { args?: unknown }).args !== null &&
+    typeof (data as { args?: unknown }).args === "object"
+  );
+}
+
+/** Discriminator: is a window MessageEvent payload a bridge storage response? */
+export function isRecipeStorageResponse(data: unknown): data is RecipeStorageResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as { source?: unknown }).source === RECIPE_STORAGE_RESPONSE_SOURCE &&
+    typeof (data as { requestId?: unknown }).requestId === "string" &&
+    typeof (data as { ok?: unknown }).ok === "boolean"
+  );
+}
+
+// ---- Background ↔ content relay: recipe storage ------------------------------
+
+/** Relay (isolated world) → background: forward one bridge storage request. */
+export interface RelayRecipeStorageMsg {
+  type: "recipe_storage_request";
+  request: RecipeStorageRequest;
+}
+
+/** Background → relay: response to a forwarded storage request. */
+export interface RelayRecipeStorageResultMsg {
+  type: "recipe_storage_result";
+  response: RecipeStorageResponse;
+}
 
 // ---- Background ↔ offscreen messages --------------------------------------
 
@@ -199,7 +313,7 @@ export interface OrchestrationDebug {
   dtype?: string;
   promptFormat?: string;
   device?: string;
-  source?: "model" | "deterministic";
+  source?: "model" | "deterministic" | "byok";
   input: string;
   rawOutput?: string;
   parsedPlan?: unknown;

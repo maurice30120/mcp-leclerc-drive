@@ -45,26 +45,26 @@ L'artefact livré vit dans `dist/extension/` après `npm run build:extension`.
   Pas de `cookies`, pas de `tabs`, pas de `<all_urls>`.
 - **`background.ts`** (service worker) — écoute `chrome.tabs.onUpdated` pour
   les navigations Leclerc Drive (`hostSuffix: leclercdrive.fr`) et, sur
-  `complete`, injecte `["inject.js", "embed.js"]` dans le **MAIN world** de
-  l'onglet via `chrome.scripting.executeScript`. Ré-injecte aussi dans les
-  onglets Leclerc déjà ouverts sur `onStartup` / `onInstalled`. Pose un badge
+  `complete`, injecte `inject.js` dans le **MAIN world**, attend la promesse de
+  démarrage WebMCP, puis injecte `embed.js`. Ré-injecte aussi dans les onglets
+  Leclerc déjà ouverts sur `onStartup` / `onInstalled`. Pose un badge
   (`ON` vert / `ERR` rouge).
 - **`inject.ts`** (tourne dans le MAIN world de la page) — installe
   `document.modelContext` via `@mcp-b/global` (`initializeWebModelContext`,
-  auto-init des transports Tab + Iframe), puis y enregistre les 9 outils
+  auto-init des transports Tab + Iframe), puis attend l'enregistrement asynchrone des 9 outils
   Leclerc. Gardé par `window.__mcpLeclercDriveInjected` donc idempotent. Possède
   le **throttle** in-page (sérialise + space + jitter + retry/backoff sur
   403/429) et les seuls appels `fetch` du projet.
 - **`embed.js`** — vendored depuis `@mcp-b/webmcp-local-relay/dist/browser/embed.js`
   au build ([`scripts/build-extension.mjs`](../scripts/build-extension.mjs)).
   Ouvre le WebSocket vers le relay local et forward les outils enregistrés comme
-  outils MCP first-class. Injecté *après* `inject.js` pour qu'il voie un
-  `document.modelContext` prêt.
+  outils MCP first-class. Injecté *après* la promesse de démarrage de `inject.js`
+  afin que ses outils soient déjà enregistrés.
 
 > Les scripts MAIN world ne peuvent pas utiliser les API `chrome.*`, donc tout
-> ce qui est lié à chrome (le relay embed) est piloté purement via **l'ordre de
-> la liste** dans le background worker. `inject.ts` n'injecte jamais `embed.js`
-> lui-même.
+> ce qui est lié à chrome (le relay embed) est piloté par le background worker.
+> Il attend le démarrage asynchrone des outils avant d'injecter `embed.js`.
+> `inject.ts` n'injecte jamais `embed.js` lui-même.
 
 ### 2. Logique métier pure (`src/leclerc/api.ts`)
 

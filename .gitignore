@@ -21,3 +21,6 @@ scripts/model-lock.json
 # Local Codex/plugin-installed skills
 .agents/skills/
 .cursor/skills
+
+# Agent scratchpad (throwaway harnesses, notes, fixtures)
+.scratch/

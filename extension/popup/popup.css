@@ -218,3 +218,5 @@ footer a {
   flex: 1;
   font-size: 11px;
 }
+
+.note.ok { color: var(--accent); font-weight: 600; }

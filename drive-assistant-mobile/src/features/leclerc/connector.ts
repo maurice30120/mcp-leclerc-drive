@@ -27,8 +27,8 @@ import {
   isLeclercHost,
   isRetryableStatus,
   listHabitualUrl,
+  mobileCartUrl,
   nearbyUrl,
-  NO_MATCH_QUERY,
   productsFromHtml,
   searchUrl,
   type CartEvent,
@@ -129,10 +129,10 @@ export class LeclercConnector {
     return products.map((p) => scrubProduct(p));
   }
 
-  /** Panier complet (page no-match pour ne porter que le cart). */
+  /** Panier complet via la page panier mobile officielle. */
   async getCart(): Promise<Cart> {
     const html = await this.getHtml(
-      searchUrl(this.host, this.storeId, this.storeId, NO_MATCH_QUERY),
+      mobileCartUrl(this.host, this.storeId, this.storeId),
       'get_cart',
     );
     return cartFromHtml(html, this.storeId);
@@ -376,11 +376,16 @@ function isRetryableStatusLike(e: unknown): boolean {
   return e instanceof Error && /HTTP 403|HTTP 429|DataDome/.test(e.message);
 }
 
-/** Extrait l'hôte fdN-courses… d'une URL magasin Leclerc. */
+/** Extrait l'hôte courses d'une URL magasin Leclerc. */
 export function leclercHostFromUrl(url: string | undefined): string | null {
   if (!url) return null;
-  const m = url.match(/https?:\/\/(fd\d+-courses\.leclercdrive\.fr)/i);
-  return m ? m[1] : null;
+  try {
+    const host = new URL(url).host;
+    return isLeclercHost(host) ? host : null;
+  } catch {
+    const m = url.match(/https?:\/\/((?:fd\d+-courses|m-courses)\.leclercdrive\.fr)/i);
+    return m ? m[1] : null;
+  }
 }
 
 /** Extrait le storeId depuis l'URL /magasin-<id>-<id>-…/ . */
