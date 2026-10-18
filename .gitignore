@@ -27,3 +27,9 @@ scripts/model-lock.json
 
 # Campaign harness outputs (results.json, summary.md, exports)
 runs/
+
+# Python ML training pipeline outputs (tickets #53-#55) - never committed.
+training/runs/
+training/data/
+training/audit/out/
+training/**/__pycache__/

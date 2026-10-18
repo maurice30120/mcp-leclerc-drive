@@ -1,0 +1,30 @@
+{
+  "config_name": "smoke",
+  "config_version": 1,
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "base_model_status": "NON VALIDÉ — candidat informatif (packages/harness/src/poc/candidates.ts) ; le modèle de base réel est celui prouvé en ONNX/WebGPU par le POC (ticket #47). Modifier ce champ après la preuve.",
+  "scope": "recettes structurées UNIQUEMENT — aucun exemple d'usage des outils (spéc #40, ticket #54)",
+  "lora": {
+    "num_layers": 8,
+    "rank": 8,
+    "dropout": 0.0,
+    "scale": 10.0
+  },
+  "training": {
+    "learning_rate": 0.0001,
+    "batch_size": 2,
+    "iters": 20,
+    "max_seq_len": 1024,
+    "seed": 0
+  },
+  "data": {
+    "train_file": "training/data/sft/train.jsonl",
+    "valid_file": "training/data/sft/validation.jsonl",
+    "produced_by": "training/audit/audit_dataset.py (ticket #53)"
+  },
+  "checkpoint": {
+    "save_every": 10,
+    "policy": "aucun checkpoint promu sur la seule baisse de loss — évaluation qualité documentée obligatoire (docs/training-reproducibility.md)"
+  },
+  "notes": "Smoke train : quelques pas seulement, sur le mini-échantillon (mode --max-records de l'audit). Les drapeaux CLI mlx-lm (--lora-rank, --seed, --save-every, --max-seq-len) doivent être validés contre la version épinglée de mlx-lm sur le Mac de référence."
+}
