@@ -120,6 +120,8 @@ de `history`.
   en `MAIN`-world, le repli est un user-script runner (exempt de CSP via
   `chrome.scripting`). Comme la logique métier est isolée dans
   `src/leclerc/api.ts`, ce swap représente ~1 fichier.
-- **Maturité MCP-B** : `@mcp-b/*@^3` est piné ; la surface `registerTool` /
-  `embed.js` peut évoluer, mais les changements sont confinés à
-  `extension/inject.ts` et au script de build.
+- **Maturité MCP-B** : `@mcp-b/global` et `@mcp-b/webmcp-local-relay` sont
+  alignés sur `^6.0.3`. L'enregistrement WebMCP étant asynchrone, le service
+  worker attend la promesse de démarrage avant d'injecter l'embed vendored de
+  la même version majeure. Les adaptations restent dans `extension/inject.ts`,
+  `extension/background.ts` et le script de build.

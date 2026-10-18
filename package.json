@@ -47,15 +47,15 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "@mcp-b/global": "^3.0.0",
-    "@mcp-b/webmcp-types": "^3.0.0"
+    "@mcp-b/global": "^6.0.3"
   },
   "devDependencies": {
-    "@mcp-b/webmcp-local-relay": "^3.0.0",
+    "@mcp-b/webmcp-local-relay": "^6.0.3",
     "@types/chrome": "^0.2.2",
     "@types/node": "^22.0.0",
     "cli-progress": "^3.12.0",
     "esbuild": "^0.28.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "webmcp-types": "^0.1.10"
   }
 }

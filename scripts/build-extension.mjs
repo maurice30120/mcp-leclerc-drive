@@ -150,8 +150,44 @@ await build({
     /navigator\.modelContext(?!Testing)/g,
     "document.modelContext??navigator.modelContext",
   );
+  // The upstream embed reads `document.currentScript` to locate widget.html,
+  // but this extension injects it with chrome.scripting.executeScript (MAIN
+  // world), where currentScript is null - the embed then throws "must be
+  // loaded from a URL" and no relay connection is ever made. Fall back to a
+  // page-global config (window.__WEBMCP_RELAY_EMBED__) installed by
+  // background.ts right before the embed is injected.
+  const embedGuard = "if(!e?.src)throw Error(`The relay embed script must be loaded from a URL`);";
+  const embedFallback =
+    "if(!e?.src){const g=globalThis.__WEBMCP_RELAY_EMBED__;" +
+    "if(g&&g.widgetUrl){e={src:g.widgetUrl,getAttribute:(a)=>" +
+    "a===`data-relay-host`?(g.relayHost??null):" +
+    "a===`data-relay-port`?(g.relayPort??null):" +
+    "a===`data-auto-connect`?(g.autoConnect??null):" +
+    "a===`data-relay-id`?(g.relayId??null):" +
+    "a===`data-relay-workspace`?(g.relayWorkspace??null):" +
+    "a===`data-request-timeout`?(g.requestTimeout??null):null}}" +
+    "else throw Error(`The relay embed script must be loaded from a URL`)};";
+  if (!embedSrc.includes(embedGuard)) {
+    throw new Error(
+      "embed.js guard not found - the upstream webmcp-local-relay bundle changed; " +
+        "update the currentScript fallback transform in build-extension.mjs.",
+    );
+  }
+  embedSrc = embedSrc.replace(embedGuard, embedFallback);
+
   writeFileSync(join(OUT, "embed.js"), embedSrc);
-  console.log("vendored embed.js → " + join(OUT, "embed.js"));
+  console.log("vendored embed.js -> " + join(OUT, "embed.js"));
+
+  // widget.html - the embed fetches it (relative to its own URL) and runs it
+  // in a hidden iframe; that iframe opens the WebSocket to the local relay.
+  // Without this file the embed can never build its widget, even once the
+  // currentScript fallback above provides a chrome-extension:// URL.
+  const relayMain = require.resolve("@mcp-b/webmcp-local-relay", { paths: [ROOT] });
+  const relayRoot = resolve(dirname(relayMain), "..");
+  const widgetPath = join(relayRoot, "dist", "browser", "widget.html");
+  writeFileSync(join(OUT, "widget.html"), readFileSync(widgetPath, "utf8"));
+  console.log("vendored widget.html -> " + join(OUT, "widget.html"));
+  console.log("vendored widget.html -> " + join(OUT, "widget.html"));
 }
 
 // onnxruntime-web wasm + proxy .mjs binaries → dist/extension/ort-wasm/.

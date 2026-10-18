@@ -22,7 +22,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["inject.js", "embed.js"],
+      "resources": ["inject.js", "embed.js", "widget.html"],
       "matches": ["*://*.leclercdrive.fr/*"]
     },
     {
