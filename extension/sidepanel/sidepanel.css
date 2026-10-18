@@ -1,0 +1,315 @@
+/**
+ * Side panel styles (ticket #51) — French conversation UI.
+ * Deliberately plain: no framework, no external font, inert text rendering.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #1c2430;
+  background: #f6f7f9;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0f4c2a;
+  color: #fff;
+}
+
+#topbar h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#phase-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  white-space: nowrap;
+}
+
+#phase-chip[data-phase="generating"],
+#phase-chip[data-phase="searching"],
+#phase-chip[data-phase="mutating"] {
+  background: #b8860b;
+}
+
+#phase-chip[data-phase="awaiting_approval"],
+#phase-chip[data-phase="preview"] {
+  background: #8a6d00;
+}
+
+#phase-chip[data-phase="done"] {
+  background: #1f8a3f;
+}
+
+#phase-chip[data-phase="error"] {
+  background: #b00020;
+}
+
+#thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg {
+  max-width: 92%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: #d6ecd9;
+}
+
+.msg.assistant {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid #e2e5ea;
+}
+
+.msg.error {
+  align-self: flex-start;
+  background: #fdecea;
+  border: 1px solid #f3c2ba;
+  color: #7a1210;
+}
+
+.card {
+  align-self: stretch;
+  background: #fff;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.card h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+
+.card .meta {
+  color: #5a6675;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.card ul,
+.card ol {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.card .disclaimer {
+  margin-top: 6px;
+  color: #7a5c00;
+  font-size: 11px;
+}
+
+.card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.card th,
+.card td {
+  text-align: left;
+  padding: 3px 4px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.card .total-row td {
+  font-weight: 600;
+  border-bottom: none;
+}
+
+.activity {
+  align-self: flex-start;
+  color: #5a6675;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.activity .err {
+  color: #b00020;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  font: inherit;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #c4cbd4;
+  background: #fff;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #0f4c2a;
+  border-color: #0f4c2a;
+  color: #fff;
+  font-weight: 600;
+}
+
+button.danger {
+  border-color: #d8998f;
+  color: #a4271b;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+#resume-bar {
+  padding: 6px 12px;
+  background: #fff8e1;
+  border-top: 1px solid #eadfa8;
+}
+
+#resume-bar button {
+  width: 100%;
+}
+
+#composer {
+  padding: 8px 12px;
+  background: #fff;
+  border-top: 1px solid #e2e5ea;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#composer textarea {
+  font: inherit;
+  width: 100%;
+  resize: vertical;
+  padding: 6px 8px;
+  border: 1px solid #c4cbd4;
+  border-radius: 8px;
+}
+
+.composer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.composer-row input[type="number"] {
+  width: 52px;
+}
+
+.composer-row input[type="text"] {
+  flex: 1;
+}
+
+.composer-row input {
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid #c4cbd4;
+  border-radius: 6px;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+#settings {
+  border-top: 1px solid #e2e5ea;
+  background: #fff;
+  font-size: 12px;
+}
+
+#settings summary {
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+#settings section {
+  padding: 4px 12px 10px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+#settings h2 {
+  font-size: 12px;
+  margin: 8px 0 4px;
+}
+
+#settings .row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#settings input[type="password"] {
+  flex: 1;
+  min-width: 120px;
+  font: inherit;
+  padding: 4px 6px;
+  border: 1px solid #c4cbd4;
+  border-radius: 6px;
+}
+
+.provider-option {
+  display: block;
+  margin: 3px 0;
+}
+
+.hint {
+  color: #5a6675;
+  margin: 4px 0;
+}
+
+#mistral-status,
+#model-status,
+#provider-note {
+  margin: 4px 0 0;
+  color: #5a6675;
+}
+
+#mistral-status.ok {
+  color: #1f8a3f;
+}
+
+#model-status.warn {
+  color: #8a6d00;
+}

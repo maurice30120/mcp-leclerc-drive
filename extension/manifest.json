@@ -3,7 +3,7 @@
   "name": "mcp-leclerc-drive",
   "version": "{{EXTENSION_VERSION}}",
   "description": "Expose Leclerc Drive as MCP tools via WebMCP (for opencode / Claude Code), and drive it from a popup with a local Transformers.js model.",
-  "permissions": ["scripting", "activeTab", "storage", "offscreen"],
+  "permissions": ["scripting", "activeTab", "storage", "offscreen", "sidePanel"],
   "host_permissions": [
     "*://*.leclercdrive.fr/*",
     "https://api.openai.com/*",
@@ -16,6 +16,9 @@
   "action": {
     "default_title": "mcp-leclerc-drive",
     "default_popup": "popup/popup.html"
+  },
+  "side_panel": {
+    "default_path": "sidepanel/sidepanel.html"
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
