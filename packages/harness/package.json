@@ -17,11 +17,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "campaign:webgpu": "node dist/poc/run-local.js"
   },
   "dependencies": {
     "@leclerc/contracts": "*",
-    "@leclerc/agent": "*"
+    "@leclerc/agent": "*",
+    "@huggingface/transformers": "^4.2.0"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
