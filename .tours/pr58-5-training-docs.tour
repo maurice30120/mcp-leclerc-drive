@@ -1,0 +1,108 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "PR #58 · 5/5 — Training LoRA (gated) & docs",
+  "description": "Cinquième des cinq tours couvrant la PR #58 (tickets #47, #48, #53, #54, #55, #56, #57).\n\nCe tour couvre le pipeline ML isolé (`training/` — audit du dataset, smoke train LoRA MLX, chaîne d'export ONNX) entièrement derrière des gates bloquantes, et la documentation honnête : gabarits POC, matrice de portabilité observée, tableau d'état « en attente d'exécution ».\n\nVérifié le 2026-10-18 sur cette branche : `splits_check.py --self-test` OK hors ligne et `py_compile` OK sur tous les scripts Python. Aucune étape GPU/réseau/entraînement n'a été exécutée — elles sont documentées comme en attente, jamais fabriquées.\n\nGenerated from the merge-base of `origin/main` (`728d78c84641bbb84d7655d7af5b03eb0543e02f`) to `d2894e340b74d925cd04afa9364cb54cebfd1380`.",
+  "ref": "d2894e340b74d925cd04afa9364cb54cebfd1380",
+  "baseRef": "728d78c84641bbb84d7655d7af5b03eb0543e02f",
+  "steps": [
+    {
+      "title": "Vue d'ensemble — des gates, pas des promesses",
+      "description": "Le pipeline ML vit dans `training/`, isolé du reste du dépôt (Python uniquement, aucune dépendance vers `packages/`, `extension/`, `src/`). Il couvre l'audit du dataset « French Recipe » (#53), le premier fine-tuning LoRA sur MLX-LM (#54) et la chaîne d'export MLX → ONNX (#55).\n\nLe principe : chaque étape coûteuse est derrière une gate bloquante qui exige une preuve expérimentale antérieure, et le statut honnête (`docs/status.md`) affiche ce qui a tourné et ce qui attend — aucun résultat n'est fabriqué.\n\n**Diagram — Les gates du pipeline**\n\n```mermaid\nstateDiagram-v2\n  [*] --> POC47: POC #47 — sonde WebGPU + inférence ONNX\n  POC47 --> Audit53: base prouvée sur preuve\n  Audit53 --> Train54: splits disjoints vérifiés\n  Train54 --> Export55: adaptateur LoRA réel\n  Export55 --> GateNav: export ONNX + quantification\n  GateNav --> PubHF: chargement Chrome + recettes JSON valides\n  GateNav --> Bloque: échec documenté — intégration NON déclarée\n  PubHF --> [*]: --publish exige audit de licence + HF_TOKEN\n```"
+    },
+    {
+      "title": "Où se trouve le pipeline",
+      "description": "Trois zones : `audit/` (audit du dataset HF et vérificateur de splits), `finetune/` (smoke train MLX, comparaison F01, générateur de prompts, configs) et `export/` (chaîne MLX → ONNX et vérifications post-export), plus `docs/` pour la méthode, la reproductibilité et le tableau d'état.\n\nLes sorties (`training/runs/`, `training/data/`, `training/audit/out/`) sont gitignorées : rien de volumineux ni de local ne se commit.",
+      "directory": "training"
+    },
+    {
+      "title": "Les gates bloquantes du pipeline",
+      "description": "Quatre gates : (1) le modèle de base doit être prouvé en ONNX/WebGPU AVANT tout entraînement — `lora_smoke_train.py` refuse de tourner sans `--base-validated` ; (2) la chaîne d'export doit être prouvée expérimentalement AVANT de déclarer l'intégration navigateur terminée ; (3) aucun checkpoint n'est déclaré prêt sur la seule baisse de loss — évaluation qualité documentée exigée ; (4) le premier fine-tuning porte uniquement sur les recettes structurées, aucun usage d'outil.\n\nLe README fixe aussi la règle de transparence : aucune étape n'a été exécutée à la rédaction, tout est « en attente d'exécution ».",
+      "questions": [
+        "Pourquoi la gate --base-validated est-elle un drapeau humain plutôt qu'un test automatisé ?"
+      ],
+      "file": "training/README.md",
+      "pattern": "## Gates bloquantes",
+      "display": "diff"
+    },
+    {
+      "title": "L'audit du dataset : rien d'inventé",
+      "description": "L'audit du dataset HF « French Recipe » suit un ordre strict : métadonnées LUES de l'API Hugging Face (jamais inventées — invérifiables = échec sonore, exit 3), exploration du schéma, règles de rejet explicites avec note de provenance, déduplication AVANT découpage (groupes par titre normalisé ou multi-ensemble d'ingrédients), puis splits train/validation/test par groupes avec shuffle seedé.\n\nSeules les variantes textuelles d'unités contrôlées sont converties ; toute conversion non fiable rejette l'enregistrement. Codes de sortie typés (0 ok, 2 env, 3 métadonnées, 4 schéma, 1 vérification).",
+      "file": "training/audit/audit_dataset.py",
+      "pattern": "AUDIT_TOOL_VERSION = 1",
+      "display": "diff"
+    },
+    {
+      "title": "Le vérificateur de splits : hors ligne, stdlib only",
+      "description": "`splits_check.py` vérifie programmatiquement et HORS LIGNE les splits produits : aucun doublon dans un split (texte exact et signature normalisée), aucune recette test/validation dans train même reformulée, aucun groupe de dédup à cheval sur deux splits, règles de rejet respectées (servings > 0, quantités positives, unités contrôlées).\n\n`CONTROLLED_UNITS` est le miroir explicite de `GENERATED_RECIPE_UNITS` de `@leclerc/contracts` (tour 1) — jamais édité sans bumper la version des contrats qu'il reflète. `--self-test` exécute toute la batterie sur une fixture synthétique embarquée : vérifié OK le 2026-10-18, sans réseau ni dataset.",
+      "file": "training/audit/splits_check.py",
+      "pattern": "CONTROLLED_UNITS = \\[",
+      "display": "diff"
+    },
+    {
+      "title": "Le smoke train LoRA : gate explicite, mesures réelles",
+      "description": "GATE BLOQUANTE : le script REFUSE de s'exécuter sans `--base-validated` — reconnaissance humaine explicite que le POC #47 a prouvé le modèle de base. Garanties : la baseline n'est jamais modifiée (adaptateurs sous `training/runs/<run_id>/adapters/`), les loss sont parsées du vrai stdout de mlx-lm (jamais inventées), mémoire et temps mesurés (`getrusage` + horloge monotone), `--resume` repart d'un adaptateur existant, et chaque run écrit `metrics.json` avec snapshot de config et son sha256.\n\nLe SFT ne contient QUE des recettes structurées — aucun exemple d'appel d'outil (gate 4).",
+      "file": "training/finetune/lora_smoke_train.py",
+      "pattern": "TRAIN_TOOL_VERSION = 1",
+      "display": "diff"
+    },
+    {
+      "title": "F01 : prompts extraits octet par octet",
+      "description": "Utilitaire one-off : il émet `prompts_f01.jsonl` depuis les constantes TypeScript figées (`RECIPE_SYSTEM_PROMPT` de `@leclerc/agent`, `A01_PROMPT` du harnais) pour que la campagne de fine-tuning rejoue des entrées identiques à l'octet près avec la fixture F01.\n\nPas une étape du pipeline — un outil de provenance. La comparaison baseline vs LoRA (`gen_compare.py`) consommera ces mêmes prompts avec les paramètres épinglés.",
+      "file": "training/finetune/gen_prompts_f01.mjs",
+      "pattern": "RECIPE_SYSTEM_PROMPT introuvable",
+      "display": "diff"
+    },
+    {
+      "title": "La chaîne d'export : expérimentale, jamais acquise",
+      "description": "Rien n'est supposé marcher : chaque étape (fusion LoRA → poids HF → export ONNX → quantification int8) exécute une vraie commande documentée et enregistre son résultat — succès comme échecs — dans `export_status.json`.\n\nDeux gates dans le code : `--declare-browser-ready` REFUSE et explique que l'intégration navigateur ne peut pas être déclarée tant que le modèle exporté n'est pas prouvé dans Chrome (WebGPU) ET dans le harnais Node ; la publication HF exige `--publish` + `--license-audit <fichier>` + `HF_TOKEN` — sans audit de licence complété, refus.",
+      "file": "training/export/export_onnx.py",
+      "pattern": "EXPORT_TOOL_VERSION = 1",
+      "display": "diff"
+    },
+    {
+      "title": "Vérifications post-export : tokenizer et prompt intacts",
+      "description": "Sur la machine de référence, vérifie que la fusion/export ne casse pas les deux critères d'acceptation : token ids de sondes figées (accents français, guillemets, ponctuation JSON) IDENTIQUES entre base et export ; template de chat rendu IDENTIQUE sur les messages F01 ; puis smoke de génération dont la sortie brute est confrontée au miroir du contrat recette strict.\n\nÉchoue bruyamment à chaque dépendance ou artefact manquant plutôt que de sauter des checks. Jamais exécuté à ce jour — documenté comme tel dans son propre docstring.",
+      "file": "training/export/check_export.py",
+      "pattern": "STATUS: PENDING EXECUTION",
+      "display": "diff"
+    },
+    {
+      "title": "Le tableau d'état honnête",
+      "description": "Le tableau énumère chaque étape avec son statut réel : le self-test du vérificateur EXÉCUTÉ — OK ; tout le reste (audit réseau, smoke train, comparaison, fusion, export, vérifs, gate Chrome, publication HF) EN ATTENTE D'EXÉCUTION avec son bloqueur exact.\n\nEt la contre-liste explicite : tout ce qui reste volontairement NON vérifié (valeurs du dataset réel, métriques d'entraînement, sorties de génération, résultats d'export) n'existera qu'après exécution — jamais estimé.",
+      "questions": [
+        "Pourquoi publier des scripts qui n'ont jamais tourné ?"
+      ],
+      "file": "training/docs/status.md",
+      "pattern": "## Ce qui est vérifié à ce jour",
+      "display": "diff"
+    },
+    {
+      "title": "Gabarit POC : sélection du modèle de base",
+      "description": "Gabarit du rapport du POC #47, statut EN ATTENTE D'EXÉCUTION (GPU requis) : aucune mesure n'y figure, toutes les valeurs seront mesurées sur la machine de référence puis reportées — rien d'inventé, rien de prévalidé.\n\nLa décision de principe y est séparée des mesures : ~0,5–1,5 Md de paramètres instruction-tuned, candidats informatifs non validés (tour 3), sélection SUR PREUVE de l'inférence ONNX/WebGPU dans Chrome et dans le harnais Node, et l'évaluation séparée du tool calling réel (Transformers.js ↔ Vercel AI SDK).",
+      "file": "docs/poc/model-selection.md",
+      "pattern": "## Décision de principe",
+      "display": "diff"
+    },
+    {
+      "title": "Gabarit POC : Mistral BYOK depuis l'extension",
+      "description": "Question bloquante du ticket #48 : le provider `mistral-byok` peut-il appeler `api.mistral.ai` directement depuis le service worker MV3, sans backend ni proxy ? Le document est le gabarit du rapport, statut en attente de validation dans Chrome.\n\nIl décrit le protocole opt-in (clé personnelle, jamais automatique, scrubée des erreurs) et les mesures à relever le moment venu.",
+      "file": "docs/poc/mistral-byok-extension.md",
+      "pattern": "en attente de validation dans Chrome",
+      "display": "diff"
+    },
+    {
+      "title": "Matrice de portabilité : observé vs non testé",
+      "description": "Ticket #57, règle du document : n'y figure que ce qui a été réellement observé — une ligne non testée est signalée « non testé » et jamais présentée comme fonctionnelle.\n\nmacOS est le contexte observé (date et commit d'observation consignés) ; Windows et Linux restent explicitement « non testés ». Les exécutions exigeant GPU réel, Chrome réel, téléchargement de modèle ou clé Mistral restent strictement opt-in.",
+      "file": "docs/portability-matrix.md",
+      "pattern": "que ce qui a été réellement observé",
+      "display": "diff"
+    },
+    {
+      "title": "README : le monorepo expliqué",
+      "description": "Le README racine documente la nouvelle structure : monorepo npm workspaces (`packages/*`, ADR-0010) autour de l'extension Chrome existante, avec les nouveaux scripts racine (`test`, `test:packages`, `harness:campaign`, `test:harness:local`) et les pointeurs vers les ADR.\n\nLes neuf outils WebMCP restent documentés tels quels — leur surface externe est gelée (tour 4), seule leur définition a changé de source : le registre.",
+      "file": "README.md",
+      "pattern": "Le dépôt est un monorepo npm workspaces",
+      "display": "diff"
+    }
+  ]
+}

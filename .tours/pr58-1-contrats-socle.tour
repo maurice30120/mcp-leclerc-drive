@@ -1,0 +1,99 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "PR #58 · 1/5 — Contrats & socle (@leclerc/contracts, ADR-0010/0011)",
+  "description": "Premier des cinq tours couvrant la PR #58 (tranche « une recette → panier mock », tickets #41–#43).\n\nCe tour couvre le socle : le package `@leclerc/contracts` — registre unique des neuf capacités Leclerc, taxonomie `ToolError` normalisée, schéma versionné de la recette générée — et les ADR-0010/0011 qui fixent les frontières du monorepo.\n\nTests vérifiés le 2026-10-18 sur cette branche : 30/30 Vitest verts pour `@leclerc/contracts`.\n\nGenerated from the merge-base of `origin/main` (`728d78c84641bbb84d7655d7af5b03eb0543e02f`) to `d2894e340b74d925cd04afa9364cb54cebfd1380`.",
+  "ref": "d2894e340b74d925cd04afa9364cb54cebfd1380",
+  "baseRef": "728d78c84641bbb84d7655d7af5b03eb0543e02f",
+  "steps": [
+    {
+      "title": "Vue d'ensemble — le socle de la tranche",
+      "description": "Cette PR livre la tranche « une recette → panier mock » du cahier des charges #40 : un agent de courses commun à Chrome et Node, branché sur un registre unique de capacités Leclerc, exécuté contre des mocks déterministes.\n\nCe premier tour couvre le socle : le package `@leclerc/contracts` et les ADR qui fixent les frontières. Quatre autres tours complètent celui-ci (`pr58-2-agent-providers.tour`, `pr58-3-harness-deterministe.tour`, `pr58-4-extension-sidepanel.tour`, `pr58-5-training-docs.tour`).\n\n**Diagram — Le registre unique et ses deux projections**\n\n```mermaid\nflowchart LR\n  subgraph Contracts[\"@leclerc/contracts — registre unique\"]\n    C[\"9 contrats de capacités\"]\n    E[\"ToolError — 7 familles de fautes\"]\n    R[\"schéma recette générée v1\"]\n  end\n  subgraph Chrome[\"Extension Chrome\"]\n    W[\"projection WebMCP\"]\n    A[\"agent + approval gate\"]\n  end\n  subgraph Node[\"Harnais Node\"]\n    M[\"mocks déterministes\"]\n    S[\"scénarios + campagne\"]\n  end\n  C -->|est projeté vers| W\n  C -->|est projeté vers| M\n  E -->|normalise les erreurs de| A\n  E -->|normalise les erreurs de| S\n  R -->|valide la sortie du modèle de| A\n```"
+    },
+    {
+      "title": "Où se trouve le socle",
+      "description": "Tout le socle de contrats vit dans `packages/contracts`, premier des trois packages npm workspaces créés par cette PR (avec `@leclerc/agent` et `@leclerc/harness`).\n\nLe package est volontairement pur : aucune dépendance `chrome.*`, `window`, `node:*`, SDK MCP ou bibliothèque de modèles (ADR-0010). Il exporte cinq modules : `domain.ts` (types), `errors.ts` (taxonomie), `capabilities.ts` (registre des neuf capacités), `recipe-generated.ts` (schéma de recette) et `json-schema.ts` (type utilitaire).",
+      "directory": "packages/contracts"
+    },
+    {
+      "title": "Domaine pur : le produit et son conditionnement",
+      "description": "Le type `Product` porte une règle métier centrale de la tranche : `packaging` est la seule source des quantités d'achat. Le commentaire du champ l'interdit explicitement au modèle d'inventer une quantité — la conversion conditionnement → quantité se fait dans le code déterministe du shopping flow (tour 2).\n\n`label` est marqué contenu non fiable : les libellés du catalogue ne sont jamais interprétés comme des instructions. Cette règle anti-injection est reprise mot pour mot dans les descriptions des capacités de lecture du registre.",
+      "file": "packages/contracts/src/domain.ts",
+      "pattern": "export interface Product",
+      "display": "diff"
+    },
+    {
+      "title": "Le contrat de capacité : une définition, deux surfaces",
+      "description": "Chaque capacité historique est définie exactement une fois via `defineCapability` : nom stable, description (montrée aux modèles et clients MCP), schémas d'entrée/sortie JSON, métadonnée `kind` (`read` / `session` / `mutation`), codes d'erreur possibles et `validateInput` typé.\n\n`validateInput` retourne soit la valeur validée, soit une `ToolError` normalisée — jamais une exception. Le `kind` pilote le garde-fou d'approbation côté agent (les mutations exigent le consentement utilisateur) et la projection WebMCP (tour 4).",
+      "questions": [
+        "Pourquoi le champ kind suffit-il à piloter l'approbation sans lister les noms de capacités ?",
+        "Que se passerait-il si une surface inventait un champ hors contrat ?"
+      ],
+      "file": "packages/contracts/src/capabilities.ts",
+      "pattern": "export interface CapabilityContract",
+      "display": "diff"
+    },
+    {
+      "title": "Exemple de mutation : add_to_cart sous approbation",
+      "description": "`add_to_cart` illustre une capacité de mutation : `product_id` requis (chaîne non vide), `quantity` optionnelle par défaut 1. La description énonce deux règles de sûreté : n'utiliser qu'un identifiant issu des outils de lecture, et l'exigence d'approbation globale.\n\n`validateInput` rejette toute entrée non objet, tout id vide et toute quantité non entière inférieure à 1, avec le code `INVALID_INPUT` normalisé au lieu d'une exception brute. Les trois mutations du panier partagent `MUTATION_ERRORS`.",
+      "file": "packages/contracts/src/capabilities.ts",
+      "pattern": "export const addToCart",
+      "display": "diff"
+    },
+    {
+      "title": "Le registre et ses helpers",
+      "description": "`CAPABILITIES` est la liste figée des neuf capacités (drives, catalogue, panier). `getCapability`, `isMutation` et `listCapabilities` en dérivent : c'est la seule source de vérité consommée par la projection WebMCP et par le harnais Node.\n\nAjouter une capacité = l'ajouter ici ; les deux surfaces la reçoivent automatiquement (ADR-0011).",
+      "file": "packages/contracts/src/capabilities.ts",
+      "pattern": "export const CAPABILITIES = \\[",
+      "display": "diff"
+    },
+    {
+      "title": "Taxonomie d'erreurs normalisée",
+      "description": "`TOOL_ERROR_CODES` énumère les sept familles de fautes injectables — `FAULT_CODES`, en parité mock ↔ adaptateur réel — plus les codes d'orchestration : `INVALID_INPUT`, `UNKNOWN_CAPABILITY`, `CAPABILITY_FAILED`, `APPROVAL_REQUIRED`.\n\n`toolError` calcule `retryable` automatiquement (`TRANSIENT_ERROR`, `SESSION_EXPIRED`) et `toToolError` enveloppe toute exception inattendue en `CAPABILITY_FAILED`. Aucune exception brute ne franchit la frontière de capacité, ni côté Chrome ni côté Node.",
+      "questions": [
+        "Pourquoi SESSION_EXPIRED est-il marqué retryable alors qu'une session expirée semble définitive ?"
+      ],
+      "file": "packages/contracts/src/errors.ts",
+      "pattern": "export const TOOL_ERROR_CODES",
+      "display": "diff"
+    },
+    {
+      "title": "Recette générée : parse strict, pas de Markdown",
+      "description": "`parseRecipeText` impose du JSON pur : `JSON.parse` sur la chaîne trimée — aucune fence Markdown, aucun texte autour (décision « JSON structuré sans Markdown »).\n\nTout échec produit des `RecipeIssue` typées (`NOT_JSON`, `INVALID_SERVINGS`, `UNKNOWN_UNIT`…) avec un chemin précis (`ingredients[2].unit`), directement réutilisables dans un prompt de réparation guidée.",
+      "file": "packages/contracts/src/recipe-generated.ts",
+      "pattern": "export function parseRecipeText",
+      "display": "diff"
+    },
+    {
+      "title": "Aucun identifiant produit dans les ingrédients",
+      "description": "`FORBIDDEN_ID_FIELDS` (`id`, `product_id`, `ean`, `ref`, `sku`…) est rejeté sur tout ingrédient : le modèle ne peut jamais lier un ingrédient de recette à une entrée de catalogue. Les références produits viennent uniquement des outils de lecture, décidés par le code déterministe.\n\nLes autres invariants du schéma v1 : unités issues d'une liste contrôlée (`GENERATED_RECIPE_UNITS`), quantités strictement positives, champs racine limités à une allowlist fixe — tout champ supplémentaire est rejeté comme `FORBIDDEN_ROOT_FIELD`.",
+      "questions": [
+        "Pourquoi interdire au modèle de référencer un produit du catalogue ?",
+        "Que risque-t-on si un id produit traverse ce garde-fou ?"
+      ],
+      "file": "packages/contracts/src/recipe-generated.ts",
+      "pattern": "const FORBIDDEN_ID_FIELDS",
+      "display": "diff"
+    },
+    {
+      "title": "Au plus une réparation guidée",
+      "description": "`MAX_RECIPE_REPAIRS = 1` : en cas d'invalidité, le consommateur construit ce prompt — issues relevées, règles complètes, sortie brute tronquée à 2000 caractères — et renvoie UNE fois le modèle au travail.\n\nAprès cet unique tour, erreur explicite à l'utilisateur, aucune mutation de panier, aucune recette partielle acceptée.",
+      "file": "packages/contracts/src/recipe-generated.ts",
+      "pattern": "export function buildRepairPrompt",
+      "display": "diff"
+    },
+    {
+      "title": "ADR-0010 : monorepo minimal",
+      "description": "La décision structurelle de la PR : trois packages seulement, chacun justifié par une frontière de dépendances réelle — contrats purs, agent pur, harnais Node. L'application d'extension reste à la racine (`src/`, `extension/`) et `drive-assistant-mobile/` reste hors workspaces (contraintes de hoisting React Native).\n\nLa refactorisation se fait par lots « expand » : comportement conservé et tests verts à chaque lot.",
+      "file": "docs/adr/0010-monorepo-workspaces-paquets-minimaux.md",
+      "pattern": "^# 0010",
+      "display": "diff"
+    },
+    {
+      "title": "ADR-0011 : un registre, deux projections",
+      "description": "L'ADR verrouille le choix contre la duplication : redéclarer les neuf outils dans chaque surface (extension + harnais) diverge silencieusement ; le registre unique impose une définition, deux projections.\n\nConséquence testable : les attentes de scénarios du harnais sont épinglées à `CATALOGUE_VERSION` — changer une fixture bump la version et casse explicitement les tests concernés, jamais silencieusement.",
+      "file": "docs/adr/0011-registre-unique-des-capacites.md",
+      "pattern": "^# Un registre unique",
+      "display": "diff"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "PR #58 — Vue d'ensemble : une recette → panier mock (spéc #40, tickets #41–#57)",
+  "description": "Tour d'entrée de la PR #58. La tranche « une recette → un panier mock » : un agent de courses commun Chrome/Node derrière un seam `ModelProvider`, un registre unique de capacités, des mocks déterministes avec fautes injectables et assertions de sûreté bloquantes, un panneau latéral Chrome à approbation explicite, et un pipeline LoRA entièrement gated.\n\nCe tour donne la carte d'ensemble puis renvoie vers cinq tours thématiques dans ce même répertoire `.tours/` :\n\n- `pr58-1-contrats-socle.tour` — `@leclerc/contracts`, ADR-0010/0011\n- `pr58-2-agent-providers.tour` — `@leclerc/agent`, ADR-0012\n- `pr58-3-harness-deterministe.tour` — `@leclerc/harness`, scénarios A01–A10 + F01\n- `pr58-4-extension-sidepanel.tour` — projection WebMCP, panneau latéral, offscreen\n- `pr58-5-training-docs.tour` — pipeline ML gated, POC, docs honnêtes\n\nVérifié le 2026-10-18 sur `d2894e3` : legacy `node --test` 252/252 ; Vitest contracts 30, agent 130, harness 112 ; campagne hors ligne 12/12 ; `splits_check.py --self-test` OK ; build, typecheck et `build:extension` propres.\n\nGenerated from the merge-base of `origin/main` (`728d78c84641bbb84d7655d7af5b03eb0543e02f`) to `d2894e340b74d925cd04afa9364cb54cebfd1380`.",
+  "ref": "d2894e340b74d925cd04afa9364cb54cebfd1380",
+  "baseRef": "728d78c84641bbb84d7655d7af5b03eb0543e02f",
+  "steps": [
+    {
+      "title": "Contexte : qui fait quoi",
+      "description": "Le système livre deux choses aux mêmes utilisateurs : les courses Leclerc Drive pilotées par agent (panneau latéral Chrome, approbation explicite avant toute mutation du panier), et les neuf outils WebMCP existants, désormais projetés depuis le registre unique pour tout client MCP.\n\n**Diagram — Context view**\n\n```mermaid\nflowchart LR\n  U[\"Utilisateur : recettes et courses\"]\n  subgraph Système[\"mcp-leclerc-drive\"]\n    EXT[\"Extension Chrome : WebMCP + side panel\"]\n    AG[\"Agent commun (@leclerc/agent)\"]\n    HR[\"Harnais Node (@leclerc/harness)\"]\n  end\n  MCP[\"Client MCP : opencode, Claude Code\"]\n  LEC[\"Leclerc Drive : système externe\"]\n  MIS[\"Mistral API : système externe, BYOK explicite\"]\n  HF[\"Hugging Face : système externe, téléchargement consenti\"]\n  U -->|demande une recette| EXT\n  MCP -->|appelle les outils| EXT\n  EXT -->|héberge| AG\n  HR -->|développe et éprouve| AG\n  EXT -->|fetch MAIN-world de l'onglet| LEC\n  AG -->|seulement sur choix explicite + clé| MIS\n  EXT -->|manifeste vérifié sha256| HF\n```"
+    },
+    {
+      "title": "Le trajet de la valeur : recette → panier",
+      "description": "Une demande utilisateur traverse : génération de recette (prompt figé, température 0, seed 0), parse strict du schéma v1 avec au plus UNE réparation guidée, contrôles convives/exclusions, puis orchestration déterministe — recherches produits, règle de correspondance à score de tokens, règle ceil des conditionnements, preview complet.\n\nPuis la seule porte : l'approbation globale de l'utilisateur. Refus = panier intact. Approbation = mutations séquentielles, arrêt au premier échec, gap report et reprise avec approbation fraîche obligatoire.\n\n**Diagram — Containers**\n\n```mermaid\nflowchart TD\n  subgraph Chrome[\"Container : extension Chrome\"]\n    SP[\"Side panel + background MV3\"]\n    OFF[\"Document offscreen : WebGPU\"]\n    INJ[\"inject.ts : pont WebMCP\"]\n  end\n  subgraph Node[\"Container : CLI Node\"]\n    CAM[\"Campagne : node dist/campaign/cli.js\"]\n    POC[\"POC WebGPU opt-in\"]\n  end\n  subgraph Packages[\"Bibliothèques pures : contracts, agent, harness\"]\n    C[\"@leclerc/contracts\"]\n    A[\"@leclerc/agent\"]\n    H[\"@leclerc/harness\"]\n  end\n  SP -->|exécute| A\n  CAM -->|exécute| A\n  H -->|scénarios| A\n  A -->|valide via| C\n  H -->|projette| C\n  OFF -->|pipeline| A\n```"
+    },
+    {
+      "title": "Les trois nouveaux packages",
+      "description": "Trois workspaces aux frontières de dépendances réelles (ADR-0010) : `@leclerc/contracts` (pur — registre des 9 capacités, taxonomie d'erreurs, schéma de recette), `@leclerc/agent` (pur — seam provider, moteur, shopping flow), `@leclerc/harness` (Node — mocks, fautes, scénarios, campagne).\n\n→ détail : `pr58-1-contrats-socle.tour`, `pr58-2-agent-providers.tour`, `pr58-3-harness-deterministe.tour`.",
+      "directory": "packages"
+    },
+    {
+      "title": "La surface Chrome",
+      "description": "L'extension gagne un panneau latéral (protocole typé testé sous Node, machine à états bloquante, providers explicites, clé Mistral en storage.session) et son WebMCP devient une projection du registre — surface externe gelée, zéro changement visible pour les clients MCP existants.\n\n→ détail : `pr58-4-extension-sidepanel.tour`.",
+      "directory": "extension"
+    },
+    {
+      "title": "Le pipeline ML gated",
+      "description": "Python isolé : audit du dataset HF avec déduplication avant splits et vérificateur hors ligne (self-test exécuté), smoke train LoRA MLX refusé sans `--base-validated`, chaîne d'export ONNX qui ne déclarera jamais l'intégration navigateur sans preuve Chrome. Rien n'a été exécuté sur GPU — documenté comme tel.\n\n→ détail : `pr58-5-training-docs.tour`.",
+      "directory": "training"
+    },
+    {
+      "title": "Les décisions et les protocoles",
+      "description": "ADR-0010 (monorepo minimal), 0011 (registre unique), 0012 (seam ModelProvider, orchestration déterministe) et l'amendement daté de l'ADR-0002 (périmètre de la règle fetch). Protocoles manuels `docs/testing/` (M01–M04, P1–P9) et gabarits POC `docs/poc/` — tous honnêtement en attente d'exécution.\n\n→ détails : dernières étapes des tours 1, 4 et 5.",
+      "directory": "docs"
+    },
+    {
+      "title": "Ce qui reste volontairement non fait",
+      "description": "Aucune inférence WebGPU réelle, aucun appel Mistral réel, aucun entraînement ni export ONNX exécuté, aucun parcours navigateur relevé : chacun est codé derrière une gate opt-in (`MCP_LECLERC_RUN_LOCAL`, `MISTRAPI_KEY`, `--base-validated`, consentements UI) et documenté comme en attente dans `docs/poc/`, `docs/testing/` et `training/docs/status.md`.\n\nLe suivi est dans le ticket #59 (découpage de `extension/background.ts` + bug TDZ préexistant dans le bundle `inject.js`).",
+      "questions": [
+        "Par quel tour commencer selon ton rôle : reviewer sûreté, reviewer extension, ou reviewer ML ?"
+      ]
+    }
+  ]
+}
