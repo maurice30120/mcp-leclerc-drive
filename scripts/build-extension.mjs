@@ -10,6 +10,7 @@
  *   dist/extension/content-relay.js      (isolated-world postMessage relay)
  *   dist/extension/offscreen/offscreen.{html,js}  (local Transformers.js model runtime)
  *   dist/extension/popup/popup.{html,css,js}      (shopping-list orchestrator UI)
+ *   dist/extension/sidepanel/sidepanel.{html,css,js}  (side panel agent UI, ticket #51)
  *   dist/extension/ort-wasm/*            (onnxruntime-web wasm binaries, vendored)
  *   dist/extension/models/**             (ONNX model artefacts, if fetched)
  *
@@ -36,6 +37,7 @@ const require = createRequire(import.meta.url);
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 
 mkdirSync(OUT, { recursive: true });
+mkdirSync(join(OUT, "sidepanel"), { recursive: true });
 mkdirSync(join(OUT, "popup"), { recursive: true });
 mkdirSync(join(OUT, "offscreen"), { recursive: true });
 
@@ -57,6 +59,9 @@ function copyFile(src, dest) {
 // Static extension pages assets.
 copyFile(join(ROOT, "extension", "popup", "popup.html"), join(OUT, "popup", "popup.html"));
 copyFile(join(ROOT, "extension", "popup", "popup.css"), join(OUT, "popup", "popup.css"));
+copyFile(join(ROOT, "extension", "sidepanel", "sidepanel.html"), join(OUT, "sidepanel", "sidepanel.html"));
+copyFile(join(ROOT, "extension", "sidepanel", "sidepanel.css"), join(OUT, "sidepanel", "sidepanel.css"));
+copyFile(join(ROOT, "extension", "sidepanel", "sidepanel.js"), join(OUT, "sidepanel", "sidepanel.js"));
 copyFile(join(ROOT, "extension", "offscreen", "offscreen.html"), join(OUT, "offscreen", "offscreen.html"));
 
 // Common esbuild options for the isolated/extension contexts (no MAIN-world
