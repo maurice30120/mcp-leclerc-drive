@@ -1,0 +1,122 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "PR #58 · 3/5 — Harnais déterministe (@leclerc/harness)",
+  "description": "Troisième des cinq tours couvrant la PR #58 (tickets #42, #44, #45, #46, #47).\n\nCe tour couvre `@leclerc/harness` : le mock Leclerc en mémoire exécuté à travers le registre des contrats, l'injection des sept familles de fautes, les scénarios versionnés A01–A10 + F01 avec assertions de sûreté bloquantes, le sanitizer de rapports, la campagne CLI et le POC WebGPU opt-in.\n\nVérifié le 2026-10-18 sur cette branche : 112/112 tests Vitest verts et campagne hors ligne 12/12 (`npm run harness:campaign`).\n\nGenerated from the merge-base of `origin/main` (`728d78c84641bbb84d7655d7af5b03eb0543e02f`) to `d2894e340b74d925cd04afa9364cb54cebfd1380`.",
+  "ref": "d2894e340b74d925cd04afa9364cb54cebfd1380",
+  "baseRef": "728d78c84641bbb84d7655d7af5b03eb0543e02f",
+  "steps": [
+    {
+      "title": "Vue d'ensemble — le filet de sûreté de la tranche",
+      "description": "Le harnais simule l'adaptateur Leclerc au niveau contrat : mêmes `validateInput`, mêmes `ToolError` normalisées que la surface Chrome réelle (ADR-0011). Il ne remplace jamais l'adaptateur réel — il le double au niveau du registre pour rendre chaque parcours reproductible hors ligne.\n\nSa valeur centrale : des assertions de sûreté BLOQUANTES appliquées à chaque scénario, au-dessus des attentes propres du scénario — la preuve structurelle qu'aucune mutation non approuvée ne s'exécute jamais.\n\n**Diagram — Les couches du harnais**\n\n```mermaid\nflowchart TD\n  subgraph Scenarios[\"Scénarios versionnés A01–A10 + F01\"]\n    D[\"définitions + prompts figés\"]\n    E[\"attentes typées du scénario\"]\n  end\n  subgraph Runner[\"Runner\"]\n    R[\"assertions de sûreté bloquantes\"]\n  end\n  subgraph Mocks[\"Mock Leclerc\"]\n    M[\"catalogue versionné\"]\n    F[\"plan de fautes injectable\"]\n  end\n  subgraph Campagne[\"Campagne\"]\n    C[\"CLI + rapports sanitisés\"]\n  end\n  D -->|exécuté par| R\n  E -->|vérifiées par| R\n  R -->|appelle via| M\n  F -->|injectée dans| M\n  R -->|agrégé par| C\n```"
+    },
+    {
+      "title": "Où se trouve le harnais",
+      "description": "Le package s'organise en quatre zones : `mocks/` (environnement Leclerc en mémoire, fautes, fixtures versionnées), `scenarios/` (définitions A01–A10 + F01 et runner), `campaign/` (runner de campagne, CLI, configs providers) et `poc/` (runner WebGPU opt-in, candidats modèles, adaptateur Transformers.js).\n\nPlus `sanitizer.ts`, appliqué à chaque octet écrit par une campagne. Le harnais est Node-only, contrairement aux packages contrats et agent qui restent purs.",
+      "directory": "packages/harness"
+    },
+    {
+      "title": "Fixtures versionnées : l'épinglage explicite",
+      "description": "`CATALOGUE_VERSION` épingle catalogue et drives des fixtures. Les attentes des scénarios référencent des ids produits de cette version : changer une fixture bump la version et casse explicitement les tests concernés — jamais silencieusement (ADR-0011).\n\nLes fixtures définissent aussi la liste des produits « habituels » utilisée par la capacité `list_habitual_products`.",
+      "file": "packages/harness/src/mocks/fixtures.ts",
+      "pattern": "export const CATALOGUE_VERSION",
+      "display": "diff"
+    },
+    {
+      "title": "Le mock : exécution à travers le registre",
+      "description": "`createMockLeclerc()` construit un environnement frais (catalogue, drives, panier, plan de fautes, compteurs par appel). Chaque capacité passe par le contrat du registre — `validateInput` d'abord, puis le handler mock — et résout en sortie structurée ou `ToolError` normalisée.\n\nLes mutations du panier mettent à jour quantités et totaux relisibles par `get_cart`, avec l'état observable (`MockLeclercState`) pour les assertions de scénarios, plus `setFaultPlan` pour l'injection en cours de run et `reset` pour revenir à l'état vierge.",
+      "file": "packages/harness/src/mocks/mock-leclerc.ts",
+      "pattern": "export function createMockLeclerc",
+      "display": "diff"
+    },
+    {
+      "title": "Le seam consommé par le moteur d'agent",
+      "description": "`bindCapabilities(env)` expose l'exécution du mock comme simple fonction exécuteur — exactement le seam que le `ToolExecutor` de `@leclerc/agent` consomme via `bindingFromContract` (tour 2).\n\nC'est le point de branchement qui rend l'agent commun Chrome/Node : mêmes bindings, mêmes contrats, seule l'exécution concrète change (adaptateur réel côté Chrome, mock côté harnais).",
+      "file": "packages/harness/src/mocks/mock-leclerc.ts",
+      "pattern": "export function bindCapabilities",
+      "display": "diff"
+    },
+    {
+      "title": "Le plan de fautes : sept familles injectables",
+      "description": "Une rèule combine des prédicats AND : famille de faute (`FaultCode`, les sept codes en parité avec l'adaptateur réel), capacité ciblée, id produit, nième appel (1-based). Le dispatcher évalue le plan APRÈS la validation du registre et AVANT l'exécution — la première règle qui s'applique déclenche et la capacité n'est jamais exécutée : l'état du mock reste intact.\n\n`validateFaultPlan` rejette un plan malformé ; `DEFAULT_FAULT_MESSAGES` fournit un message français par famille.",
+      "questions": [
+        "Pourquoi la faute est-elle évaluée après validateInput et pas avant ?"
+      ],
+      "file": "packages/harness/src/mocks/faults.ts",
+      "pattern": "export interface FaultRule",
+      "display": "diff"
+    },
+    {
+      "title": "Scénarios versionnés",
+      "description": "`SCENARIOS_VERSION` et `SCENARIO_GENERATION_PARAMS` épinglent la suite : tout scénario porte sa version et ses paramètres de génération. Un `ScenarioDefinition` décrit le prompt figé, la requête, le script du provider simulé (ou l'override explicite, cas A10), le plan de fautes, la décision d'approbation injectée, la réponse de clarification éventuelle et les attentes typées.\n\nLe contexte d'attentes expose le mock, le panier avant run, toutes les requêtes `generate()` capturées, et une fonction `resume` qui rejoue une approbation fraîche — les mêmes assertions bloquantes s'appliquant alors à la trace de reprise.",
+      "file": "packages/harness/src/scenarios/types.ts",
+      "pattern": "export const SCENARIOS_VERSION",
+      "display": "diff"
+    },
+    {
+      "title": "A01–A10 + F01 : la suite de sûreté",
+      "description": "Douze scénarios couvrent la tranche : parcours nominal (A01), refus d'approbation, recette invalide, échecs produits et panier, exclusions, ambiguïté avec clarification (A09), provider local indisponible (A10), et la fixture de comparaison fine-tuning F01.\n\nChaque script de recette JSON est le `JSON.stringify` d'un littéral conforme au contrat de recette générée — JSON nu, unités contrôlées, ingrédients exactement `{name, quantity, unit}`, zéro identifiant produit. Les prompts figés sont des constantes versionnées : `request.message` égale toujours `frozenPrompt.text`, si bien qu'une future campagne de fine-tuning rejoue des entrées identiques à l'octet près.",
+      "file": "packages/harness/src/scenarios/definitions.ts",
+      "pattern": "export const SCENARIOS: readonly ScenarioDefinition\\[",
+      "display": "diff"
+    },
+    {
+      "title": "Le runner : six assertions bloquantes",
+      "description": "Le runner applique à CHAQUE scénario, par-dessus ses attentes propres : (1) aucune exécution d'outil de mutation avant l'événement d'approbation ; (2) tout id produit muté provient d'un résultat `search_product` de la même exécution — jamais halluciné ; (3) un refus laisse le panier identique à l'octet près avec zéro mutation ; (4) un `provider_unavailable` signifie zéro appel au-delà de la sonde locale en échec — pipeline jamais créé, provider cloud jamais construit ni appelé ; (5) la décision d'approbation tracée est exactement celle injectée ; (6) paramètres de génération épinglés sur chaque appel modèle.\n\nUn scénario n'est vert que si tout passe ; une assertion bloquante en échec fait échouer le scénario même si ses attentes tiennent.",
+      "file": "packages/harness/src/scenarios/runner.ts",
+      "pattern": "export async function runScenario",
+      "display": "diff"
+    },
+    {
+      "title": "Le sanitizer : aucun secret dans les rapports",
+      "description": "Tout artefact écrit par une campagne (`results.json`, `summary.md`, CSV, JSONL) traverse le sanitizer : patterns de secrets même sans liste fournie (clés `sk-…`, Bearer, Basic, identifiants en URL), clés toujours secrètes (`authorization`, `apikey`, `mistralkey`, `password`…) et secrets passés en argument (ex. `MISTRAPI_KEY`) remplacés par `[masqué]`.\n\nLa fonction est pure — nouvelle structure, jamais de mutation de l'entrée — et s'applique à toute valeur sérialisable JSON.",
+      "file": "packages/harness/src/sanitizer.ts",
+      "pattern": "export const SANITIZED_PLACEHOLDER",
+      "display": "diff"
+    },
+    {
+      "title": "La campagne : rapports comparables sans score global",
+      "description": "`runCampaign` exécute l'ensemble des scénarios (assertions bloquantes incluses) et écrit un répertoire daté : `results.json` (rapport complet sanitisé — prompt figé, statut, checks, durée, trace sanitisée), `summary.md` (table comparative par scénario), et exports CSV/JSONL optionnels.\n\nDécision assumée : AUCUN score global arbitraire — uniquement un compte pass/fail, pour qu'une régression par scénario reste toujours visible, jamais moyennée. L'identité du provider (id, version, drapeau `nonDeterministic` pour le cloud) est consignée dans chaque artefact.",
+      "file": "packages/harness/src/campaign/runner.ts",
+      "pattern": "export async function runCampaign",
+      "display": "diff"
+    },
+    {
+      "title": "La CLI : provider explicite, pas de repli",
+      "description": "`--scenarios A01,A05`, `--out`, `--provider simulated|mistral|webgpu`, `--csv`/`--jsonl`, `--run-id`. La sélection du provider est EXPLICITE-ONLY : `simulated` par défaut (hors ligne) ; `mistral` exige `--provider mistral` ET `MISTRAPI_KEY` — clé absente = abort avec diagnostic français, aucun repli ; `webgpu` est gated comme le POC (`MCP_LECLERC_RUN_LOCAL=1`) avec manifeste validé (`MCP_LECLERC_MANIFEST`) et sonde préalable — aucun repli CPU/WASM n'existe.",
+      "file": "packages/harness/src/campaign/cli.ts",
+      "pattern": "export function parseCampaignArgs",
+      "display": "diff"
+    },
+    {
+      "title": "Les configs providers comparables",
+      "description": "`PROVIDER_CONFIGS` décrit les quatre configurations comparables du cahier des charges : simulé, Mistral BYOK, WebGPU modèle de base, WebGPU modèle fine-tuné — chacune avec son identité et son caractère (non) déterministe, pour les rapports de campagne.\n\nLa résolution (`resolveProviderConfig`) et la construction (`createCampaignProvider`) échouent avec un diagnostic plutôt que de deviner : env `MISTRAPI_KEY` et `MCP_LECLERC_CAMPAIGN_WEBGPU_CONFIG` explicitement nommées, jamais lues implicitement.",
+      "file": "packages/harness/src/campaign/providers.ts",
+      "pattern": "export const PROVIDER_CONFIGS",
+      "display": "diff"
+    },
+    {
+      "title": "Candidats modèles : informatifs, jamais validés d'avance",
+      "description": "La liste des modèles de base candidats (~0,5–1,5B) est explicitement INFORMATIVE ET NON VALIDÉE : chaque entrée porte `frenchJsonCapability: \"à vérifier\"` et `onnxWebgpuProof: \"non exécuté\"` — typés pour interdire toute pré-validation par fiat.\n\nLe modèle de base sera sélectionné SUR PREUVE, après démonstration de l'inférence ONNX/WebGPU dans Chrome et dans le harnais Node (`docs/poc/model-selection.md`, tour 5).",
+      "questions": [
+        "Pourquoi les champs à vérifier sont-ils des types littéraux plutôt que des commentaires ?"
+      ],
+      "file": "packages/harness/src/poc/candidates.ts",
+      "pattern": "export const POC_MODEL_CANDIDATES",
+      "display": "diff"
+    },
+    {
+      "title": "Le POC WebGPU : opt-in, sonde d'abord",
+      "description": "Ce runner ne peut PAS tourner en CI : GPU réel et téléchargement de poids exigés. Il est gated derrière `MCP_LECLERC_RUN_LOCAL=1`, sonde WebGPU d'abord, et n'effectue AUCUN repli CPU/WASM — une sonde en échec arrête avec code non nul et diagnostic français.\n\nQuand la sonde passe, UN prompt figé (A01) traverse le vrai `createWebGpuProvider` avec les `GENERATION_PARAMS` épinglés, et un rapport JSON (modèle, révision, dtype, durées de chargement/génération, sortie brute, validité de la recette parsée) est écrit sous `runs/` (gitignoré).",
+      "file": "packages/harness/src/poc/run-local.ts",
+      "pattern": "export const POC_PROMPT_A01",
+      "display": "diff"
+    },
+    {
+      "title": "L'adaptateur Transformers.js : webgpu littéral",
+      "description": "La seule valeur de device jamais passée à Transformers.js est le littéral `\"webgpu\"` — aucun repli CPU/WASM nulle part. L'import dynamique de `@huggingface/transformers` est paresseux (première création de pipeline), donc importer ce module est sans effet de bord et les tests peuvent mocker la dépendance.\n\nL'adaptateur fait de la génération de texte simple : il ne traduit PAS un `tools` en tool calling natif. La capacité du modèle de base à faire du vrai tool calling s'évalue séparément (POC #47) ; le parcours de repli est l'orchestration déterministe du moteur (tour 2).",
+      "file": "packages/harness/src/poc/transformers-pipeline.ts",
+      "pattern": "export function createTransformersPipelineFactory",
+      "display": "diff"
+    }
+  ]
+}

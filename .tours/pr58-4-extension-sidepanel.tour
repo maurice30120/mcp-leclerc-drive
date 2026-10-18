@@ -1,0 +1,140 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "PR #58 · 4/5 — Extension Chrome : WebMCP projeté + Side Panel",
+  "description": "Quatrième des cinq tours couvrant la PR #58 (tickets #50, #51, plus le fix de revue sur les checks d'hôte).\n\nCe tour couvre la surface Chrome : la projection WebMCP depuis le registre unique (`src/webmcp/projection.ts`, refactor d'`inject.ts`), le protocole du panneau latéral (`src/sidepanel-protocol/`), le câblage du background (session MV3, providers explicites, téléchargement consenti du modèle), le runtime offscreen WebGPU et l'amendement ADR-0002 sur le périmètre de la règle fetch.\n\nVérifié le 2026-10-18 : suite legacy `node --test` 252/252 verte (dont 26 tests sidepanel-protocol et 19 tests webmcp-projection), `npm run build:extension` et `typecheck` propres. Les parcours navigateur M01–M04 et P1–P9 restent des protocoles manuels documentés (`docs/testing/`), en attente d'exécution.\n\nGenerated from the merge-base of `origin/main` (`728d78c84641bbb84d7655d7af5b03eb0543e02f`) to `d2894e340b74d925cd04afa9364cb54cebfd1380`.",
+  "ref": "d2894e340b74d925cd04afa9364cb54cebfd1380",
+  "baseRef": "728d78c84641bbb84d7655d7af5b03eb0543e02f",
+  "steps": [
+    {
+      "title": "Vue d'ensemble — deux surfaces, un registre",
+      "description": "La surface Chrome gagne deux choses : le WebMCP existant cesse de redéclarer ses neuf outils — ils sont projetés depuis le registre `@leclerc/contracts` (ticket #50) — et un panneau latéral héberge l'agent de courses complet avec approbation explicite (ticket #51).\n\nLa règle de sûreté traverse toutes les couches : le binding `add_to_cart` du background consulte la machine à états du panneau (`assertMutationPermitted`) AVANT d'émettre la moindre requête de mutation vers l'onglet Leclerc.\n\n**Diagram — La surface Chrome de la tranche**\n\n```mermaid\nflowchart LR\n  subgraph Panel[\"Side panel (page statique)\"]\n    UI[\"sidepanel.js : rendu + boutons d'approbation\"]\n  end\n  subgraph BG[\"Background service worker MV3\"]\n    P[\"protocole sidepanel + machine à états\"]\n    A[\"shopping flow (@leclerc/agent)\"]\n    G[\"gate : assertMutationPermitted\"]\n  end\n  subgraph Off[\"Document offscreen\"]\n    W[\"pipeline Transformers.js WebGPU\"]\n  end\n  subgraph Tab[\"Onglet Leclerc\"]\n    I[\"inject.ts : WebMCP projeté du registre\"]\n    L[\"API du drive\"]\n  end\n  UI -->|requêtes typées| P\n  P -->|héberge| A\n  A -->|génère via| W\n  A -->|mutations filtrées par| G\n  G -->|runLeclercCommand| I\n  I -->|fetch MAIN-world| L\n```"
+    },
+    {
+      "title": "Manifeste : permission sidePanel",
+      "description": "Le manifeste ajoute la permission `sidePanel` et déclare `sidepanel/sidepanel.html` comme panneau par défaut. Rien d'autre ne change : popup et offscreen existants restent en place, la CSP reste `wasm-unsafe-eval` pour le runtime ONNX.",
+      "file": "extension/manifest.json",
+      "pattern": "\"side_panel\":",
+      "display": "diff"
+    },
+    {
+      "title": "La projection WebMCP : contrats → descripteurs",
+      "description": "`projectWebmcpTool` transforme un contrat du registre en descripteur d'outil WebMCP (nom, titre, description, inputSchema, annotations) — transformation de données pure, sans exécution : le `execute()` reste câblé dans `inject.ts`.\n\nLes annotations suivent les conventions par `kind` : `readOnlyHint` pour les lectures, `untrustedContentHint` pour les capacités exposant du contenu catalogue (libellés non fiables), hints destructif/idempotent par mutation (remove détruit la ligne, add/update fixent une quantité), `openWorldHint` partout sauf `get_store`.",
+      "file": "src/webmcp/projection.ts",
+      "pattern": "export function projectWebmcpTool",
+      "display": "diff"
+    },
+    {
+      "title": "La surface externe gelée : nommage",
+      "description": "La surface WebMCP externe est gelée sur les inscriptions historiques écrites à la main : les noms d'outils et de champs externes ne changent pas. Le registre valide en camelCase (`storeId`, `productId`) ; `set_store` est le seul renommage (`store_id`), plus sa propriété `host` optionnelle externe-only conservée pour compatibilité.\n\n`externalPropertyName` est l'unique source du nommage externe — l'exécuteur `set_store` d'`inject.ts` la consomme pour retraduire les arguments WebMCP vers la forme du contrat. Un client MCP existant ne voit aucune différence.",
+      "questions": [
+        "Pourquoi geler la surface externe plutôt que d'aligner WebMCP sur le camelCase du registre ?"
+      ],
+      "file": "src/webmcp/projection.ts",
+      "pattern": "export function externalPropertyName",
+      "display": "diff"
+    },
+    {
+      "title": "inject.ts : enregistrement piloté par le registre",
+      "description": "Le refactor remplace les descripteurs écrits à la main : chaque outil enregistré dans WebMCP provient désormais de `projectWebmcpTool(contract)` sur un contrat du registre — 541 lignes réécrites, 318 supprimées net.\n\nAjouter une capacité dans le registre (tour 1) la fait apparaître ici sans nouvelle déclaration ; aucun champ inventé hors contrat ne peut franchir la frontière (ADR-0011).",
+      "file": "extension/inject.ts",
+      "pattern": "const projected = projectWebmcpTool\\(contract\\)",
+      "display": "diff"
+    },
+    {
+      "title": "Checks d'hôte : source unique (fix de revue)",
+      "description": "Corrigé en revue de PR : `LECLERC_DOMAIN` devient la source unique de tous les checks d'hôte. `isLeclercDomainHost` accepte toute page Leclerc (routing d'onglet/relay : www, courses, fdN-courses…), tandis que la porte SSRF stricte `isLeclercHost` (forme `fdN-courses.leclercdrive.fr`, ADR-0004) garde le périmètre des fetchs d'outils.\n\n`api.ts` reste pure et sans fetch — seule l'énumération des points d'appel autorisés vit dans l'amendement ADR-0002 (fin de ce tour).",
+      "file": "src/leclerc/api.ts",
+      "pattern": "export function isLeclercDomainHost",
+      "display": "diff"
+    },
+    {
+      "title": "Le protocole du panneau : vocabulaire typé",
+      "description": "Le protocole définit le vocabulaire complet du canal : requêtes du panneau (`get_state`, `set_provider`, `set_mistral_key`, `start_flow`, `approve`, `refuse`, `clarify_answer`, `resume`, `model_download_consent`…) et événements poussés par le background (`state`, `phase`, `recipe`, `preview`, `approval_request`, `clarification`, `flow_result`…).\n\nTout traverse une enveloppe gardée par `isSidePanelRequestEnvelope` / `isSidePanelEventEnvelope` : une coquille dans un littéral de chaîne ne peut jamais désynchroniser le pipeline. La clé Mistral elle-même ne traverse jamais ce module — seul le booléen `mistralKeySet` le fait. Le port keepalive rafraîchit le timer d'idle MV3 toutes les 20 s pour qu'un flux en attente d'approbation survive à la suspension du worker.",
+      "file": "src/sidepanel-protocol/protocol.ts",
+      "pattern": "export const SIDEPANEL_REQUEST_CHANNEL",
+      "display": "diff"
+    },
+    {
+      "title": "SidePanelSession : la machine à états bloquante",
+      "description": "La session porte la machine à états du flux : `idle → generating → searching → preview → awaiting_approval → mutating → done/error`, transitions invalides rejetées explicitement. La sélection du provider est EXPLICITE — aucun provider par défaut.\n\nLa règle de sûreté bloquante vit ici : `assertMutationPermitted()` ne rend ok qu'après l'événement d'approbation explicite. L'historique de conversation est session-only : snapshot persisté dans `chrome.storage.session` (survit aux suspensions MV3, effacé à la fermeture du navigateur), jamais dans `chrome.storage.local`. Pur et testé sous Node sans aucun `chrome.*`.",
+      "questions": [
+        "Pourquoi l'historique vit-il en storage.session et pas en storage.local ?",
+        "Que se passe-t-il si le worker meurt entre preview et approbation ?"
+      ],
+      "file": "src/sidepanel-protocol/protocol.ts",
+      "pattern": "export class SidePanelSession",
+      "display": "diff"
+    },
+    {
+      "title": "Le manifeste local du panneau : ancre de confiance",
+      "description": "Le manifeste versionné du chemin de téléchargement du panneau épingle `onnx-community/Qwen3-0.6B-ONNX` (dtype q4, révision main) avec taille exacte et sha256 par fichier (digests LFS Hugging Face) — il reflète `scripts/model-files.json`, la même révision que le build embarque sous `dist/extension/models/`.\n\nValidé par `validateModelManifest` de `@leclerc/agent` (testé unitairement) : version de format inconnue = rejet, jamais deviné. Le téléchargement n'a lieu qu'après le `model_download_consent` utilisateur ; un hit de cache complet court-circuite (hors ligne).",
+      "file": "src/sidepanel-protocol/local-model.ts",
+      "pattern": "export const LOCAL_MODEL_MANIFEST",
+      "display": "diff"
+    },
+    {
+      "title": "Background : session persistée, worker réarmable",
+      "description": "Le service worker héberge le protocole du panneau : la session vit en mémoire, se persiste dans `chrome.storage.session` à chaque changement d'état et se restaure au réveil du worker — un flux interrompu en pleine approbation reprend visuellement.\n\nTous les listeners sont enregistrés au top-level du module : Chrome peut tuer le worker à tout moment, chaque réveil réarme tout (MV3).",
+      "file": "extension/background.ts",
+      "pattern": "const SIDEPANEL_SESSION_KEY",
+      "display": "diff"
+    },
+    {
+      "title": "Clé Mistral : session-only, jamais affichée",
+      "description": "La clé Mistral va dans `chrome.storage.session` — mémoire seule, jamais sur disque, jamais dans `chrome.storage.sync`, jamais affichée en retour. La supprimer la retire de la session.\n\nLe provider Mistral n'est construit qu'avec la clé présente ET le provider explicitement sélectionné ; clé absente = erreur française explicite, aucun repli.",
+      "file": "extension/background.ts",
+      "pattern": "const MISTRAL_KEY_STORAGE_KEY",
+      "display": "diff"
+    },
+    {
+      "title": "Providers explicites uniquement",
+      "description": "La construction ne devine jamais : `simulated` (démo hors ligne, script de recette), `mistral` (BYOK, `mistral-small-latest`, fetch réel câblé ici), ou `webgpu` (modèle actif, sonde et factory passant par le document offscreen). Aucun fournisseur sélectionné = erreur.\n\nLe provider WebGPU du background proxifie sa sonde et sa pipeline vers l'offscreen : les service workers MV3 n'ont pas d'accès WebGPU — c'est l'offscreen qui est l'hôte WebGPU.",
+      "file": "extension/background.ts",
+      "pattern": "async function buildSidePanelProvider",
+      "display": "diff"
+    },
+    {
+      "title": "La gate bloquante sur add_to_cart",
+      "description": "Le binding `add_to_cart` du background consulte `assertMutationPermitted()` AVANT d'émettre la moindre requête vers l'onglet Leclerc. Une mutation non permise ne part jamais : elle remonte comme `APPROVAL_REQUIRED` typé.\n\nC'est la même garantie que la gate du harnais (tour 3), appliquée à la surface réelle : l'approbation du panneau est le seul passeport, et le premier échec interrompt la séquence comme dans le flow Node.",
+      "file": "extension/background.ts",
+      "pattern": "gate = \\(await loadSidePanelSession\\(\\)\\)\\.assertMutationPermitted",
+      "display": "diff"
+    },
+    {
+      "title": "Téléchargement du modèle : le consentement EST le clic",
+      "description": "Rien n'est téléchargé sans la requête `model_download_consent` qui porte le clic explicite — le consentement n'est pas un préambule mais l'événement lui-même. Le pipeline `downloadModel` de `@leclerc/agent` (tour 2) tourne alors avec événements de progression, puis l'état du modèle est rafraîchi.\n\n`model_cache_clear` vide le cache (Cache Storage) sur demande ; `model_status` expose modèle courant, statut et taille pour les réglages.",
+      "file": "extension/background.ts",
+      "pattern": "case \"model_download_consent\"",
+      "display": "diff"
+    },
+    {
+      "title": "Offscreen : l'hôte WebGPU du panneau",
+      "description": "Handler additif `offscreen_generate` : la génération brute du panneau passe par le document offscreen (seul contexte avec accès WebGPU), TOUJOURS device `\"webgpu\"` et `allowWasmFallback: false` — aucun repli CPU/WASM pour le panneau, contrairement au chemin orchestrateur préexistant qui garde son fallback historique.\n\nL'import Transformers.js reste paresseux, `env.allowRemoteModels = false` : le modèle chargé est l'artefact empaqueté, jamais un CDN.",
+      "file": "extension/offscreen/offscreen.ts",
+      "pattern": "type === \"offscreen_generate\"",
+      "display": "diff"
+    },
+    {
+      "title": "Le panneau : JavaScript simple, sûreté au rendu",
+      "description": "Le contrôleur UI est du JavaScript simple, copié tel quel par le build — le typage vit dans le protocole testé. Invariants miroirs : boutons d'approbation visibles seulement pendant l'attente, libellé explicite (« Approuver et ajouter au panier »), refus = panier intact.\n\nLes libellés catalogue (données Leclerc, non fiables) sont rendus en `textContent` uniquement, jamais en HTML ; la clé Mistral n'est jamais réaffichée ; la conversation se rend depuis l'historique d'état, donc survit visuellement à une suspension du worker.",
+      "file": "extension/sidepanel/sidepanel.js",
+      "pattern": "var PHASE_LABELS",
+      "display": "diff"
+    },
+    {
+      "title": "ADR-0002 amendé : périmètre de la règle fetch",
+      "description": "L'amendement (daté, issu de la revue de PR) réaffirme la règle « seul `inject.ts` appelle `fetch` » POUR la surface d'outils Leclerc uniquement — porte SSRF `isLeclercHost` inchangée (ADR-0004).\n\nEt il énumère les fetchs explicitement autorisés de la surface agent : Mistral BYOK (sélection stricte, clé scrubée, jamais automatique) et téléchargement HF du modèle (opt-in, consentement avant tout octet, manifeste vérifié taille+sha256). `src/leclerc/api.ts` reste sans fetch.",
+      "file": "docs/adr/0002-keep-business-logic-pure-and-fetch-free.md",
+      "pattern": "## Amendement",
+      "display": "diff"
+    },
+    {
+      "title": "Protocoles manuels : en attente d'exécution",
+      "description": "Deux protocoles d'activation documentent ce qui ne peut pas être vérifié en CI : `webmcp-opt-in.md` (journeys M01–M04 de la surface WebMCP projetée contre un vrai client MCP) et `sidepanel-opt-in.md` (P1–P9 : parcours panneau réel, approbation, refus, reprise, téléchargement modèle, Mistral BYOK).\n\nIls sont honnêtement marqués EN ATTENTE D'EXÉCUTION — aucun résultat de parcours navigateur n'est affirmé dans cette PR.",
+      "questions": [
+        "Quel parcours du panneau ne peut être vérifié que manuellement ?"
+      ],
+      "directory": "docs/testing"
+    }
+  ]
+}

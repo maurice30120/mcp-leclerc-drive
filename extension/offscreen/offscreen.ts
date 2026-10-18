@@ -36,6 +36,10 @@ import type {
   OffscreenToBackgroundMsg,
   OrchestrationDebug,
 } from "../../src/orchestrator/messages.js";
+import type {
+  OffscreenGenerateMsg,
+  OffscreenGenerateResultMsg,
+} from "../../src/sidepanel-protocol/protocol.js";
 
 // ---- Transformers.js env: bundled, offline, no remote fetch ----------------
 
@@ -162,6 +166,57 @@ chrome.runtime.onMessage.addListener(
             error: err instanceof Error ? err.message : String(err),
           }),
         );
+      return true;
+    }
+
+    // Raw text generation for the side panel agent (ticket #51): the local
+    // model is the WebGPU host here (service workers have no WebGPU access),
+    // so the background's WebGpuProvider pipeline proxies through this
+    // message. Additive only: the orchestrate/status paths are unchanged, and
+    // the side panel flow always runs with device "webgpu" and NO CPU/WASM
+    // fallback (allowWasmFallback: false).
+    if (type === "offscreen_generate") {
+      const {
+        prompt,
+        modelId,
+        repoId,
+        dtype,
+        device: reqDevice = "webgpu",
+        maxNewTokens,
+        traceId,
+      } = msg as OffscreenGenerateMsg;
+      void (async () => {
+        const generator = await getGenerator(modelId, repoId, dtype, reqDevice, false);
+        const output = await generator(prompt, {
+          max_new_tokens: maxNewTokens ?? MAX_NEW_TOKENS,
+          do_sample: false,
+          return_full_text: false,
+          tokenizer_encode_kwargs: {
+            enable_thinking: false,
+          },
+        });
+        const text = extractGeneratedText(output);
+        console.info("[mcp-leclerc-drive][offscreen] sidepanel generate", {
+          traceId,
+          modelId,
+          repoId,
+          dtype,
+          device,
+        });
+        sendResponse({
+          type: "offscreen_generate_result",
+          ok: true,
+          text,
+          device,
+        } satisfies OffscreenGenerateResultMsg);
+      })().catch((err: unknown) => {
+        console.error("[mcp-leclerc-drive][offscreen] sidepanel generate failed", err);
+        sendResponse({
+          type: "offscreen_generate_result",
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        } satisfies OffscreenGenerateResultMsg);
+      });
       return true;
     }
 

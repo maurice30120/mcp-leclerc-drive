@@ -1,13 +1,19 @@
 /**
  * Extension background service worker.
  *
- * Three responsibilities:
+ * Four responsibilities:
  *   1. Inject the WebMCP tool bridge (inject.js + embed.js) into Leclerc Drive
  *      tabs so the existing 9 MCP tools keep working for opencode / Claude Code.
  *   2. Inject the isolated-world content relay (content-relay.js) so the popup
  *      can drive the same dispatcher via postMessage.
  *   3. Route messages between the popup, the offscreen model document and the
  *      content relay (Leclerc tab).
+ *   4. Host the side panel agent protocol (ticket #51): the shopping flow
+ *      with its EXPLICIT global approval, providers selected explicitly only
+ *      (simulated offline demo / local model through the offscreen document /
+ *      Mistral BYOK with a stored key), the session state machine persisted in
+ *      chrome.storage.session, and the manifest-verified local model download
+ *      with explicit consent.
  *
  * MV3 service workers can be terminated by Chrome; every listener is
  * registered at module top-level so it is re-armed on every wake.
@@ -44,6 +50,7 @@ import {
   type ByokConfig,
 } from "../src/orchestrator/byok.js";
 import { buildMessages } from "../src/orchestrator/prompt.js";
+import { LECLERC_DOMAIN, isLeclercDomainHost } from "../src/leclerc/api.js";
 import { parsePlan } from "../src/orchestrator/plan.js";
 import { normalizeShoppingList } from "../src/orchestrator/shopping-list.js";
 import { buildCaptureRecord } from "../src/recipes/capture.js";
@@ -62,8 +69,61 @@ import {
 import { createCaptureStore } from "../src/recipes/capture-store.js";
 import type { SaveCaptureResultMsg } from "../src/orchestrator/messages.js";
 
+// Side panel agent wiring (ticket #51).
+import {
+  SIDEPANEL_EVENT_CHANNEL,
+  SIDEPANEL_KEEPALIVE_PORT,
+  SidePanelSession,
+  buildSidePanelPrompt,
+  buildSimulatedRecipeScript,
+  isSidePanelRequestEnvelope,
+  type FlowResultPayload,
+  type OffscreenGenerateMsg,
+  type OffscreenGenerateResultMsg,
+  type SidePanelEvent,
+  type SidePanelModelState,
+  type SidePanelRequest,
+  type SidePanelRequestResult,
+} from "../src/sidepanel-protocol/protocol.js";
+import { LOCAL_MODEL_MANIFEST } from "../src/sidepanel-protocol/local-model.js";
+import {
+  SimulatedProvider,
+  bindingFromContract,
+  createMistralByokProvider,
+  createWebGpuProvider,
+  downloadModel,
+  resumeShoppingFlow,
+  runShoppingFlow,
+  type ApprovalDecision,
+  type ApprovalDecisionHandler,
+  type CachedModelFile,
+  type ClarificationAnswer,
+  type ClarificationHandler,
+  type ModelCacheStore,
+  type ModelManifest,
+  type ModelProvider,
+  type ShoppingFlowRequest,
+  type ShoppingFlowResume,
+  type ShoppingFlowResult,
+  type ToolBinding,
+  type WebGpuPipeline,
+  type WebGpuPipelineFactory,
+  type WebGpuProbe,
+} from "@leclerc/agent";
+import {
+  addToCart,
+  getCart,
+  parseRecipeText,
+  searchProduct,
+  toolError,
+  type Cart as DomainCart,
+  type GeneratedRecipe,
+  type Product as DomainProduct,
+} from "@leclerc/contracts";
+import type { Cart as BridgeCart, Product as BridgeProduct } from "../src/types.js";
+
 const LECRERC_URL_FILTER = {
-  url: [{ hostSuffix: "leclercdrive.fr" }],
+  url: [{ hostSuffix: LECLERC_DOMAIN }],
 };
 
 // The WebMCP runtime and tool registrations are injected in MAIN world. The
@@ -114,7 +174,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 async function reinjectAllLeclercTabs(): Promise<void> {
   try {
-    const tabs = await chrome.tabs.query({ url: "*://*.leclercdrive.fr/*" });
+    const tabs = await chrome.tabs.query({ url: `*://*.${LECLERC_DOMAIN}/*` });
     for (const tab of tabs) {
       if (tab.id == null) continue;
       try {
@@ -174,7 +234,9 @@ async function awaitWebMcpReady(): Promise<boolean> {
 function isLeclercUrl(url: string): boolean {
   try {
     const u = new URL(url);
-    return u.protocol === "https:" && u.hostname.endsWith(".leclercdrive.fr");
+    // Domain check shared with src/leclerc/api.ts (ADR-0004): any
+    // *.leclercdrive.fr page, not just the fdN-courses backend shape.
+    return u.protocol === "https:" && isLeclercDomainHost(u.hostname);
   } catch {
     return false;
   }
@@ -185,6 +247,18 @@ function isLeclercUrl(url: string): boolean {
 const OFFSCREEN_URL = "offscreen/offscreen.html";
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  // Side panel protocol (ticket #51): its own channel, routed first.
+  if (isSidePanelRequestEnvelope(msg)) {
+    void handleSidePanelRequest(msg.request)
+      .then((result) => sendResponse(result))
+      .catch((err: unknown) =>
+        sendResponse({
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        } satisfies SidePanelRequestResult),
+      );
+    return true; // async
+  }
   // Recipe storage requests come from the content relay (Leclerc tab bridge).
   if (isRecipeStorageRequest((msg as { request?: unknown })?.request)) {
     const { request } = msg as RelayRecipeStorageMsg;
@@ -719,6 +793,24 @@ async function orchestrateByok(
 // -- leclerc run (popup → content relay → MAIN bridge) ----------------------
 
 async function handleLeclercRun(msg: LeclercRunMsg): Promise<LeclercRunResultMsg> {
+  const result = await runLeclercCommand(msg.command, msg.args);
+  return {
+    type: "leclerc_run_result",
+    ok: result.ok,
+    ...(result.ok ? { data: result.data } : { error: result.error }),
+  };
+}
+
+/**
+ * The single background seam toward the live Leclerc tab: content relay →
+ * MAIN bridge → dispatcher. Both the popup (leclerc_run) and the side panel
+ * agent capabilities (ticket #51) go through here, so there is no duplicated
+ * business logic between the two surfaces.
+ */
+async function runLeclercCommand(
+  command: LeclercCommandName,
+  args: Record<string, unknown>,
+): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
   const tabId = await findLeclercTabId();
   const requestId = `req_${Date.now().toString(36)}_${Math.random()
     .toString(36)
@@ -726,11 +818,10 @@ async function handleLeclercRun(msg: LeclercRunMsg): Promise<LeclercRunResultMsg
   const request: LeclercRequest = {
     source: "mcp-leclerc-drive:relay",
     requestId,
-    command: msg.command,
-    args: msg.args,
+    command,
+    args,
   };
   console.info("[mcp-leclerc-drive][background] leclerc_run request", {
-    traceId: msg.traceId,
     tabId,
     request,
   });
@@ -741,26 +832,17 @@ async function handleLeclercRun(msg: LeclercRunMsg): Promise<LeclercRunResultMsg
     });
     const r = res as { type: string; response?: LeclercResponse } | undefined;
     if (r?.type === "leclerc_result" && r.response && isLeclercResponse(r.response)) {
-      const result = {
-        type: "leclerc_run_result",
-        ok: r.response.ok,
-        data: r.response.ok ? r.response.data : undefined,
-        error: r.response.ok ? undefined : r.response.error,
-      } satisfies LeclercRunResultMsg;
       console.info("[mcp-leclerc-drive][background] leclerc_run response", {
-        traceId: msg.traceId,
-        result,
+        ok: r.response.ok,
+        requestId,
       });
-      return result;
+      return r.response.ok
+        ? { ok: true, data: r.response.data }
+        : { ok: false, error: r.response.error };
     }
-    return {
-      type: "leclerc_run_result",
-      ok: false,
-      error: "Réponse du relay de contenu invalide.",
-    };
+    return { ok: false, error: "Réponse du relay de contenu invalide." };
   } catch (err) {
     return {
-      type: "leclerc_run_result",
       ok: false,
       error:
         "Impossible de joindre l'onglet Leclerc. Ouvre ton drive Leclerc dans un onglet, puis réessaie (" +
@@ -771,7 +853,7 @@ async function handleLeclercRun(msg: LeclercRunMsg): Promise<LeclercRunResultMsg
 }
 
 async function findLeclercTabId(): Promise<number> {
-  const tabs = await chrome.tabs.query({ url: "*://*.leclercdrive.fr/*" });
+  const tabs = await chrome.tabs.query({ url: `*://*.${LECLERC_DOMAIN}/*` });
   // Prefer the active tab if it's a Leclerc tab, else the first match.
   const active = tabs.find((t) => t.active);
   const chosen = active ?? tabs[0];
@@ -861,3 +943,888 @@ function setRelayEmbedConfig(
   };
   page.__WEBMCP_RELAY_EMBED__ = { widgetUrl, relayHost, relayPort };
 }
+
+// ---- Side panel agent (ticket #51) ----------------------------------------
+//
+// The side panel is the conversation surface of the shopping agent
+// (tickets #44/#50). The protocol and the session state machine are pure and
+// unit-tested in src/sidepanel-protocol (tests/sidepanel-protocol.test.ts);
+// this section is the Chrome wiring only:
+//
+//   - provider construction is EXPLICIT ONLY: the simulated scripted demo
+//     (offline, never selected implicitly), the local model through the
+//     existing offscreen document — the only context with WebGPU access, no
+//     CPU/WASM fallback on this path — and Mistral BYOK when a key is stored.
+//     No code path ever falls back from one provider to another: a failure is
+//     surfaced (diagnostic + consent-only Mistral proposal), never retried
+//     elsewhere;
+//   - the capabilities run through the SAME dispatcher bridge as the popup
+//     (runLeclercCommand → content relay → MAIN bridge on the Leclerc tab);
+//   - the BLOCKING safety rule: the add_to_cart binding consults
+//     session.assertMutationPermitted() BEFORE any mutation request is
+//     emitted — nothing reaches the Leclerc tab before the explicit approval
+//     event, and a refusal leaves the cart untouched;
+//   - the conversation lives in chrome.storage.session (survives MV3 service
+//     worker suspensions, cleared when the browser closes) and NEVER in
+//     chrome.storage.local; the Mistral key lives in chrome.storage.session
+//     too and is never echoed back to the UI.
+
+const SIDEPANEL_SESSION_KEY = "sidepanelSession";
+const MISTRAL_KEY_STORAGE_KEY = "sidepanelMistralApiKey";
+const MISTRAL_MODEL_ID = "mistral-small-latest";
+const MODEL_CACHE_NAME = "mcp-leclerc-drive:models";
+
+let sidepanelSession: SidePanelSession | undefined;
+let sidepanelSessionLoaded = false;
+
+/** The live flow of THIS service worker instance (dies with the worker). */
+interface LiveSidePanelFlow {
+  approvalResolver?: (decision: ApprovalDecision) => void;
+  clarificationResolver?: (answer: ClarificationAnswer) => void;
+}
+let liveSidePanelFlow: LiveSidePanelFlow | undefined;
+
+/**
+ * Loads (and on first call restores) the session snapshot from
+ * chrome.storage.session. A flow that was mid-run in the previous worker
+ * instance can only be an interrupted run — except a pending approval, which
+ * is kept so the user can still approve (the completion then goes through
+ * the resume path with a fresh gate).
+ */
+async function loadSidePanelSession(): Promise<SidePanelSession> {
+  if (sidepanelSessionLoaded) {
+    return sidepanelSession as SidePanelSession;
+  }
+  sidepanelSessionLoaded = true;
+  sidepanelSession = new SidePanelSession();
+  try {
+    const stored = (await chrome.storage.session.get(SIDEPANEL_SESSION_KEY)) as Record<
+      string,
+      unknown
+    >;
+    const snapshot = stored[SIDEPANEL_SESSION_KEY];
+    if (snapshot !== undefined) {
+      const restored = SidePanelSession.restore(snapshot);
+      markInterruptedSidePanelFlow(restored);
+      sidepanelSession = restored;
+    }
+  } catch (err) {
+    console.error("[mcp-leclerc-drive][sidepanel] restauration de session impossible :", err);
+  }
+  return sidepanelSession;
+}
+
+function markInterruptedSidePanelFlow(restored: SidePanelSession): void {
+  const state = restored.getState();
+  if (!state.flowActive) return;
+  if (state.phase === "awaiting_approval") {
+    return; // still approvable through the resume path
+  }
+  restored.appendHistory(
+    "assistant",
+    "error",
+    "Le service worker a été suspendu pendant le parcours : il a été interrompu. Aucune écriture au panier n'est en attente.",
+  );
+  restored.finishFlow("cancelled");
+}
+
+async function persistSidePanelSession(): Promise<void> {
+  const current = sidepanelSession;
+  if (!current) return;
+  try {
+    await chrome.storage.session.set({ [SIDEPANEL_SESSION_KEY]: current.serialize() });
+  } catch (err) {
+    console.error("[mcp-leclerc-drive][sidepanel] persistance de session impossible :", err);
+  }
+}
+
+/** Pushes one protocol event to the side panel (no-op when it is closed). */
+async function emitSidePanelEvent(event: SidePanelEvent): Promise<void> {
+  try {
+    await chrome.runtime.sendMessage({ channel: SIDEPANEL_EVENT_CHANNEL, event });
+  } catch {
+    /* the panel is closed: events are disposable, the state is the truth */
+  }
+}
+
+async function emitSidePanelState(): Promise<void> {
+  await persistSidePanelSession();
+  const state = (await loadSidePanelSession()).getState();
+  await emitSidePanelEvent({ type: "state", state });
+}
+
+// -- request routing ---------------------------------------------------------
+
+async function handleSidePanelRequest(
+  request: SidePanelRequest,
+): Promise<SidePanelRequestResult> {
+  const session = await loadSidePanelSession();
+  switch (request.type) {
+    case "get_state":
+    case "model_status": {
+      await refreshSidePanelModelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "set_provider": {
+      const result = session.selectProvider(request.providerId);
+      await emitSidePanelState();
+      return result.ok ? { ok: true, state: session.getState() } : { ok: false, error: result.error };
+    }
+    case "set_mistral_key": {
+      // The key goes to chrome.storage.session (memory-only, never on disk,
+      // never synced) and is NEVER echoed back — only the boolean survives.
+      await chrome.storage.session.set({ [MISTRAL_KEY_STORAGE_KEY]: request.apiKey });
+      session.setMistralKeySet(true);
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "delete_mistral_key": {
+      await chrome.storage.session.remove(MISTRAL_KEY_STORAGE_KEY);
+      session.setMistralKeySet(false);
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "start_flow": {
+      const flowRequest: ShoppingFlowRequest = {
+        message: request.message,
+        servings: request.servings,
+        ...(request.exclusions ? { excludedIngredients: request.exclusions } : {}),
+      };
+      const started = session.startFlow({
+        message: request.message,
+        servings: request.servings,
+        ...(request.exclusions ? { exclusions: request.exclusions } : {}),
+      });
+      if (!started.ok) {
+        return { ok: false, error: started.error };
+      }
+      await emitSidePanelState();
+      await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+      void runSidePanelFlow(flowRequest);
+      return { ok: true, state: session.getState() };
+    }
+    case "approve": {
+      return handleSidePanelApprove();
+    }
+    case "refuse": {
+      const refused = session.refuse(request.reason);
+      if (!refused.ok) {
+        return { ok: false, error: refused.error };
+      }
+      liveSidePanelFlow?.approvalResolver?.({
+        approved: false,
+        ...(request.reason ? { reason: request.reason } : {}),
+      });
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "clarify_answer": {
+      const answered = session.answerClarification(request.answer);
+      if (!answered.ok) {
+        return { ok: false, error: answered.error };
+      }
+      liveSidePanelFlow?.clarificationResolver?.(answered.answer);
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "resume": {
+      const resume = session.getResume();
+      if (!resume) {
+        return { ok: false, error: "Aucune reprise disponible." };
+      }
+      const begun = session.beginResume(resume.preview);
+      if (!begun.ok) {
+        return { ok: false, error: begun.error };
+      }
+      await emitSidePanelState();
+      void runSidePanelResume(resume);
+      return { ok: true, state: session.getState() };
+    }
+    case "reset_session": {
+      session.reset();
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+    case "model_download_consent": {
+      if (!request.accepted) {
+        return { ok: true, state: session.getState() };
+      }
+      // The consent IS this request: nothing is fetched without the explicit
+      // click that carries it. The download runs with progress events.
+      void runSidePanelModelDownload();
+      return { ok: true, state: session.getState() };
+    }
+    case "model_cache_clear": {
+      try {
+        await sidePanelModelCache.remove(LOCAL_MODEL_MANIFEST);
+      } catch (err) {
+        return {
+          ok: false,
+          error: `Impossible de vider le cache du modèle : ${err instanceof Error ? err.message : String(err)}`,
+        };
+      }
+      await refreshSidePanelModelState();
+      await emitSidePanelState();
+      return { ok: true, state: session.getState() };
+    }
+  }
+}
+
+/**
+ * The explicit approval event. Two cases:
+ *   - the flow is alive in this worker instance: resolve its pending decision;
+ *   - only the snapshot survived (MV3 suspension): the click completes the
+ *     stored preview through the resume path — the click IS the decision.
+ */
+async function handleSidePanelApprove(): Promise<SidePanelRequestResult> {
+  const session = await loadSidePanelSession();
+  const state = session.getState();
+  if (liveSidePanelFlow?.approvalResolver) {
+    const approved = session.approve();
+    if (!approved.ok) {
+      return { ok: false, error: approved.error };
+    }
+    liveSidePanelFlow.approvalResolver({ approved: true });
+    await emitSidePanelState();
+    return { ok: true, state: session.getState() };
+  }
+  if (state.pendingApproval) {
+    const preview = state.pendingApproval.preview;
+    const approved = session.approve();
+    if (!approved.ok) {
+      return { ok: false, error: approved.error };
+    }
+    await emitSidePanelState();
+    const resume: ShoppingFlowResume = {
+      preview,
+      pending: preview.lines,
+      applied: [],
+      failed: undefined,
+    };
+    void runSidePanelResume(resume, { approvedByClick: true });
+    return { ok: true, state: session.getState() };
+  }
+  return { ok: false, error: "Aucune approbation en attente." };
+}
+
+// -- provider construction (explicit only, never a fallback) -----------------
+
+async function buildSidePanelProvider(
+  request: ShoppingFlowRequest,
+): Promise<{ ok: true; provider: ModelProvider } | { ok: false; error: string }> {
+  const providerId = (await loadSidePanelSession()).getState().provider;
+  if (providerId === "simulated") {
+    return {
+      ok: true,
+      provider: new SimulatedProvider({
+        id: "simulated-sidepanel",
+        modelVersion: "simulated-1.0",
+        script: buildSimulatedRecipeScript(request),
+      }),
+    };
+  }
+  if (providerId === "mistral") {
+    const apiKey = await getStoredMistralKey();
+    if (!apiKey) {
+      return {
+        ok: false,
+        error:
+          "Aucune clé Mistral enregistrée. Renseigne ta clé personnelle dans les réglages (elle n'est jamais affichée en retour).",
+      };
+    }
+    return {
+      ok: true,
+      provider: createMistralByokProvider({
+        apiKey,
+        model: MISTRAL_MODEL_ID,
+        fetchImpl: (url, init) => fetch(url, init),
+      }),
+    };
+  }
+  if (providerId === "webgpu") {
+    const { entry } = await getActiveModel();
+    return {
+      ok: true,
+      provider: createWebGpuProvider({
+        modelId: entry.repoId,
+        probe: makeOffscreenWebGpuProbe(entry),
+        pipelineFactory: makeOffscreenPipelineFactory(entry),
+      }),
+    };
+  }
+  return { ok: false, error: "Aucun fournisseur sélectionné." };
+}
+
+async function getStoredMistralKey(): Promise<string | undefined> {
+  const stored = (await chrome.storage.session.get(MISTRAL_KEY_STORAGE_KEY)) as Record<
+    string,
+    unknown
+  >;
+  const key = stored[MISTRAL_KEY_STORAGE_KEY];
+  return typeof key === "string" && key.length > 0 ? key : undefined;
+}
+
+/**
+ * Wraps the selected provider so the recipe becomes visible in the panel as
+ * soon as it parses: the flow itself only exposes the recipe in its final
+ * result, but the UI journey is demande → recette → recherche → aperçu →
+ * approbation. Deterministic: the parse here uses the exact same strict
+ * @leclerc/contracts parser the flow uses.
+ */
+function wrapProviderForRecipeEvents(provider: ModelProvider): ModelProvider {
+  let recipeShown = false;
+  return {
+    id: provider.id,
+    modelVersion: provider.modelVersion,
+    capabilities: provider.capabilities,
+    async generate(request) {
+      const response = await provider.generate(request);
+      if (!recipeShown && typeof response.text === "string" && response.text !== "") {
+        const parsed = parseRecipeText(response.text);
+        if (parsed.ok) {
+          recipeShown = true;
+          void sidePanelRecipeReady(parsed.recipe);
+        }
+      }
+      return response;
+    },
+  };
+}
+
+async function sidePanelRecipeReady(recipe: GeneratedRecipe): Promise<void> {
+  const session = await loadSidePanelSession();
+  session.markSearching();
+  session.appendHistory(
+    "assistant",
+    "recipe",
+    `${recipe.title} — ${recipe.servings} personnes, ${recipe.ingredients.length} ingrédients.`,
+    recipe,
+  );
+  await emitSidePanelEvent({ type: "recipe", recipe });
+  await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+  await emitSidePanelState();
+}
+
+// -- capability bindings through the existing dispatcher bridge --------------
+
+function bridgeProductToDomain(product: BridgeProduct): DomainProduct {
+  return {
+    id: String(product.id),
+    label: product.label,
+    price: product.price,
+    ...(product.brand !== undefined ? { brand: product.brand } : {}),
+    ...(product.pricePerUnit !== undefined ? { pricePerUnit: product.pricePerUnit } : {}),
+    ...(product.nutriScore !== undefined ? { nutriScore: product.nutriScore } : {}),
+    available: product.available,
+    ...(product.imageUrl !== undefined ? { imageUrl: product.imageUrl } : {}),
+    // The live catalogue extraction does not expose a structured packaging:
+    // the flow's documented default (1 unit, explicit note) applies.
+  };
+}
+
+function bridgeCartToDomain(cart: BridgeCart): DomainCart {
+  return {
+    items: cart.items.map((item) => ({
+      product: bridgeProductToDomain(item.product),
+      quantity: item.quantity,
+      lineTotal: item.lineTotal,
+    })),
+    itemCount: cart.itemCount,
+    total: cart.total,
+    storeId: cart.storeId,
+  };
+}
+
+async function reportSidePanelToolActivity(
+  name: string,
+  ok: boolean,
+  summary: string,
+  data?: unknown,
+  error?: string,
+): Promise<void> {
+  const session = await loadSidePanelSession();
+  session.appendHistory("assistant", "tool_activity", summary, data);
+  await emitSidePanelEvent({
+    type: "tool_activity",
+    name,
+    ok,
+    summary,
+    ...(error !== undefined ? { error } : {}),
+  });
+}
+
+/**
+ * The three capabilities the shopping flow uses, bound to the SAME dispatcher
+ * bridge as the popup. The add_to_cart binding enforces the BLOCKING safety
+ * rule: the state machine must permit the mutation BEFORE any request is
+ * emitted toward the Leclerc tab.
+ */
+function makeSidePanelBindings(): ToolBinding[] {
+  return [
+    bindingFromContract(searchProduct, async (input: { query: string }) => {
+      const result = await runLeclercCommand("search_products", { query: input.query });
+      if (!result.ok) {
+        void reportSidePanelToolActivity(
+          "search_product",
+          false,
+          `Recherche « ${input.query} » échouée.`,
+          undefined,
+          result.error,
+        );
+        return toolError("CAPABILITY_FAILED", `Recherche produit impossible : ${result.error}`);
+      }
+      const products = (result.data as { products?: BridgeProduct[] }).products ?? [];
+      void reportSidePanelToolActivity(
+        "search_product",
+        true,
+        `Recherche « ${input.query} » : ${products.length} produit(s) trouvé(s).`,
+        {
+          products: products.slice(0, 5).map((p) => ({
+            id: p.id,
+            label: p.label,
+            price: p.price,
+            available: p.available,
+          })),
+        },
+      );
+      return { ok: true as const, output: { products: products.map(bridgeProductToDomain) } };
+    }),
+    bindingFromContract(getCart, async () => {
+      const result = await runLeclercCommand("get_cart", {});
+      if (!result.ok) {
+        return toolError("CAPABILITY_FAILED", `Lecture du panier impossible : ${result.error}`);
+      }
+      const cart = (result.data as { cart?: BridgeCart }).cart;
+      if (!cart) {
+        return toolError("CAPABILITY_FAILED", "Réponse du pont Leclerc sans panier.");
+      }
+      return { ok: true as const, output: { cart: bridgeCartToDomain(cart) } };
+    }),
+    bindingFromContract(addToCart, async (input: { productId: string; quantity: number }) => {
+      // BLOCKING SAFETY RULE (state machine, ticket #51): no mutation request
+      // may be emitted before the explicit approval event.
+      const gate = (await loadSidePanelSession()).assertMutationPermitted();
+      if (!gate.ok) {
+        return toolError("APPROVAL_REQUIRED", gate.message, { capability: "add_to_cart" });
+      }
+      const result = await runLeclercCommand("add_to_cart", {
+        product_id: input.productId,
+        quantity: input.quantity,
+      });
+      if (!result.ok) {
+        void reportSidePanelToolActivity(
+          "add_to_cart",
+          false,
+          `Ajout au panier échoué (${input.productId} × ${input.quantity}).`,
+          undefined,
+          result.error,
+        );
+        return toolError("CART_MUTATION_REFUSED", `Ajout au panier refusé : ${result.error}`);
+      }
+      const cart = (result.data as { cart?: BridgeCart }).cart;
+      void reportSidePanelToolActivity(
+        "add_to_cart",
+        true,
+        `Ajouté au panier : ${input.productId} × ${input.quantity}.`,
+      );
+      return {
+        ok: true as const,
+        output: {
+          cart: cart
+            ? bridgeCartToDomain(cart)
+            : { items: [], itemCount: 0, total: 0, storeId: "" },
+        },
+      };
+    }),
+  ];
+}
+
+// -- approval / clarification handlers (answered ONLY by UI events) ----------
+
+function makeFlowApprovalHandler(live: LiveSidePanelFlow): ApprovalDecisionHandler {
+  return (request) =>
+    new Promise<ApprovalDecision>((resolve) => {
+      void (async () => {
+        const session = await loadSidePanelSession();
+        session.presentPreview(request.preview);
+        session.awaitApproval(request.summary);
+        await emitSidePanelEvent({ type: "preview", preview: request.preview });
+        await emitSidePanelEvent({
+          type: "approval_request",
+          summary: request.summary,
+          preview: request.preview,
+        });
+        await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+        await emitSidePanelState();
+      })();
+      live.approvalResolver = resolve;
+    });
+}
+
+function makeResumeApprovalHandler(live: LiveSidePanelFlow): ApprovalDecisionHandler {
+  return (request) =>
+    new Promise<ApprovalDecision>((resolve) => {
+      void (async () => {
+        const session = await loadSidePanelSession();
+        session.awaitApproval(request.summary);
+        await emitSidePanelEvent({
+          type: "approval_request",
+          summary: request.summary,
+          preview: request.preview,
+        });
+        await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+        await emitSidePanelState();
+      })();
+      live.approvalResolver = resolve;
+    });
+}
+
+function makeClarificationHandler(live: LiveSidePanelFlow): ClarificationHandler {
+  return (question) =>
+    new Promise<ClarificationAnswer>((resolve) => {
+      void (async () => {
+        const session = await loadSidePanelSession();
+        session.awaitClarification(question);
+        await emitSidePanelEvent({ type: "clarification", question });
+        await emitSidePanelState();
+      })();
+      live.clarificationResolver = resolve;
+    });
+}
+
+// -- flow runs ----------------------------------------------------------------
+
+async function runSidePanelFlow(request: ShoppingFlowRequest): Promise<void> {
+  const session = await loadSidePanelSession();
+  const live: LiveSidePanelFlow = {};
+  liveSidePanelFlow = live;
+  const built = await buildSidePanelProvider(request);
+  if (!built.ok) {
+    session.appendHistory("assistant", "error", built.error);
+    session.finishFlow("provider_unavailable");
+    await emitSidePanelEvent({ type: "error", code: "PROVIDER_UNAVAILABLE", message: built.error });
+    await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+    await emitSidePanelState();
+    liveSidePanelFlow = undefined;
+    return;
+  }
+  try {
+    const result = await runShoppingFlow({
+      provider: wrapProviderForRecipeEvents(built.provider),
+      bindings: makeSidePanelBindings(),
+      request,
+      approval: makeFlowApprovalHandler(live),
+      clarification: makeClarificationHandler(live),
+    });
+    liveSidePanelFlow = undefined;
+    await finishSidePanelFlow(result);
+  } catch (err) {
+    liveSidePanelFlow = undefined;
+    await failSidePanelFlow(
+      `Échec inattendu du parcours : ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+async function runSidePanelResume(
+  resume: ShoppingFlowResume,
+  options: { approvedByClick?: boolean } = {},
+): Promise<void> {
+  const live: LiveSidePanelFlow = {};
+  liveSidePanelFlow = live;
+  try {
+    const result = await resumeShoppingFlow({
+      bindings: makeSidePanelBindings(),
+      resume,
+      // A resume NEVER inherits the previous approval: either the user goes
+      // through a fresh explicit approval round, or (post-suspension) the
+      // approve click that triggered this run IS the decision.
+      approval:
+        options.approvedByClick === true
+          ? () => ({ approved: true })
+          : makeResumeApprovalHandler(live),
+    });
+    liveSidePanelFlow = undefined;
+    await finishSidePanelFlow(result);
+  } catch (err) {
+    liveSidePanelFlow = undefined;
+    await failSidePanelFlow(
+      `Échec inattendu de la reprise : ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+function toFlowResultPayload(result: ShoppingFlowResult): FlowResultPayload {
+  return {
+    status: result.status,
+    ...(result.recipe ? { recipe: result.recipe } : {}),
+    ...(result.preview ? { preview: result.preview } : {}),
+    issues: result.issues,
+    ...(result.gap ? { gap: result.gap } : {}),
+    ...(result.cart ? { cart: result.cart } : {}),
+    ...(result.diagnostic ? { diagnostic: result.diagnostic } : {}),
+    ...(result.proposal ? { proposal: result.proposal } : {}),
+    ...(result.error ? { error: result.error } : {}),
+    resumeAvailable: result.resume !== undefined,
+  };
+}
+
+function flowResultSummary(result: ShoppingFlowResult): string {
+  switch (result.status) {
+    case "completed":
+      return `Parcours terminé : ${result.gap?.applied.length ?? result.preview?.lines.length ?? 0} article(s) ajouté(s) au panier.`;
+    case "partial_failure": {
+      const applied = result.gap?.applied.length ?? 0;
+      const failed = result.gap?.failed.length ?? 0;
+      const notAttempted = result.gap?.notAttempted.length ?? 0;
+      return `Échec partiel : ${applied} ajouté(s), ${failed} en échec, ${notAttempted} non tenté(s). Le panier a été relu ; reprise possible après ton accord.`;
+    }
+    case "recipe_invalid":
+      return result.error?.message ?? "Recette invalide : aucune recherche ni mutation du panier n'a été effectuée.";
+    case "provider_unavailable":
+      return result.diagnostic ?? "Fournisseur indisponible : le parcours n'a pas démarré.";
+    case "limits_exceeded":
+      return result.error?.message ?? "Budget d'appels épuisé : parcours interrompu.";
+    case "cancelled":
+      return "Parcours annulé.";
+    default:
+      return "Parcours terminé sans ajout au panier.";
+  }
+}
+
+async function finishSidePanelFlow(result: ShoppingFlowResult): Promise<void> {
+  const session = await loadSidePanelSession();
+  const payload = toFlowResultPayload(result);
+  if (result.status === "partial_failure" && result.resume) {
+    session.setResume(result.resume);
+  }
+  if (result.status !== "refused") {
+    // The refusal already logged its own history entry (refuse()).
+    session.appendHistory("assistant", "flow_result", flowResultSummary(result), payload);
+  }
+  session.finishFlow(result.status);
+  await emitSidePanelEvent({ type: "flow_result", result: payload });
+  await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+  await emitSidePanelState();
+}
+
+async function failSidePanelFlow(message: string): Promise<void> {
+  const session = await loadSidePanelSession();
+  session.appendHistory("assistant", "error", message);
+  session.finishFlow("provider_unavailable");
+  await emitSidePanelEvent({ type: "error", code: "FLOW_FAILED", message });
+  await emitSidePanelEvent({ type: "phase", phase: session.getState().phase });
+  await emitSidePanelState();
+}
+
+// -- local model: offscreen WebGPU adapters (probe + raw generation) ---------
+
+/**
+ * The local model runs in the offscreen document — the only extension context
+ * with WebGPU access (service workers have no navigator.gpu). The probe goes
+ * through the existing offscreen_status path: the pipeline creation there
+ * instantiates a REAL ONNX WebGPU session (well beyond navigator.gpu
+ * presence), with allowWasmFallback false — no CPU/WASM fallback exists on
+ * the side panel path. A failure surfaces the diagnostic and the Mistral
+ * proposal; nothing else is launched.
+ */
+function makeOffscreenWebGpuProbe(entry: ModelEntry): WebGpuProbe {
+  return async () => {
+    try {
+      await ensureOffscreen();
+      const res = (await chrome.runtime.sendMessage({
+        type: "offscreen_status",
+        modelId: entry.id,
+        repoId: entry.repoId,
+        dtype: entry.dtype,
+        device: "webgpu",
+        allowWasmFallback: false,
+      } satisfies OffscreenStatusMsg)) as OffscreenStatusResultMsg | undefined;
+      if (res?.type === "offscreen_status_result" && res.status === "ready") {
+        return { ok: true };
+      }
+      return {
+        ok: false,
+        reason:
+          res?.error ?? "la session WebGPU du modèle local n'a pas pu être créée dans le document offscreen",
+      };
+    } catch (err) {
+      return { ok: false, reason: err instanceof Error ? err.message : String(err) };
+    }
+  };
+}
+
+/** Raw text generation through the offscreen document (see offscreen_generate). */
+function makeOffscreenPipelineFactory(entry: ModelEntry): WebGpuPipelineFactory {
+  return async () => {
+    await ensureOffscreen();
+    return {
+      async generate(input) {
+        const res = (await chrome.runtime.sendMessage({
+          type: "offscreen_generate",
+          prompt: buildSidePanelPrompt(input.messages),
+          modelId: entry.id,
+          repoId: entry.repoId,
+          dtype: entry.dtype,
+          device: "webgpu",
+          ...(input.maxTokens !== undefined ? { maxNewTokens: input.maxTokens } : {}),
+        } satisfies OffscreenGenerateMsg)) as OffscreenGenerateResultMsg | undefined;
+        if (res?.type === "offscreen_generate_result" && res.ok && typeof res.text === "string") {
+          return { text: res.text };
+        }
+        throw new Error(res?.error ?? "Le document offscreen n'a pas répondu à la génération.");
+      },
+    } satisfies WebGpuPipeline;
+  };
+}
+
+// -- local model: manifest-verified cache + download consent ------------------
+
+function modelCacheUrl(manifest: ModelManifest, path: string): string {
+  const base = manifest.sourceUrl.endsWith("/") ? manifest.sourceUrl : `${manifest.sourceUrl}/`;
+  return `${base}${path}`;
+}
+
+/**
+ * CacheStorage-backed ModelCacheStore (the #52 pipeline commit target).
+ * `put` only ever receives a complete, verified file set; `current` checks
+ * presence without loading file bodies into memory.
+ */
+const sidePanelModelCache: ModelCacheStore = {
+  async get(manifest) {
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    const files: CachedModelFile[] = [];
+    for (const declared of manifest.files) {
+      const response = await cache.match(modelCacheUrl(manifest, declared.path));
+      if (!response) return undefined;
+      files.push({ path: declared.path, bytes: await response.arrayBuffer() });
+    }
+    return { manifest, files };
+  },
+  async put(manifest, files) {
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    for (const file of files) {
+      await cache.put(modelCacheUrl(manifest, file.path), new Response(file.bytes));
+    }
+  },
+  async remove(manifest) {
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    for (const declared of manifest.files) {
+      await cache.delete(modelCacheUrl(manifest, declared.path));
+    }
+  },
+  async current() {
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    for (const declared of LOCAL_MODEL_MANIFEST.files) {
+      if (!(await cache.match(modelCacheUrl(LOCAL_MODEL_MANIFEST, declared.path)))) {
+        return undefined;
+      }
+    }
+    return {
+      modelId: LOCAL_MODEL_MANIFEST.modelId,
+      revision: LOCAL_MODEL_MANIFEST.revision,
+      sizeBytes: LOCAL_MODEL_MANIFEST.totalSizeBytes,
+    };
+  },
+};
+
+async function refreshSidePanelModelState(): Promise<void> {
+  const session = await loadSidePanelSession();
+  const model: SidePanelModelState = {
+    cacheState: "absent",
+    modelId: LOCAL_MODEL_MANIFEST.modelId,
+    sizeBytes: LOCAL_MODEL_MANIFEST.totalSizeBytes,
+  };
+  try {
+    const current = await sidePanelModelCache.current();
+    if (current) {
+      model.cacheState = "ready";
+    }
+  } catch (err) {
+    model.lastError = `Cache du modèle illisible : ${err instanceof Error ? err.message : String(err)}`;
+  }
+  try {
+    // Bundled artifacts (dist/extension/models) are what the offscreen runtime
+    // actually loads — the preferred, fully offline path.
+    const { entry } = await getActiveModel();
+    const res = await fetch(
+      chrome.runtime.getURL(`models/${entry.repoId}/onnx/model_${entry.dtype}.onnx`),
+      { method: "HEAD" },
+    );
+    model.bundledReady = res.ok;
+  } catch {
+    model.bundledReady = false;
+  }
+  session.setModelState(model);
+  await persistSidePanelSession();
+}
+
+async function runSidePanelModelDownload(): Promise<void> {
+  const session = await loadSidePanelSession();
+  session.setModelState({
+    cacheState: "downloading",
+    modelId: LOCAL_MODEL_MANIFEST.modelId,
+    sizeBytes: LOCAL_MODEL_MANIFEST.totalSizeBytes,
+  });
+  await emitSidePanelState();
+  const result = await downloadModel({
+    manifest: LOCAL_MODEL_MANIFEST,
+    fetchImpl: (url, init) => fetch(url, init),
+    // The explicit consent already happened: the model_download_consent
+    // request IS the user's click. Nothing is ever fetched without it.
+    consent: () => true,
+    cache: sidePanelModelCache,
+    hashBytes: async (bytes) => {
+      const digest = await crypto.subtle.digest("SHA-256", bytes);
+      return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    },
+    onProgress: (progress) => {
+      void (async () => {
+        const s = await loadSidePanelSession();
+        s.setModelState({
+          cacheState: "downloading",
+          modelId: progress.modelId,
+          sizeBytes: progress.totalSizeBytes,
+          progress: {
+            file: progress.file,
+            totalBytes: progress.totalBytes,
+            totalSizeBytes: progress.totalSizeBytes,
+          },
+        });
+        await emitSidePanelState();
+      })();
+    },
+  });
+  const final = await loadSidePanelSession();
+  if (result.ok) {
+    final.appendHistory(
+      "assistant",
+      "message",
+      `Modèle local téléchargé et vérifié (${(LOCAL_MODEL_MANIFEST.totalSizeBytes / 1_000_000).toFixed(0)} Mo, manifeste validé).`,
+    );
+    await refreshSidePanelModelState();
+  } else {
+    final.setModelState({
+      cacheState: "absent",
+      modelId: LOCAL_MODEL_MANIFEST.modelId,
+      sizeBytes: LOCAL_MODEL_MANIFEST.totalSizeBytes,
+      lastError: result.message,
+    });
+  }
+  await emitSidePanelState();
+}
+
+// -- side panel keep-alive ----------------------------------------------------
+
+// The side panel holds a runtime Port and pings every 20 s while it is open.
+// Each received message resets the MV3 idle timer, so a flow waiting for the
+// explicit approval (the only long wait) survives Chrome's ~30 s service
+// worker idle termination.
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== SIDEPANEL_KEEPALIVE_PORT) return;
+  port.onMessage.addListener((msg: unknown) => {
+    if ((msg as { type?: unknown } | undefined)?.type === "sidepanel_ping") {
+      port.postMessage({ type: "sidepanel_pong" });
+    }
+  });
+});

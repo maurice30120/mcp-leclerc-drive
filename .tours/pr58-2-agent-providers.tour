@@ -1,0 +1,154 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "PR #58 · 2/5 — Agent & providers (@leclerc/agent, ADR-0012)",
+  "description": "Deuxième des cinq tours couvrant la PR #58 (tickets #44, #47, #48, #49, #52).\n\nCe tour couvre `@leclerc/agent` : le seam `ModelProvider` unique, le garde-fou d'approbation, le moteur à exécuteur de tools injectable, le shopping flow déterministe « une recette → un panier » avec reprise, les providers (simulé, Mistral BYOK, WebGPU exclusif), le manifeste et le téléchargement vérifiés du modèle local, et la trace évaluable.\n\nLe package reste pur : utilisable tel quel dans Chrome et dans Node (ADR-0012). Tests vérifiés le 2026-10-18 sur cette branche : 130/130 Vitest verts pour `@leclerc/agent`.\n\nGenerated from the merge-base of `origin/main` (`728d78c84641bbb84d7655d7af5b03eb0543e02f`) to `d2894e340b74d925cd04afa9364cb54cebfd1380`.",
+  "ref": "d2894e340b74d925cd04afa9364cb54cebfd1380",
+  "baseRef": "728d78c84641bbb84d7655d7af5b03eb0543e02f",
+  "steps": [
+    {
+      "title": "Vue d'ensemble — l'agent commun Chrome/Node",
+      "description": "`@leclerc/agent` porte la tranche verticale « une recette → un panier » : le modèle est utilisé exactement une fois par tentative de recette (plus au plus une réparation guidée), et tout le reste est du code déterministe — recherches, correspondance, quantités, approbation, mutations.\n\nLe principe directeur (ADR-0012) : l'orchestrateur ne connaît que l'interface `ModelProvider` ; aucun repli CPU/WASM, aucune bascule cloud implicite — un provider local indisposable lève un diagnostic et, au maximum, une proposition Mistral à consentement explicite.\n\n**Diagram — Déroulé du shopping flow**\n\n```mermaid\nsequenceDiagram\n  participant U as Utilisateur\n  participant F as Shopping flow (code)\n  participant M as ModelProvider\n  participant X as ToolExecutor (capacités)\n  participant G as ApprovalGate\n  U->>F: demande (message, convives, exclusions)\n  F->>M: prompt figé (temp 0, seed 0)\n  M-->>F: recette JSON\n  F->>F: parse strict + au plus 1 réparation\n  F->>X: search_product (déterministe)\n  F->>G: preview → approbation globale\n  G-->>U: décision — jamais automatique\n  F->>X: add_to_cart séquentiels (après approbation)\n  X-->>F: gap report + objet de reprise\n```"
+    },
+    {
+      "title": "Où se trouve l'agent",
+      "description": "Le package s'organise en trois couches : le seam (`provider.ts`, `prompts.ts`), l'orchestration (`engine.ts`, `shopping-flow.ts`, `approval.ts`, `trace.ts`) et les providers (`providers/`), plus le socle modèle local (`model-manifest.ts`, `model-download.ts`, `cache-store.ts`, `byok.ts`).\n\nAucun module ne référence `chrome.*`, `window` ou `node:*` : le câblage concret (fetch, stockage, WebGPU réel) est injecté par l'appelant — Chrome côté extension, Node côté harnais.",
+      "directory": "packages/agent"
+    },
+    {
+      "title": "Le seam ModelProvider",
+      "description": "L'interface unique derrière laquelle vivent les quatre configurations attendues par le cahier des charges : Mistral BYOK, petit modèle de base, le même après LoRA, et un modèle simulé pour les tests.\n\n`generate` reçoit messages, tools, température, seed et `AbortSignal` ; la réponse porte texte, tool calls, `finishReason` et usage. Les outils sont annoncés via `ProviderToolSpec` projeté depuis le registre des contrats (tour 1) — le drapeau `mutation` laisse chaque provider décrire la politique d'approbation.",
+      "questions": [
+        "Pourquoi le seam interdit-il tout choix implicite de provider ?"
+      ],
+      "file": "packages/agent/src/provider.ts",
+      "pattern": "export interface ModelProvider",
+      "display": "diff"
+    },
+    {
+      "title": "ProviderUnavailableError : diagnostic, pas de repli",
+      "description": "Quand un provider existe mais ne peut pas tourner ici (WebGPU indisponible, création de session échouée), il lève cette erreur typée : diagnostic français + proposition alternative.\n\nLa `ProviderProposal` est de la donnée pure (`consentRequired: true` structurellement) : jamais instanciée, jamais appelée — l'utilisateur doit consentir explicitement. C'est le scénario A10 du harnais (tour 3).",
+      "file": "packages/agent/src/provider.ts",
+      "pattern": "export class ProviderUnavailableError",
+      "display": "diff"
+    },
+    {
+      "title": "Prompt figé et paramètres épinglés",
+      "description": "`RECIPE_SYSTEM_PROMPT` est gelé et versionné par `PROMPT_VERSION` : la comparaison fine-tuning (fixture F01, tour 5) rejouera des entrées identiques à l'octet près. Le prompt enseigne exactement les règles que `parseRecipeText` impose (JSON nu, allowlist, unités contrôlées, zéro identifiant produit).\n\n`GENERATION_PARAMS` épingle température 0, seed 0, maxTokens 1024 pour la génération de recette et chaque appel déterministe du flow.",
+      "file": "packages/agent/src/prompts.ts",
+      "pattern": "export const PROMPT_VERSION",
+      "display": "diff"
+    },
+    {
+      "title": "Le garde-fou d'approbation : la seule porte des mutations",
+      "description": "L'`ApprovalGate` porte UNE décision globale par run, jamais automatique : le flow injecte un handler (événement de scénario côté harnais, callback UI côté extension) que la gate consulte avant toute mutation.\n\nLa payload soumise est le `CartPreview` complet — la liste intégrale des mutations prévues, approuvée ou refusée en bloc. Chaque ligne porte `matchScore` et `note` pour l'auditabilité. Un run de reprise utilise une NOUVELLE gate : l'approbation précédente ne survit jamais.\n\nLe module définit aussi la clarification : quand la règle de correspondance ne sait pas décider seule, une question à candidats ordonnés remonte au handler injecté (réponse ou saut).",
+      "questions": [
+        "Pourquoi l'approbation est-elle globale plutôt que ligne par ligne ?",
+        "Que se passe-t-il si aucun handler de clarification n'est injecté ?"
+      ],
+      "file": "packages/agent/src/approval.ts",
+      "pattern": "export class ApprovalGate",
+      "display": "diff"
+    },
+    {
+      "title": "ToolExecutor : l'ordre d'application des garde-fous",
+      "description": "L'exécuteur attache chaque exécution concrète à son contrat du registre (`bindingFromContract` hérite du nom, du `kind`, du schéma et du `validateInput`). L'ordre d'application dans `call` est fixe : lookup (`UNKNOWN_CAPABILITY`), `validateInput` du registre, garde d'approbation pour les mutations, puis exécution.\n\nUne mutation non approuvée n'est JAMAIS exécutée : elle trace un `safety_block` et remonte au modèle un `APPROVAL_REQUIRED` typé. Toute exception de l'exécution est normalisée en `CAPABILITY_FAILED`.",
+      "file": "packages/agent/src/engine.ts",
+      "pattern": "binding.mutation && !this.gate.isApproved",
+      "display": "diff"
+    },
+    {
+      "title": "La boucle générique de tool calling",
+      "description": "`runToolLoop` est la facilité générique pilotée par le modèle : générer, exécuter les tool calls demandés via l'exécuteur, réinjecter les résultats typés, jusqu'à l'arrêt ou une limite propre.\n\nLes statuts sont explicites : `completed`, `cancelled` (AbortSignal), `limits_exceeded` (12 tours / 32 appels par défaut), `provider_error`. Ce loop n'est PAS utilisé par le premier parcours de la tranche — le shopping flow reste déterministe — mais il constitue la base du POC tool calling (#47).",
+      "file": "packages/agent/src/engine.ts",
+      "pattern": "export async function runToolLoop",
+      "display": "diff"
+    },
+    {
+      "title": "runShoppingFlow : la tranche verticale",
+      "description": "Le pipeline complet : génération (prompt figé), parse strict, au plus une réparation guidée, contrôle des convives et des exclusions (sinon `recipe_invalid`, zéro mutation), demandes produits déterministes, `search_product` par ingrédient, correspondance explicite, règle ceil des conditionnements, preview, approbation globale, puis — seulement après approbation — les `add_to_cart` séquentiels.\n\nLe statut de sortie est typé (`completed`, `refused`, `recipe_invalid`, `provider_unavailable`, `partial_failure`, `cancelled`, `limits_exceeded`) et le résultat embarque trace, preview, issues, gap report et objet de reprise.",
+      "file": "packages/agent/src/shopping-flow.ts",
+      "pattern": "export async function runShoppingFlow",
+      "display": "diff"
+    },
+    {
+      "title": "La règle de correspondance explicite",
+      "description": "Le score d'un produit pour un ingrédient = nombre de tokens significatifs de l'ingrédient trouvés dans son libellé (tokenisation insensible aux accents, stopwords français). Seuls les produits disponibles et de score ≥ 1 sont candidats.\n\nLes égalités se départagent par id produit croissant (ordre déterministe) ; une égalité persistante devient `ambiguous` et remonte en question de clarification. Ce score est consigné dans chaque ligne du preview (`matchScore`) — la décision est auditable, jamais une boîte noire.",
+      "file": "packages/agent/src/shopping-flow.ts",
+      "pattern": "function matchIngredient",
+      "display": "diff"
+    },
+    {
+      "title": "La règle ceil des conditionnements",
+      "description": "Règle documentée : la quantité d'achat est le nombre de conditionnements nécessaires pour couvrir la quantité de l'ingrédient — `ceil(quantité en unité de base / conditionnement en unité de base)`, minimum 1.\n\nElle ne s'applique que quand l'unité de l'ingrédient et celle du conditionnement appartiennent à la même famille (masse, volume, compte). Conditionnement manquant, non exploitable ou incompatible : défaut EXPLICITE de 1 unité, rapporté comme issue `packaging_default` — jamais une quantité inventée.",
+      "questions": [
+        "Pourquoi un défaut explicite plutôt qu'un échec sur conditionnement inconnu ?"
+      ],
+      "file": "packages/agent/src/shopping-flow.ts",
+      "pattern": "export function purchaseQuantity",
+      "display": "diff"
+    },
+    {
+      "title": "Mutations séquentielles : arrêt au premier échec",
+      "description": "Chaque ligne est ajoutée une à une via l'exécuteur (source `deterministic`, budget d'appels appliqué). Le PREMIER échec arrête le run : les lignes restantes deviennent `notAttempted`, le panier est relu, et le `GapReport` (applied / failed / notAttempt) sort avec un objet `ShoppingFlowResume`.\n\nL'annulation coopérative (AbortSignal) et l'épuisement du budget sont gérés aux mêmes endroits — aucun état partiel implicite.",
+      "file": "packages/agent/src/shopping-flow.ts",
+      "pattern": "async function runMutations",
+      "display": "diff"
+    },
+    {
+      "title": "resumeShoppingFlow : approbation fraîche obligatoire",
+      "description": "La reprise complète les mutations restantes d'un run interrompu, à partir de l'objet `ShoppingFlowResume` produit par le gap report. La gate est reconstruite neuve : une NOUVELLE approbation globale est toujours exigée, la précédente ne se reporte jamais.\n\nLes lignes appliquées et l'échec initial sont cumulés dans le nouveau gap report, si bien qu'une reprise elle-même interromue produit son propre objet de reprise.",
+      "file": "packages/agent/src/shopping-flow.ts",
+      "pattern": "export async function resumeShoppingFlow",
+      "display": "diff"
+    },
+    {
+      "title": "Le provider simulé : déterminisme pour la CI",
+      "description": "Réponses scriptées à l'avance, consommées dans l'ordre à chaque `generate()` ; un script épuisé termine proprement la conversation. C'est lui qui fait tourner tous les scénarios du harnais hors ligne en CI (tour 3).\n\nLe compteur `calls` est asserté par les scénarios de sûreté — par exemple pour prouver qu'un provider indisponible ne déclenche aucun appel supplémentaire.",
+      "file": "packages/agent/src/providers/simulated.ts",
+      "pattern": "export class SimulatedProvider",
+      "display": "diff"
+    },
+    {
+      "title": "Mistral BYOK : clé jamais loguée, sélection explicite",
+      "description": "Le provider ne parle à l'API Mistral qu'avec une clé fournie par l'utilisateur. Le module n'exporte qu'une factory : aucun chemin de code ne le construit ou ne l'appelle implicitement, et un échec ne bascule jamais vers un autre provider.\n\nHygiène de clé : conservée en closure, jamais loguée, scrubée de tout texte d'erreur (401, 429, réseau, statut inattendu) via `redact`. Le `fetchImpl` injecté garde le module pur et les tests hors ligne ; le stockage de la clé passe par le seam `SecretStore` (`byok.ts`) — `chrome.storage.local` câblé dans l'extension (tour 4), jamais `storage.sync`.",
+      "file": "packages/agent/src/providers/mistral.ts",
+      "pattern": "export class MistralByokProvider",
+      "display": "diff"
+    },
+    {
+      "title": "WebGPU exclusif : pas de repli CPU/WASM",
+      "description": "Le modèle local tourne sur WebGPU ou ne tourne pas : le device passé à la factory de pipeline est le littéral `\"webgpu\"`, non surchargeable — aucun chemin WASM n'existe dans ce module.\n\nLa disponibilité est vérifiée au premier `generate` (jamais à l'import) par une sonde injectable qui doit prouver une création de session réelle (requête d'adapter), au-delà de la présence de `navigator.gpu`. Échec → `ProviderUnavailableError` avec diagnostic français et proposition Mistral consentie — jamais d'appel automatique (scénario A10).",
+      "file": "packages/agent/src/providers/webgpu.ts",
+      "pattern": "export class WebGpuProvider",
+      "display": "diff"
+    },
+    {
+      "title": "Manifeste de modèle : l'ancre de confiance",
+      "description": "Le manifeste décrit tout ce qu'il faut pour télécharger et vérifier une révision de modèle local avant tout chargement : id, révision, liste de fichiers avec tailles exactes et sha256, dtype, provenance d'entraînement, licence, URL source Hugging Face.\n\n`MANIFEST_FORMAT_VERSION` épingle le schéma : un manifeste de version inconnue est rejeté, jamais deviné. Aucun poids ne vit dans le paquet d'extension publié — les poids sont des données, téléchargées au premier usage avec consentement (ticket #52).",
+      "file": "packages/agent/src/model-manifest.ts",
+      "pattern": "export function validateModelManifest",
+      "display": "diff"
+    },
+    {
+      "title": "Téléchargement opt-in, vérifié, atomique",
+      "description": "`downloadModel` ne télécharge chaque fichier que depuis `sourceUrl + path` du manifeste, vérifie taille exacte et sha256, et commet l'ensemble au `ModelCacheStore` en UN seul `put` atomique : tout échec (consentement refusé, abort, erreur de transport, erreur de vérification) laisse le cache intact.\n\nRien n'est téléchargé avant que le callback `consent` injecté résolve true ; un hit de cache court-circuite avant même le consentement (exécution hors ligne = le but). Transport (`fetchImpl`) et digeste (`hashBytes`) injectés — zéro `fetch` global dans le package.",
+      "file": "packages/agent/src/model-download.ts",
+      "pattern": "export async function downloadModel",
+      "display": "diff"
+    },
+    {
+      "title": "La trace évaluable",
+      "description": "Chaque run produit un flux d'événements horodatés : message utilisateur, texte du modèle (avec durée), appels d'outils avec leur source `model` ou `deterministic`, résultats, tentative de réparation, requête et décision d'approbation, safety blocks, clarifications, erreurs explicites.\n\nC'est sur ce flux que le harnais asserte les invariants de scénarios — notamment « zéro mutation avant la décision d'approbation » (tour 3).",
+      "file": "packages/agent/src/trace.ts",
+      "pattern": "export class TraceBuilder",
+      "display": "diff"
+    },
+    {
+      "title": "ADR-0012 : orchestration déterministe en premier parcours",
+      "description": "L'ADR verrouille quatre décisions : orchestrateur aveugle aux providers ; premier parcours = orchestration déterministe des recherches (jamais qualifié de « tool calling réussi ») ; branchement Vercel AI SDK différé au POC #47 ; aucun repli CPU/WASM ni bascule cloud implicite.\n\nLes gates sont bloquantes : aucun travail de fine-tuning ne démarre avant la conclusion du POC (tour 5).",
+      "file": "docs/adr/0012-modelprovider-orchestration-deterministe.md",
+      "pattern": "^# 0012",
+      "display": "diff"
+    }
+  ]
+}

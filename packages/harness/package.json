@@ -1,0 +1,37 @@
+{
+  "name": "@leclerc/harness",
+  "version": "0.1.0",
+  "description": "Deterministic in-memory mock environment for the nine Leclerc capabilities: versioned fixtures, mock drive/catalogue/cart state, tool-level fault injection. Node-only.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "leclerc-campaign": "./dist/campaign/cli.js"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "campaign": "node dist/campaign/cli.js",
+    "campaign:mistral": "node dist/campaign/cli.js --provider mistral",
+    "campaign:webgpu": "node dist/poc/run-local.js"
+  },
+  "dependencies": {
+    "@leclerc/contracts": "*",
+    "@leclerc/agent": "*",
+    "@huggingface/transformers": "^4.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assistant courses Leclerc</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header id="topbar">
+    <h1>Assistant courses Leclerc</h1>
+    <div id="phase-chip" data-phase="idle">Prêt</div>
+  </header>
+
+  <main id="thread" aria-live="polite"></main>
+
+  <div id="resume-bar" hidden>
+    <button id="resume-btn">Reprendre le parcours restant</button>
+  </div>
+
+  <form id="composer">
+    <textarea id="message" rows="2"
+      placeholder="Ex. : un poulet au curry pour 4, sans crème"></textarea>
+    <div class="composer-row">
+      <label for="servings">Convives</label>
+      <input id="servings" type="number" min="1" step="1" value="4">
+      <label for="exclusions">Exclusions</label>
+      <input id="exclusions" type="text" placeholder="crème, … (optionnel)">
+    </div>
+    <div class="composer-actions">
+      <button type="submit" id="send-btn">Envoyer</button>
+    </div>
+  </form>
+
+  <details id="settings">
+    <summary>Réglages</summary>
+
+    <section>
+      <h2>Fournisseur actif</h2>
+      <label class="provider-option">
+        <input type="radio" name="provider" value="simulated">
+        Scénario simulé — démo hors ligne, aucun réseau
+      </label>
+      <label class="provider-option">
+        <input type="radio" name="provider" value="webgpu">
+        Modèle local (WebGPU, exclusif — aucun repli CPU/WASM)
+      </label>
+      <label class="provider-option">
+        <input type="radio" name="provider" value="mistral">
+        Mistral (clé personnelle)
+      </label>
+      <p id="provider-note">La sélection est explicite : aucun fournisseur n'est choisi ni remplacé automatiquement.</p>
+    </section>
+
+    <section>
+      <h2>Clé Mistral</h2>
+      <p class="hint">La clé reste en mémoire de session et n'est jamais affichée en retour.</p>
+      <div class="row">
+        <input id="mistral-key" type="password" autocomplete="off" placeholder="Clé API Mistral">
+        <button id="mistral-set">Enregistrer</button>
+        <button id="mistral-delete">Supprimer</button>
+      </div>
+      <p id="mistral-status"></p>
+    </section>
+
+    <section>
+      <h2>Modèle local</h2>
+      <p id="model-status">État inconnu.</p>
+      <div class="row">
+        <button id="model-download">Télécharger le modèle (consentement explicite)</button>
+        <button id="model-clear">Vider le cache</button>
+      </div>
+      <p class="hint">Télécharger récupère les fichiers déclarés par le manifeste vérifié depuis huggingface.co — uniquement après ton clic.</p>
+    </section>
+
+    <section>
+      <h2>Session</h2>
+      <p class="hint">La conversation est conservée en mémoire pendant la session uniquement : rien ne survit à la fermeture du navigateur.</p>
+      <button id="reset-btn">Réinitialiser la conversation</button>
+    </section>
+  </details>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

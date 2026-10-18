@@ -1,0 +1,26 @@
+{
+  "name": "@leclerc/contracts",
+  "version": "0.1.0",
+  "description": "Pure domain types, capability contracts and versioned schemas shared by the Chrome extension and the Node harness. No browser, Node, MCP or model-library dependencies.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.5"
+  }
+}

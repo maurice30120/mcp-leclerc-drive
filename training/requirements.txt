@@ -1,0 +1,23 @@
+# Toolchain Python du pipeline d'entraînement isolé (spec #40, tickets #53-#55).
+#
+# ATTENTION — versions INDICATIVES, à valider sur le Mac de référence
+# (Apple Silicon) AVANT toute installation : aucun `pip install` n'a été
+# exécuté pendant la rédaction de ce fichier, et les versions réellement
+# disponibles doivent être vérifiées puis re-épinglées :
+#   pip index versions <paquet>
+# Les incompatibilités mlx / mlx-lm / transformers / optimum sont fréquentes
+# entre mineures : valider l'ensemble, pas paquet par paquet.
+
+# MLX (Apple Silicon uniquement) + MLX-LM : entraînement LoRA, fusion, génération.
+mlx==0.26.0
+mlx-lm==0.20.6
+
+# Audit du dataset (ticket #53) : chargement + métadonnées Hugging Face vérifiables.
+datasets==3.6.0
+huggingface_hub==0.33.0
+
+# Chaîne d'export (ticket #55) : fusion vers format HF, export ONNX, quantification.
+transformers==4.53.2
+optimum==1.24.0
+onnx==1.18.0
+onnxruntime==1.22.0
