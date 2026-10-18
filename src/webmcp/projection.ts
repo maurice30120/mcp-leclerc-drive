@@ -70,6 +70,16 @@ const EXTERNAL_ONLY_PROPERTIES: Readonly<
   },
 };
 
+/**
+ * External WebMCP property name for a contract property of the given
+ * capability (identity when the projection performs no rename). Single
+ * source of the frozen external naming — inject.ts's set_store executor
+ * consumes it to translate external (WebMCP) args back to contract form.
+ */
+export function externalPropertyName(capabilityName: string, contractProperty: string): string {
+  return EXTERNAL_PROPERTY_RENAMES[capabilityName]?.[contractProperty] ?? contractProperty;
+}
+
 // ---- annotations ------------------------------------------------------------
 
 /** Tools whose output carries Leclerc catalogue content (untrusted for models). */

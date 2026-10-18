@@ -41,9 +41,11 @@ Two layers matter:
    purpose: no `fetch`, no Node, no storage — so it can be unit-tested in
    isolation and bundled into the extension.
 
-`api.ts` must stay fetch-free and Node-free. The only place that calls `fetch`
-is `inject.ts`, and it uses the page's own fetch (cookies, DataDome, fingerprint
-all authentic).
+`api.ts` must stay fetch-free and Node-free. On the Leclerc tool surface, the
+only place that calls `fetch` is `inject.ts`, and it uses the page's own fetch
+(cookies, DataDome, fingerprint all authentic). The agent surface (side panel,
+`background.ts`) has its own authorized fetches — Mistral BYOK and the opt-in
+HF model download — scoped in the ADR-0002 amendment.
 
 ## Dev setup
 
@@ -133,7 +135,9 @@ replay cookies manually — DataDome is handled by the browser.
 
 - TypeScript, ESM, `strict` mode. Match the style of the surrounding code.
 - `api.ts` stays pure — no `fetch`, no Node/browser-only globals beyond standard
-  JS. Submit fetch/navigation/storage code in `extension/inject.ts`.
+  JS. Leclerc fetch/navigation/storage code goes in `extension/inject.ts`; the
+  agent-surface fetches authorized by the ADR-0002 amendment (Mistral BYOK,
+  opt-in HF model download) live in `extension/background.ts`.
 - Comments in English so the project stays broadly contributable.
 - Run `npm run typecheck`, `npm test`, and `npm run build:extension` before pushing.
 

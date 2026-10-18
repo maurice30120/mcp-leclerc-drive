@@ -77,7 +77,11 @@ import {
 } from "../src/orchestrator/messages.js";
 
 import { CAPABILITIES } from "@leclerc/contracts";
-import { projectWebmcpTool } from "../src/webmcp/projection.js";
+import { externalPropertyName, projectWebmcpTool } from "../src/webmcp/projection.js";
+
+// External set_store argument key, sourced from the WebMCP projection
+// (single source of the contract storeId -> external store_id rename).
+const SET_STORE_STORE_ID_KEY = externalPropertyName("set_store", "storeId");
 
 // ---- The 9 capability executors (descriptors are projected) ---------------
 //
@@ -137,15 +141,16 @@ const capabilityExecutors: Record<string, (args: unknown) => Promise<ToolTextRes
 
   set_store: async (args) => {
     try {
-      const a = args as { store_id: string; host?: string };
+      const a = args as { host?: string } & Record<string, string | undefined>;
+      const storeId = String(a[SET_STORE_STORE_ID_KEY]);
       const cache = (window as unknown as { __leclercFoundStores?: ActiveStore[] })
         .__leclercFoundStores;
-      const found = cache?.find((s) => s.storeId === a.store_id);
+      const found = cache?.find((s) => s.storeId === storeId);
       const host = found?.host ?? a.host;
       if (!host) {
         return asError(
           new Error(
-            `Magasin ${a.store_id} inconnu. Lance d'abord find_stores, puis set_store avec un ` +
+            `Magasin ${storeId} inconnu. Lance d'abord find_stores, puis set_store avec un ` +
               `id de la liste (ou fournis le paramètre host).`,
           ),
         );
@@ -154,8 +159,8 @@ const capabilityExecutors: Record<string, (args: unknown) => Promise<ToolTextRes
         return asError(new Error(`Host refusé (non-Leclerc) : ${host}`));
       }
       const selection: ActiveStore = {
-        storeId: a.store_id,
-        noPR: found?.noPR ?? a.store_id,
+        storeId,
+        noPR: found?.noPR ?? storeId,
         host,
         name: found?.name,
         serviceType: found?.serviceType,

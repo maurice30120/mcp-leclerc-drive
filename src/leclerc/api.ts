@@ -385,9 +385,28 @@ export function hostOf(url: string | undefined): string {
   }
 }
 
+/** Registrable Leclerc Drive domain — the single source of every host check. */
+export const LECLERC_DOMAIN = "leclercdrive.fr";
+
+/**
+ * True iff host is any Leclerc Drive domain host (leclercdrive.fr itself or a
+ * subdomain). Broader than isLeclercHost: tab/relay routing must accept every
+ * Leclerc page (www, courses, fdN-courses…), while tool fetches keep the
+ * stricter fdN-courses SSRF gate (ADR-0004).
+ */
+export function isLeclercDomainHost(host: string): boolean {
+  const lower = host.toLowerCase();
+  return lower === LECLERC_DOMAIN || lower.endsWith("." + LECLERC_DOMAIN);
+}
+
+const LECLERC_HOST_PATTERN = new RegExp(
+  `^fd\\d+-courses\\.${LECLERC_DOMAIN.replace(/\./g, "\\.")}$`,
+  "i",
+);
+
 /** True iff host is a Leclerc Drive backend (the fdN-courses.leclercdrive.fr shape). */
 export function isLeclercHost(host: string): boolean {
-  return /^fd\d+-courses\.leclercdrive\.fr$/i.test(host);
+  return LECLERC_HOST_PATTERN.test(host);
 }
 
 export interface NearbyResponse {

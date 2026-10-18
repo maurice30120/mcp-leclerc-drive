@@ -78,6 +78,19 @@ en CI, jamais exécuté implicitement.
 | Cache / quotas (téléchargement interrompu, checksum invalide, quota de stockage) | Erreur explicite ; le cache reste inchangé (commit atomique, pas d'entrée partielle) ; reprise possible après accord — pas de modèle à moitié chargé, pas de repli silencieux. | Tests `@leclerc/agent` (manifeste, cache, téléchargement) ; `packages/agent/src/model-download.ts`, `cache-store.ts`. |
 | DataDome / session (403, session expirée) | Erreur explicite (`SESSION_EXPIRED` / consigne de recharger l'onglet) ; aucune extraction de cookie, aucun contournement ; l'utilisateur recharge l'onglet et réessaie. | `docs/testing/webmcp-opt-in.md` ; README (« If you hit a 403 (DataDome) »). |
 
+## Écarts connus
+
+Écart signalé le 2026-10-18 (revue PR #58, spécification #40) : le nouveau
+chemin agent / panneau latéral est **WebGPU-exclusif** — aucun repli
+CPU/WASM n'existe (A10 : sonde défaillante → erreur explicite, modèle non
+lancé). L'orchestrateur **popup historique** conserve lui son comportement
+préexistant dans `extension/background.ts` : `wasm` par défaut, `webgpu`
+seulement en cas de flag de stockage manuel. Cette contradiction est
+documentée et assumée — pas de changement du comportement popup sans
+décision explicite : son remplacement par le panneau latéral est la direction
+fixée par la spécification (issue #40), et le découpage du service worker
+qui séparera les deux chemins est suivi par le ticket #59.
+
 ## Plan de tests multi-OS
 
 - **macOS (machine de développement) : priorité pédagogique.** La suite

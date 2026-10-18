@@ -199,6 +199,12 @@ Chrome → client externe), voir
 réelles restent opt-in et documentées dans [`docs/poc/`](docs/poc/) et
 [`docs/testing/`](docs/testing/).
 
+Écart connu (agent vs popup) : le chemin agent/panneau latéral est
+WebGPU-exclusif (aucun repli CPU/WASM, A10) ; le popup historique garde son
+défaut WASM préexistant — remplacé par le panneau latéral selon la
+spécification #40 (voir « Écarts connus » dans
+`docs/portability-matrix.md`, ticket #59).
+
 ## Architecture
 
 ```
