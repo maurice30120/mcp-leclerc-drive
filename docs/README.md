@@ -7,6 +7,9 @@ en première passe.
 | --- | --- |
 | [../README.md](../README.md) | Pitch du projet, install, les 9 outils en un coup d'œil — commencer ici. |
 | [architecture.md](architecture.md) | Forme du runtime WebMCP : extension, relay, MVP-B, flux de données, couches. |
+| [../GLOSSARY.md](../GLOSSARY.md) | Vocabulaire métier du catalogue, de la bibliothèque personnelle et des recettes. |
+| [specs/universal-recipe-library.md](specs/universal-recipe-library.md) | Spécification de la bibliothèque universelle de recettes et du calcul des ingrédients pour les courses. |
+| [specs/universal-recipe-library-tickets.md](specs/universal-recipe-library-tickets.md) | 33 tickets publiés sur GitHub avec critères d’acceptation et graphe des dépendances pour le travail en parallèle. |
 | [tools.md](tools.md) | Référence des 9 outils MCP : contrats, entrées, comportement, annotations. |
 | [security.md](security.md) | Modèle de menaces : frontières de confiance, fermeture SSRF, durcissement anti-injection de prompt, permissions. |
 | [api-capture.md](api-capture.md) | L'API HTTP Leclerc Drive reverse-enginé (à lire avant de toucher `src/leclerc/api.ts`). |
@@ -20,7 +23,7 @@ en première passe.
 flowchart TD
     Client["opencode / Claude Code<br/>(client stdio)"]
     Relay["@mcp-b/webmcp-local-relay<br/>Node local, 127.0.0.1:9333<br/>--widget-origin bloqué sur Leclerc"]
-    Ext["Extension Chrome MV3<br/>background.ts injecte [inject.js, embed.js]<br/>dans l'onglet (MAIN world)"]
+    Ext["Extension Chrome MV3<br/>background.ts injecte inject.js,<br/>attend WebMCP, puis embed.js"]
     Tab["Onglet Leclerc Drive (connecté)<br/>inject.ts enregistre 9 outils sur<br/>document.modelContext<br/>fetch = le propre fetch de la page<br/>(cookies + datadome authentiques)"]
 
     Client -->|JSON-RPC sur stdio| Relay

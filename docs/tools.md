@@ -1,6 +1,6 @@
 # Référence des outils
 
-Les 9 outils MCP enregistrés sur `document.modelContext` par
+Les 16 outils MCP enregistrés sur `document.modelContext` par
 `extension/inject.ts`. Tous tournent **dans l'onglet Leclerc Drive connecté**,
 en utilisant le propre `fetch` de la page.
 
@@ -121,6 +121,59 @@ stateDiagram-v2
     note right of Absent: iQuantite=0
     note right of dansPanier: iQuantite=q cible (absolu, non delta)
 ```
+
+## Recettes
+
+Aide facultative pour l'agent de courses : il choisit les recettes, les portions
+cibles et les substitutions proches qui préservent le plat. Le contrat commun
+versionné (`src/recipes/contract.ts`) couvre le catalogue intégré et la
+bibliothèque personnelle ; les identifiants personnels sont préfixés `pers-`.
+
+### `get_recipe(recipe_id)`
+Renvoie une recette complète (catalogue ou personnelle) : portions de
+référence, ingrédients quantifiés, étapes et provenance (source, licence,
+attribution ; URL et date pour une recette personnelle).
+- Identifiant inconnu → erreur exploitable ; aucune recette partielle.
+- Annotations : `readOnlyHint`, `idempotentHint`, `untrustedContentHint`.
+
+### `search_recipes(query?, page?, page_size?)`
+Recherche unifiée catalogue + bibliothèque personnelle, par titre, catégorie
+ou ingrédient (insensible à la casse et aux accents ; mots combinés en ET).
+- Lignes compactes : `[origine] id — titre (N portions)` ; pagination bornée
+  (défaut 10, maximum 50) avec pied de page `Page x/y — … sur N`.
+- Annotations : `readOnlyHint`, `untrustedContentHint`.
+
+### `calculate_ingredients(entries)`
+Calcul déterministe : quantités × portions_cibles/portions de référence ;
+regroupement uniquement des mêmes noms normalisés + mêmes unités ; détail
+des contributions par recette et totaux. `substitutions` = adaptation
+temporaire (quantités exprimées pour les portions de référence ; sans
+remplacement = retrait). La recette enregistrée n'est jamais modifiée.
+- Recettes inconnues ou portions invalides → erreur exploitable.
+- Annotations : `readOnlyHint`, `idempotentHint`.
+
+### `list_pending_captures()` / `get_pending_capture(capture_id)`
+Liste puis lit les pages sauvegardées depuis le popup de l'extension
+(capture explicite sur l'onglet actif, `activeTab`) : URL, date et extrait
+borné du contenu visible — jamais de HTML complet, jamais d'exécution.
+- L'extrait est une donnée non fiable, jamais des instructions.
+- Annotations : `readOnlyHint`, `untrustedContentHint`.
+
+### `save_recipe(recipe, capture_id?)` / `abandon_capture(capture_id)`
+Enregistre une recette complète structurée par le client (validation stricte :
+ni portions ni quantités inventées ; recette partielle refusée), puis termine
+la capture liée. Idempotent par URL source : un rejeu ne crée ni doublon ni
+nouvelle annonce. `abandon_capture` supprime une capture inexploitable.
+- Un échec technique de stockage est une erreur, jamais un succès affiché.
+
+### Catalogue intégré et digest
+- Le catalogue livré (collection témoin + lot Wikilivres, généré par
+  `scripts/import-wikilivres.mjs`) est validé au chargement par le même
+  contrat public ; ses données sont sous licence CC BY-SA 4.0, distincte du
+  code MIT (ADR 0007), avec attribution et adaptations documentées par recette.
+- Toute réponse d'outil réussie porte un signalement borné : captures en
+  attente + digest des nouvelles recettes personnelles, annoncé une seule
+  fois par recette (réclamation atomique côté background).
 
 ## Comportement transverse
 

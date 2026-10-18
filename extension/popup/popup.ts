@@ -31,6 +31,10 @@ import {
   DEFAULT_MODEL_ID,
   findModel,
 } from "../../src/orchestrator/models.js";
+import {
+  BYOK_PROVIDERS,
+  findByokProvider,
+} from "../../src/orchestrator/byok.js";
 import type { Product } from "../../src/types.js";
 import {
   addToCartCallsForSelections,
@@ -58,8 +62,128 @@ const resultsEl = $<HTMLUListElement>("results");
 const debugSection = $<HTMLElement>("debug-section");
 const debugOutput = $<HTMLPreElement>("debug-output");
 const openLeclerc = $<HTMLAnchorElement>("open-leclerc");
+const captureBtn = $<HTMLButtonElement>("capture-btn");
+const captureStatus = $<HTMLParagraphElement>("capture-status");
 const modelSelect = $<HTMLSelectElement>("model-select");
 const webgpuCheckbox = $<HTMLInputElement>("webgpu-checkbox");
+
+// ---- BYOK (bring your own key) — remote provider instead of local model ---
+
+const byokProviderSelect = $<HTMLSelectElement>("byok-provider-select");
+const byokFields = $<HTMLElement>("byok-fields");
+const byokKeyInput = $<HTMLInputElement>("byok-key");
+const byokModelInput = $<HTMLInputElement>("byok-model");
+const byokHelp = $<HTMLParagraphElement>("byok-help");
+const byokStatus = $<HTMLParagraphElement>("byok-status");
+const modelPicker = $<HTMLElement>("model-picker");
+const webgpuToggle = $<HTMLElement>("webgpu-toggle");
+
+/** Same shape the background reads from chrome.storage.local key `byok`. */
+interface ByokStorage {
+  provider?: string;
+  openaiKey?: string;
+  vibeKey?: string;
+  openaiModel?: string;
+  vibeModel?: string;
+}
+
+const LOCAL_OPTION = document.createElement("option");
+LOCAL_OPTION.value = "";
+LOCAL_OPTION.textContent = "Modèle local (défaut)";
+byokProviderSelect.appendChild(LOCAL_OPTION);
+for (const p of BYOK_PROVIDERS) {
+  const opt = document.createElement("option");
+  opt.value = p.id;
+  opt.textContent = p.label;
+  byokProviderSelect.appendChild(opt);
+}
+
+function byokFieldValues(stored: ByokStorage): { key: string; model: string } {
+  const provider = byokProviderSelect.value;
+  if (provider === "openai") {
+    return { key: stored.openaiKey ?? "", model: stored.openaiModel ?? "" };
+  }
+  if (provider === "vibe") {
+    return { key: stored.vibeKey ?? "", model: stored.vibeModel ?? "" };
+  }
+  return { key: "", model: "" };
+}
+
+function renderByokUi(stored: ByokStorage): void {
+  const providerId = byokProviderSelect.value;
+  const provider = findByokProvider(providerId);
+  const remote = provider !== null;
+  byokFields.hidden = !remote;
+  // The local picker + WebGPU toggle are irrelevant on a remote provider.
+  modelPicker.hidden = remote;
+  webgpuToggle.hidden = remote;
+  if (!remote) {
+    setStatus("idle", "modèle local, chargement au lancement");
+    return;
+  }
+  const { key, model } = byokFieldValues(stored);
+  byokKeyInput.value = key;
+  byokKeyInput.placeholder = provider.keyHelp;
+  byokModelInput.value = model;
+  byokModelInput.placeholder = provider.modelHint;
+  byokHelp.textContent =
+    provider.id === "vibe"
+      ? "Clé La Plateforme incluse dans ton forfait Vibe (api.mistral.ai)."
+      : "Clé OpenAI (platform.openai.com/api-keys).";
+  setStatus("idle", `${provider.label}, modèle ${model || provider.modelHint}`);
+}
+
+async function readByokStorage(): Promise<ByokStorage> {
+  const v = (await chrome.storage.local.get("byok")) as { byok?: ByokStorage };
+  return v.byok ?? {};
+}
+
+async function loadByok(): Promise<void> {
+  const stored = await readByokStorage();
+  byokProviderSelect.value = findByokProvider(stored.provider)?.id ?? "";
+  renderByokUi(stored);
+}
+
+/**
+ * Persist the current BYOK form state. Must be called AFTER the fields were
+ * re-rendered for the active provider (a provider switch re-renders first),
+ * otherwise a provider's key would be copied into the other provider's slot.
+ */
+async function persistByok(): Promise<void> {
+  const stored = await readByokStorage();
+  const next: ByokStorage = { ...stored, provider: byokProviderSelect.value };
+  if (next.provider === "openai") {
+    next.openaiKey = byokKeyInput.value.trim();
+    next.openaiModel = byokModelInput.value.trim();
+  } else if (next.provider === "vibe") {
+    next.vibeKey = byokKeyInput.value.trim();
+    next.vibeModel = byokModelInput.value.trim();
+  } else {
+    next.provider = "";
+  }
+  await chrome.storage.local.set({ byok: next });
+  byokStatus.hidden = false;
+  if (next.provider && !byokKeyInput.value.trim()) {
+    byokStatus.className = "error";
+    byokStatus.textContent = "Clé manquante : la planification échouera jusqu'à ce que tu saisisses une clé.";
+  } else {
+    byokStatus.className = "note ok";
+    byokStatus.textContent = next.provider
+      ? "Clé enregistrée localement."
+      : "Modèle local réactivé.";
+  }
+}
+
+byokProviderSelect.addEventListener("change", async () => {
+  // Re-render the fields for the new provider (they show its stored values)
+  // before persisting, so keys never leak across provider slots.
+  await loadByok();
+  await persistByok();
+});
+byokKeyInput.addEventListener("change", () => void persistByok());
+byokModelInput.addEventListener("change", () => void persistByok());
+
+void loadByok();
 
 // ---- extension messaging helpers ------------------------------------------
 
@@ -90,6 +214,13 @@ interface ModelStatusReply {
 }
 
 interface ReloadOffscreenReply extends ReloadOffscreenResultMsg {}
+
+interface SaveCaptureReply {
+  type: "save_capture_result";
+  ok: boolean;
+  capture?: { id: string; url: string; title?: string };
+  error?: string;
+}
 
 // ---- status ----------------------------------------------------------------
 
@@ -484,6 +615,35 @@ function makeTraceId(): string {
 function renderDebug(): void {
   debugSection.hidden = false;
   debugOutput.textContent = JSON.stringify(debugState, null, 2);
+}
+
+// ---- recipe page capture ---------------------------------------------------
+
+captureBtn.addEventListener("click", () => {
+  void onCapture();
+});
+
+async function onCapture(): Promise<void> {
+  captureBtn.disabled = true;
+  captureStatus.hidden = false;
+  captureStatus.className = "note";
+  captureStatus.textContent = "Sauvegarde…";
+  try {
+    const reply = await send<SaveCaptureReply>({ type: "save_capture" });
+    if (reply.ok && reply.capture) {
+      captureStatus.className = "note ok";
+      captureStatus.textContent =
+        `Page capturée : ${reply.capture.title ?? reply.capture.url} ` +
+        `(id ${reply.capture.id}). Elle sera proposée à ton agent MCP.`;
+    } else {
+      captureStatus.className = "error";
+      captureStatus.textContent = reply.error ?? "Échec de la capture.";
+    }
+  } catch (err) {
+    captureStatus.className = "error";
+    captureStatus.textContent = "Échec de la capture : " + (err instanceof Error ? err.message : String(err));
+  }
+  captureBtn.disabled = false;
 }
 
 // ---- footer link -----------------------------------------------------------

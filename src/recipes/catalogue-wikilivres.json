@@ -1,0 +1,3475 @@
+{
+  "$schema": "mcp-leclerc-drive/recipe-catalogue/1",
+  "source": "Wikilivres — Livre de cuisine (https://fr.wikibooks.org/wiki/Livre_de_cuisine)",
+  "licence": "CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/deed.fr)",
+  "notice": "Données de catalogue sous licence CC BY-SA 4.0, distinctes de la licence MIT du code (ADR 0007). Attribution : Contributeurs de Wikilivres — voir l'historique de chaque page. Généré par scripts/import-wikilivres.mjs. Note de livraison : la cible d'environ 500 recettes n'est pas atteinte — seules les pages portant des portions explicites et des quantités lisibles sont retenues ; la spec interdit de compléter artificiellement une recette incomplète.",
+  "recipes": [
+    {
+      "id": "aiga-bolhida",
+      "title": "Aïga bolhida",
+      "servings": 4,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "ail",
+          "quantity": 6,
+          "unit": "gousse"
+        },
+        {
+          "name": "café de sel",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "sauge fraîche",
+          "quantity": 6,
+          "unit": "feuille"
+        },
+        {
+          "name": "brin de thym frais",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "laurier",
+          "quantity": 1,
+          "unit": "feuille"
+        },
+        {
+          "name": "jaune d'œuf",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "fines tranches de pain de campagne un peu rassis",
+          "quantity": 4,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Peler les gousses d'ail et les écraser grossièrement. Verser 1l d'eau dans une casserole, ajouter les gousses d'ail et le sel. Laisser bouillir 10 minutes environ.",
+        "Ajouter les feuilles de :saugesauge, le :thymthym et le :Laurier saucelaurier. Retirer du :feufeu, couvrir et laisser infuser pendant quelques minutes.",
+        "Avec une écumoire, retirer le thym, le laurier et la sauge. Verser le jaune d'œuf dans une soupière bien chaude et verser le bouillon dessus en fouettant vivement.",
+        "Mettre les tranches de pain dans des assiettes creuses et les arroser d'un filet d'huile d'olive. Verser aussitôt le bouillon dessus et donner 1 tour de moulin à poivre. Déguster aussitôt."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FA%C3%AFga_bolhida",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FA%C3%AFga_bolhida?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "anchois-aux-pommes-reinettes",
+      "title": "Anchois aux pommes reinettes",
+      "servings": 6,
+      "category": "accompagnements",
+      "ingredients": [
+        {
+          "name": "belles pommes reinettes",
+          "quantity": 5,
+          "unit": "pièce"
+        },
+        {
+          "name": "filets d'anchois",
+          "quantity": 15,
+          "unit": "pièce"
+        },
+        {
+          "name": "beurre",
+          "quantity": 50,
+          "unit": "g"
+        },
+        {
+          "name": "citron",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Laver et faire dessaler les :anchoisanchois en les faisant tremper quinze minutes dans l'eau froide, les essuyer et retirer l'arête centrale.",
+        "Éplucher les pommes, les couper en quartiers et les débiter en lamelles un peu épaisses.",
+        "Faire chauffer le :beurrebeurre dans une grande poêle ; quand il est à point y verser les pommes, les arroser avec le jus de citron",
+        "Quand les pommes sont dorées, ajouter les filets d'anchois coupés en morceaux, laisser durant quelques minutes les pommes et les anchois s'imprégner mutuellement."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FAnchois_aux_pommes_reinettes",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FAnchois_aux_pommes_reinettes?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "banana-split",
+      "title": "Banana split",
+      "servings": 1,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "banane",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Peler la banane et coupez-la en deux dans le sens de la longueur. Placez-la dans le plat où elle sera servit.",
+        "Disposer trois boules de glace entre les deux morceaux de banane.",
+        "Couvrir le tout avec de la crème chantilly.",
+        "Couvrir le tout avec le(s) nappage(s) de votre choix.",
+        "Saupoudrer des amandes, copeaux, etc."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBanana_split",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBanana_split?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "banane-au-chocolat",
+      "title": "Banane au chocolat",
+      "servings": 1,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "banane",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "carreaux de chocolat",
+          "quantity": 3,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Couper la banane en rondelles, la placer dans un ramequin avec le chocolat.",
+        "Faire chauffer 2 minutes au four micro-ondes.",
+        "Saupoudrer de pignons ou noisettes."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBanane_au_chocolat",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBanane_au_chocolat?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "bananes-et-patates-douces-en-feuilles-de-bananier",
+      "title": "Bananes et patates douces en feuilles de bananier",
+      "servings": 6,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "patates douces",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "name": "bananes à cuire",
+          "quantity": 5,
+          "unit": "pièce"
+        },
+        {
+          "name": "lait de noix de coco",
+          "quantity": 20,
+          "unit": "cl"
+        },
+        {
+          "name": "sucre roux de canne",
+          "quantity": 180,
+          "unit": "g"
+        },
+        {
+          "name": "vanille",
+          "quantity": 1,
+          "unit": "gousse"
+        },
+        {
+          "name": "jus d'ananas",
+          "quantity": 5,
+          "unit": "cl"
+        }
+      ],
+      "steps": [
+        "Mettez à chauffer les patates douces dans une casserole d'eau froide et laissez les cuire pendant 30 minutes comptées à partir du début de l'ébullition.",
+        "Lavez les bananes avec leur peau et faites les cuire 15 minutes directement dans l'eau bouillante.",
+        "Épluchez les bananes bouillies et les patates douces, et récupérez leur pulpe dans un saladier, écrasez-la à la fourchette et incorporez-y le sucre de canne, la moitié du lait de noix de coco, le jus d'ananas et l'intérieur de la gousse de vanille.",
+        "Assouplissez les feuilles de bananier en les passant rapidement au-dessus d'une flamme, et coupez-les en rectangles d'au moins 12 sur 10 cm.",
+        "Déposez une cuiller de la préparation au centre de chaque feuille découpée et refermez en maintenant les extrémités à l'aide des piques.",
+        "Mettez les feuilles préparées au four à 170°c (thermostat 6-7) et laissez les cuire pendant 20 minutes.",
+        "Servez-les avec le lait de noix de coco restant bien frais et accompagnées avec des rondelles de bananes caramélisées."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBananes_et_patates_douces_en_feuilles_de_bananier",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBananes_et_patates_douces_en_feuilles_de_bananier?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "beignets-de-kiwis",
+      "title": "Beignets de kiwis",
+      "servings": 4,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "farine",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "/4 l de crème liquide",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "œuf",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "sel",
+          "quantity": 1,
+          "unit": "pincée"
+        }
+      ],
+      "steps": [
+        "Préparez la pâte : versez la crème liquide dans une jatte et battez-la vivement jusqu'à ce qu'elle gonfle. À part, battez l'œuf entier en omelette et ajoutez-le à la crème ainsi que la farine, le sel et l'arôme. Laissez reposer quelques instants.",
+        "Pendant ce temps, pelez les kiwis avec un petit couteau pointu et coupez-les dans le sens de la largeur en quatre grosses tranches.",
+        "Faites chauffer l'huile de friture à bonne température. Mettez la farine dans une assiette creuse et le sucre dans une autre. Passez chaque kiwis dans le sucre puis dans la farine avant de le tremper dans la pâte. Plongez aussitôt dans l'huile bien chaude jusqu'à ce que la pâte soit bien dorée. Sortez alors les beignets du bain à l'aide d'une écumoire, laissez-les s'égoutter quelques instants sur le papier absorbant, et servez aussitôt."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBeignets_de_kiwis",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBeignets_de_kiwis?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "blaff-de-poissons",
+      "title": "Blaff de poissons",
+      "servings": 4,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "poissons divers",
+          "quantity": 1,
+          "unit": "g"
+        },
+        {
+          "name": "bouquet garni",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "piments",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "gros oignon",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "ail",
+          "quantity": 5,
+          "unit": "gousse"
+        }
+      ],
+      "steps": [
+        "Écaillez et videz les poissons, citronnez les avec 2 citrons et rincez les à l'eau froide. Coupez-les si besoin.",
+        "Faites-les mariner dans un peu d'eau, avec le jus de 3 citrons (limes), du sel et laissez flotter 1 piment des antilles. Laissez reposer au frais pendant 40 minutes environ.",
+        "Épluchez les cives, l'ail et l'oignon. Préparez le bouquet garni ainsi que des feuilles de bois d'Inde. Dans une grosse casserole, versez 1/2 litre d'eau et laissez bouillir.",
+        "Pendant que le poisson cuit, pressez les citrons restant et laissez cuire 15 à 20 minutes à couvert et à feu doux, selon la grosseur des poissons.",
+        "À la fin de la cuisson, versez la préparation précédente."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBlaff_de_poissons",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBlaff_de_poissons?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "blanquette-de-veau",
+      "title": "Blanquette de veau",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "veau assorti (épaule, flanchet, tendron, poitrine)",
+          "quantity": 1,
+          "unit": "kg"
+        },
+        {
+          "name": "champignons de Paris",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "oignons grelot ou deux gros oignons",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "carottes",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "navets",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "poireau",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "ail",
+          "quantity": 2,
+          "unit": "gousse"
+        },
+        {
+          "name": "bouquet garni (persil, thym, laurier)",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "crème fraîche (environ 20 cl)",
+          "quantity": 10,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "vin blanc",
+          "quantity": 50,
+          "unit": "cl"
+        }
+      ],
+      "steps": [
+        "Faire revenir les oignons dans .",
+        "Y ajouter la viande et la faire sans la singer (pas de farine), saler, poivrer.",
+        "Mouiller avec le vin blanc",
+        "Ajouter les légumes et mouiller à l'eau jusqu'à recouvrement de l'ensemble.",
+        "Ajouter l'ail entier écrasé et le bouquet garni, rectifiez l'assaisonnement",
+        "Laisser cuire pendant 2h30 heures à feu doux (1 h 1/4 heure en autocuiseur).",
+        "Pendant la cuisson, nettoyer les champignons (couper la queue sur environ 2 mm).",
+        "Faire revenir les champignons coupés dans du beurre en petite quantité à feu très vif pour éviter une trop forte évaporation, saler et poivrer.",
+        "Faire réduire à feu vif le jus de cuisson de la blanquette, et vérifier la cuisson de la viande qui doit tout juste se détacher en lamelles et ajouter éventuellement une partie du jus de cuisson des champignons, la sauce doit napper la cuillère. sucrez pour rectifier l'acidité. vérifier l'assaisonnement (goûter).",
+        "Dans un , mélanger la crème fraîche et les deux jaunes d'œufs.",
+        "Ajouter ce mélange à la sauce et faites à feu très doux le moins longtemps possible.",
+        "Incorporer les champignons.",
+        "Dresser dans un plat de service la viande et les légumes autour, napper de persil frais.",
+        "Accompagner avec un riz blanc ou pilaf."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBlanquette_de_veau",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBlanquette_de_veau?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "boissons-dore",
+      "title": "Boissons/Doré",
+      "servings": 4,
+      "category": "boissons",
+      "ingredients": [
+        {
+          "name": "yaourt",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "name": "café de sel",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "café de menthe verte séchée et réduite en poudre",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "eau",
+          "quantity": 1,
+          "unit": "l"
+        },
+        {
+          "name": "concombre",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "glaçons",
+          "quantity": 6,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Couper finement le concombre",
+        "Battre le yaourt avec du sel",
+        "Mélanger tous les ingrédients dans un saladier",
+        "Ajouter l'eau et les glaçons"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBoissons%2FDor%C3%A9",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBoissons%2FDor%C3%A9?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "bouchee-a-la-reine",
+      "title": "Bouchée à la reine",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "feuilletés pour bouchée à la reine",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "champignon pour 4 personnes",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "blanc de poulet pour 1 personne",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "quenelle de veau pour 2 personnes",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "ris de veau pour 1 personne",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Préparer la béchamel et la réserver",
+        "Laver les champignons et les couper en petits morceaux",
+        "Faire cuire les champignons à la poêle",
+        "Cuire le blanc de poulet à la poêle et le couper en petits morceaux",
+        "Couper les quenelles en petits morceaux",
+        "Préparer le ris de veau"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBouch%C3%A9e_%C3%A0_la_reine",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBouch%C3%A9e_%C3%A0_la_reine?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "buche-de-noel-facile",
+      "title": "Bûche de Noël facile",
+      "servings": 6,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "œufs",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "sucre",
+          "quantity": 210,
+          "unit": "g"
+        },
+        {
+          "name": "farine",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "levure chimique",
+          "quantity": 15,
+          "unit": "g"
+        },
+        {
+          "name": "chocolat noir",
+          "quantity": 375,
+          "unit": "g"
+        },
+        {
+          "name": "beurre",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "eau tiède",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Préchauffer le four à hermostat de cuisson180°C.",
+        "Casser les œufs en séparant les blancs des jaunes.",
+        "Fouetter les jaunes avec le sucre et l'eau chaude jusqu'à ce que le mélange blanchisse.",
+        "Ajouter la farine et la levure en les saupoudrant petit à petit et bien mélanger.",
+        "pprendre à cuisiner/Techniques/Battre les blancs d'œufs en neigeBattre les blancs en neige et les incorporer délicatement à la préparation.",
+        "Couvrir une plaque de four de papier sulfurisé ou de beurre.",
+        "Y étaler la pâte, puis enfourner et laisser cuire 10 à 12 minutes.",
+        "Poser une serviette humide sur le biscuit, retourner puis retirer la plaque.",
+        "Enrouler ensemble le biscuit et la serviette.",
+        "Laisser refroidir pendant la préparation du chocolat.",
+        "Casser le chocolat en morceaux et le pprendre à cuisiner/Techniques/Cuire au bain-mariefaire fondre au bain-marie.",
+        "Ajouter le beurre coupé en petits morceaux, en tournant sans cesse, jusqu'à obtenir un mélange homogène.",
+        "Dérouler le biscuit et étaler la moitié environ du chocolat, puis enrouler le biscuit.",
+        "Poser la bûche sur un plat de service.",
+        "Verser le reste du chocolat dessus.",
+        "Placer d'éventuels décoration tant que le chocolat est encore mou.",
+        "Laisser solidifier le chocolat avant de commencer à former des dessins évoquant une branche d'arbre et/ou de saupoudrer du ucre glace]].",
+        "Conserver au frais."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FB%C3%BBche_de_No%C3%ABl_facile",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FB%C3%BBche_de_No%C3%ABl_facile?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "bugnes",
+      "title": "Bugnes",
+      "servings": 4,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "farine",
+          "quantity": 250,
+          "unit": "g"
+        },
+        {
+          "name": "sucre",
+          "quantity": 50,
+          "unit": "g"
+        },
+        {
+          "name": "beurre",
+          "quantity": 50,
+          "unit": "g"
+        },
+        {
+          "name": "sel",
+          "quantity": 1,
+          "unit": "pincée"
+        },
+        {
+          "name": "levure de boulanger",
+          "quantity": 1,
+          "unit": "paquet"
+        },
+        {
+          "name": "œufs",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "lait",
+          "quantity": 100,
+          "unit": "ml"
+        }
+      ],
+      "steps": [
+        "Mélangez farine, sucre, levure et sel.",
+        "Ajoutez les liquides (lait, jus de citron, rhum), les œufs et le beurre fondu.",
+        "Pétrissez jusqu'à l'obtention d'une pâte.",
+        "Étendez-la sur votre plan de travail en couche fine (3-4 mm).",
+        "Laissez reposer ½ h à température ambiante.",
+        "Pendant que l'huile chauffe, découpez la pâte en losanges allongés, fendez-les à leur centre pour en faire des nœuds (pour ceci, prenez un coin et faites-le passer par le trou du milieu).",
+        "Jetez-les dans l'huile bouillante pour les faire frire.",
+        "Retirez-les lorsqu'elles auront gonflé et seront légèrement dorées.",
+        "Servez-les tièdes ou fraîches, saupoudrées de sucre glace."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBugnes",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FBugnes?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "bun-bo-hue",
+      "title": "Bún bò Huế",
+      "servings": 6,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "jarret de bœuf",
+          "quantity": 1,
+          "unit": "kg"
+        },
+        {
+          "name": "pieds de porc (grosseur moyenne) frais, coupés en morceaux d'environ 3/4 cm. Ne pas garder les pieds eux-mêmes",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "« ruôt Huê »<ref>L'ingrédient ruôt Huê, à base de crevettes - « ruôt » signifie pâte de crevettes - est INDISPENSABLE et seul le « ruôt Huê » est valable pour pouvoir réussir ce plat. En effet il existe dans toutes les régions du Viêt Nam différentes sortes de « ruôt », mais tous contiennent du sable et les préparations sont assez grossières. La particularité du « ruôt Huê » est qu'il est très fin, de consistance ressemblant à du « Nutella » de couleur gris-marron et ne contient pas de sable. On peut le trouver (mais difficilement) dans un supermarché à Belleville (Paris) dont je ne me souviens plus du nom, ou dans une boutique vietnamienne au Boulevard de l'Hôpital (Paris 13 ). À part ces deux endroits, il est impossible de le trouver sauf au Viêt Nam</ref>",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "citronnelle. On peut les trouver dans toutes les boutiques chinoises ou vietnamiennes en France",
+          "quantity": 2,
+          "unit": "branche"
+        },
+        {
+          "name": "nouilles de riz — fraîche si possible — sinon séchée vendue dans les mêmes boutiques. Il faut, après cuisson, que ces nouilles soient de la grosseur des spaghetti italiens n° 5",
+          "quantity": 1,
+          "unit": "kg"
+        }
+      ],
+      "steps": [
+        "Commencer par préparer un grand bol de jus de « ruôt Huê'. Pour cela, on prendre un grand bol de diamètre d'environ 20 cm.",
+        "On met les quatre cuillerées de « ruôt » dans le bol. Ensuite on le délaye avec un peu d'eau froide en remuant énergiquement avec une grosse cuillère. Tout en continuant à délayer, on ajoute petit à petit de l'eau jusqu'à raz du bol, bien sûr sans le faire déborder. Il faut laisser ce jus se décanter pendant environ 1 heure et demie.",
+        "Découper le jarret de bœuf en petits morceaux d'une épaisseur de 2mm, et de dimensions quelconques (carré, rectangulaire...). * Couper l'oignon frais en petites lamelles. Garder une grande partie (3/4) pour le mélanger avec du persicaire plus tard.",
+        "Laver les branches de citronnelle et les couper en morceaux d'une longueur de 10/15 cm",
+        "Faire revenir de l'oignon dans le faitout avec 3 cuillerées d'huile. Une fois l'oignon doré, mettre 2 litres d'eau, et les morceaux de pieds de porc à cuire à feu doux.",
+        "Mettre les morceaux de citronnelle et verser DOUCEMENT le jus de « ruôt » en faisant attention de ne prendre que la partie de jus clair.",
+        "Remettre 1 litre d'eau dans le bol et attendre de nouveau que le ruôt soit décanté avant d'ajouter le jus clair dans le faitout.",
+        "Après 20 minutes de cuisson, ajouter le bœuf.",
+        "Attendre l'ébullition et ENLEVER TOUTE la mousse afin d'avoir un jus clair. La cuisson doit se prolonger encore 20 minutes, et prendre un morceau de bœuf pour goûter. Il ne faut pas qu'il soit trop cuit. Ajouter du nuoc mam pour saler selon le goût de chacun et un peu de sucre pour adoucir le goût.",
+        "Mettre un peu d'huile dans la petite sauteuse, attendre que l'huile soit chaude (et non brulante); mettre le piment non piquant, le mélanger pour que le piment soit imprégné d'huile, le sortir du feu et le mettre dans le faitout.",
+        "Reprendre la petite sauteuse et la mettre sur un feu moyen, y mettre un peu d'huile; attendre que l'huile soit chaude et mettre le piment piquant, le mélanger pour que tout le piment soit imprégné d'huile et le sortir du feu. Mettre ce piment dans le petit bol.",
+        "Laver le persicaire et le coriandre, détacher les feuilles de persicaire, jeter les branches et les couper menu y compris le coriandre. Mélanger l'oignon qui reste avec le tout.",
+        "En ce qui concerne les nouilles, si elles sont fraîches, les ébouillanter pour les réchauffer. Si elles sont séchées, prendre une grande casserole de 4 litres, mettre l'eau en ébullition, mettre les nouilles à cuire pendant AU MAXIMUM 3 minutes après l'ébullition, autrement on aura un pâté car toutes les nouilles chinoises ou vietnamiennes vendues sont précuites. Ajouter un peu d'eau froide pour arrêter la cuisson et les égoutter avec une passoire."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FB%C3%BAn_b%C3%B2_Hu%E1%BA%BF",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FB%C3%BAn_b%C3%B2_Hu%E1%BA%BF?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "champignons-farcis",
+      "title": "Champignons farcis",
+      "servings": 2,
+      "category": "accompagnements",
+      "ingredients": [
+        {
+          "name": "échalotes",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "beurre",
+          "quantity": 25,
+          "unit": "g"
+        },
+        {
+          "name": "poireaux",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Émincer les échalotes puis les faire dorer dans le beurre.",
+        "Ajouter ensuite les poireaux en tranches et de l'huile d'olive et laisser cuire environ 10 minutes tout en remuant régulièrement.",
+        "Pendant ce temps-là, nettoyer les champignons, séparer les pieds des chapeaux et couper les pieds en petits cubes.",
+        "Faire frire les lardons à part sans matières grasses. Lorsqu'ils commencent à dorer, les ajouter aux poireaux. Ajouter les tomates vidées et coupées en cubes, le fromage de chèvre, les pieds de champignons et l'œuf préalablement battu. Bien mélanger, saler, poivrer, ajouter la muscade et mélanger encore. Laisser mijoter le tout jusqu'à évaporation du liquide.",
+        "Disposer les champignons dans le plat huilé et huiler également l'extérieur et l'intérieur des champignons. Remplir les champignons avec la préparation et ajouter de l'emmental râpé dessus.",
+        "Faire cuire 10 minutes à 180° (thermostat 6)."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FChampignons_farcis",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FChampignons_farcis?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "choucroute",
+      "title": "Choucroute",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "choucroute",
+          "quantity": 750,
+          "unit": "g"
+        },
+        {
+          "name": "pommes de terre",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "name": "collet (échine de porc) salé",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "palette fumée",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "paires de saucisses de Strasbourg, appelées « knacks »",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "saucisses de Montbéliard, ou 4 gendarmes",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "lard fumé et/ou salé",
+          "quantity": 300,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Macéré de longues semaines dans sa saumure, le chou doit en premier lieu être lavé soigneusement dans plusieurs eaux afin de le dessaler. Il est même recommandé de le blanchir, c’est-à-dire de le plonger quelques minutes dans l'eau bouillante après lui avoir fait subir un premier lavage sommaire à l'eau courante, puis de le rincer et de l’égoutter. Il est alors prêt à être cuisiné.",
+        "Faire fondre l'oignon émincé dans le saindoux. Cette étape est facultative, on peut en effet aussi piquer un oignon avec des clous de girofle et le disposer au cœur de la choucroute.",
+        "Dans un faitout, disposer une bonne couche de choucroute, l'ail et l'oignon, puis les viandes à l'exception de celles qui nécessitent un autre mode de cuisson (voir ci-dessous), puis une nouvelle couche de choucroute. Mouiller abondamment avec un mélange de vin blanc sec et d'eau.",
+        "Les proportions du mélange sont affaire de goût, à défaut d'expérience on peut faire moitié eau, moitié vin. Le mouillage peut également être fait avec un mélange de bière blonde légère, par exemple de type Pils, et d'eau, selon le même principe. Assaisonner raisonnablement.",
+        "Mettre à cuire 1h30 à feu doux à moyen, de sorte que l'ensemble soit porté à ébullition. L'utilisation d'un autocuiseur permet de ramener le temps de cuisson à 3/4 h / 1 h, à compter de la mise sous pression. Ce plat peut être réchauffé avec bonheur en vue d'une consommation au cours des jours suivants, il prend en effet des arômes plus prononcés à chaque fois.",
+        "Accompagner de pommes de terre cuites à la vapeur et de knacks pochés (10 min).",
+        "La composition de la choucroute fait l'objet de multiples variantes, selon les goûts et les traditions locales et familiales. C'est notamment le cas de la garniture qui peut parfaitement incorporer, outre les ingrédients ci-dessus: un jarret de porc, cuit avec la choucroute; du cervelas, à rajouter dans la choucroute 15/20 minutes avant la fin, ou à pocher à part (10 min); du boudin noir, cuit à la poêle; des cotelettes de porc, cuites à la poêle; des quenelles de foie de porc, à pocher (10 min)."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FChoucroute",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FChoucroute?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "claclo",
+      "title": "Claclo",
+      "servings": 8,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "bananes plantain moyennes",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "pot de farine tamisée",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Enlevez la peau des bananes.",
+        "Écrasez-les dans un mortier, un talier ou dans un mixer.",
+        "Ajoutez un peu de sel, de piment en poudre, l'oignon découpé et mélangez bien le tout.",
+        "Chauffez l'huile dans une poêle et avec la pâte obtenue, formez des noix avec vos doigts ou à l'aide d'une cuillère à soupe et laissez dorer de chaque côté.",
+        "Aidez-vous d'une fourchette pour ne pas que les noix se collent et pour les retirer facilement de l'huile avec une écumoire. (pressez le claclo entre la fourchette et l'écumoire pour retirer le surplus d'huile).",
+        "Mettez du papier absorbant dans votre passoire pour ne pas que votre claclo soit plein d'huile et régalez-vous!"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FClaclo",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FClaclo?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "coq-au-vin-jaune",
+      "title": "Coq au vin jaune",
+      "servings": 6,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "coq, si possible de Bresse, découpé en morceaux en conservant la peau",
+          "quantity": 1.5,
+          "unit": "kg"
+        },
+        {
+          "name": "vin jaune, voire de Château-Chalon",
+          "quantity": 1,
+          "unit": "verre"
+        },
+        {
+          "name": "morilles fraîches ou 30 g de morilles séchées",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "pot de crème fraîche (75 cl)",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Si les morilles sont séchées, se référer aux indications de la boîte ou du fournisseur.",
+        "Préchauffer le four hermostat de cuisson200°C Thermostat 8.",
+        "Frotter les morceaux du coq avec un mélange de sel, poivre et farine, puis les faire revenir des deux côtés dans un grand fait-tout en fonte dans de l'huile (5 à 10 min). Salez et poivrez.",
+        "Puis mettre le fait-tout au four 20 min (200°C Thermostat 8).",
+        "Retirer les morceaux de coq, dégraisser, puis déglacer le fait-tout avec un verre de Vin Jaune, incorporer les morceaux de coq, 1 pot de crème fraîche, les morilles et faire réduire à feu doux et à découvert 30 min.",
+        "Servir le coq au Vin Jaune accompagné de pâtes fraîches, de tagliatelles ou de pommes de terre cuites à l'eau, par exemple.",
+        "Accompagner des plus puissants vins blancs du Jura : Savagnin, Vin Jaune ou Château-Chalon."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FCoq_au_vin_jaune",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FCoq_au_vin_jaune?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "creme-de-chou-fleur",
+      "title": "Crème de chou-fleur",
+      "servings": 6,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "beau chou-fleur bien blanc",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "pommes de terre",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "gros croûton de pain rassis avec la mie",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "bouillon",
+          "quantity": 1,
+          "unit": "l"
+        },
+        {
+          "name": "lait frais",
+          "quantity": 1,
+          "unit": "verre"
+        },
+        {
+          "name": "beurre, sel, poivre",
+          "quantity": 2,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Mettre dans une casserole d'eau bouillante salée le chou-fleur épluché et coupé en gros bouquets, les pommes de terre épluchées et coupées en quartiers et le croûton de pain, et laisser bouillotter pendant 25 minutes.",
+        "Égoutter sans le pain, on ne l'utilise plus dans la suite. Passer le tout au moulin à légumes grille fine ou au mixer. Délayer la purée avec le bouillon. Ajouter le lait frais. Faire chauffer. Rectifier l'assaisonnement.",
+        "Mettre le beurre dans la soupière. Verser et servir chaud."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FCr%C3%A8me_de_chou-fleur",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FCr%C3%A8me_de_chou-fleur?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "degue",
+      "title": "Déguê",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "couscous de mil",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "babeurre ou yaourt",
+          "quantity": 500,
+          "unit": "ml"
+        },
+        {
+          "name": "café de sucre vanillé",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "beurre (facultatif)",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Utilisez une marmite à vapeur, mettez de l’eau au fond de la marmite et portez à ébullition.",
+        "Mettez le couscous de mil dans une passoire et déposez sur la marmite à vapeur, faites cuire le couscous pendant 25 minutes.",
+        "Transférez le couscous dans un grand bol et ajoutez le beurre, mélangez bien et laissez refroidir.",
+        "Dans un autre bol mélangez le yaourt ou babeurre avec le sucre et la vanille.",
+        "Pour servir, mettez le couscous de mil dans le bol et ajoutez le babeurre (ou yaourt sucré), puis mélangez bien. Mettez au réfrigérateur et servez très froid.",
+        "Si vous n’avez pas de couscous de mil, utilisez la farine de mil ou de blé.",
+        "Placez la farine de mil dans un grand bol, utilisez votre main pour amortir un peu la farine avec de l'eau.",
+        "Puis frottez la farine pour former des boules de petite taille.",
+        "Lorsque toute la farine est transformée en petites boules, laissez de côté à la température ambiante pendant au moins 10 minutes. Ensuite, continuez la recette comme indiqué plus haut."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FD%C3%A9gu%C3%AA",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FD%C3%A9gu%C3%AA?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "escalopes-de-veau-parmesan-amandes",
+      "title": "Escalopes de veau parmesan-amandes",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "escalopes de veau",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "œufs",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "amandes en semoule pas trop fine",
+          "quantity": 8,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "parmesan",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "beurre, 2 cuillerées à soupe d'huile de cuisson, sel et poivre du moulin, un peu de farine",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Temps estimé de préparation :Recettes rapides20 minutes.",
+        "Mélangez dans un bol le parmesan râpé et les amandes en semoule.",
+        "Dans un autre bol, fouettez en omelette les 2 œufs, salez et poivrez.",
+        "Farinez les 4 escalopes de veau des deux côtés, passez-les dans l'œuf fouetté puis dans le mélange parmesan-amandes.",
+        "Faites chauffer une poêle anti-adhésive avec le beurre et l'huile.",
+        "Quand le mélange mousse, placez les escalopes dans la poêle et faites-les dorer sur feu moyen et sur chaque face, 3 à 4 minutes selon leur épaisseur."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FEscalopes_de_veau_parmesan-amandes",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FEscalopes_de_veau_parmesan-amandes?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "flamusse-bourguignonne",
+      "title": "Flamusse bourguignonne",
+      "servings": 6,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "pommes",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "œufs",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "farine",
+          "quantity": 70,
+          "unit": "g"
+        },
+        {
+          "name": "lait",
+          "quantity": 30,
+          "unit": "cl"
+        },
+        {
+          "name": "beurre",
+          "quantity": 30,
+          "unit": "g"
+        },
+        {
+          "name": "sucre",
+          "quantity": 80,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Dans un saladier, mélangez la farine avec le sucre en poudre, et une pincée de sel.",
+        "Cassez les œufs dans un puit au centre, et mélangez au fouet en incorporant petit à petit le mélange précédant.",
+        "Ajoutez le lait et la crème tout en mélangeant jusqu’à l’obtention d’une pâte homogène.",
+        "Pelez les pommes, et les couper en quartiers.",
+        "Faites revenir puis dorer les quartiers de pommes au beurre, dans une poêle pendant 5 minutes.",
+        "Beurrez un moule, disposez les quartiers de pommes au fond du moule.",
+        "Versez la pâte.",
+        "Faire cuire au four à 180 °C pendant 50 minutes. Vérifiez la cuisson.",
+        "Laissez tiédir avant de démouler.",
+        "Saupoudrer de sucre ou de cannelle avant dégustation."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFlamusse_bourguignonne",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFlamusse_bourguignonne?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "flan-a-la-chataigne",
+      "title": "Flan à la châtaigne",
+      "servings": 4,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "farine de hâtaigne]]s",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "œufs",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "lait",
+          "quantity": 50,
+          "unit": "cl"
+        },
+        {
+          "name": "sucre en poudre",
+          "quantity": 10,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "eau",
+          "quantity": 10,
+          "unit": "cl"
+        }
+      ],
+      "steps": [
+        "Dans un saladier, délayez la farine et un verre de lait. Mettez le reste du lait à chauffer dans une casserole, sur feu doux.",
+        "Versez la farine délayée dans cette casserole tout en mélangeant sans cesse jusqu'à ébullition. Ajoutez 3 cuillères à soupe de sucre et enlevez du feu.",
+        "Dans un bol, battez les œufs comme pour une omelette. Incorporez-les au mélange précédent.",
+        "Dans un :Moule (ustensile)moule à flan, versez le reste de sucre et l'eau. Portez sur feu vif tout en remuant jusqu'à obtenir un mélange caramélisé. Retirez du feu.",
+        "Versez le mélange farine-œufs dans le moule. Mettez à cuire au bain-marie dans le four préalablement chauffé à thermostat 6-7 (200-220 °C) pendant 40 minutes. Laissez refroidir avant de servir."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFlan_%C3%A0_la_ch%C3%A2taigne",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFlan_%C3%A0_la_ch%C3%A2taigne?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "flaugnarde",
+      "title": "Flaugnarde",
+      "servings": 6,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "œufs",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "sucre",
+          "quantity": 2,
+          "unit": "tasse"
+        },
+        {
+          "name": "farine",
+          "quantity": 2,
+          "unit": "tasse"
+        },
+        {
+          "name": "lait",
+          "quantity": 1,
+          "unit": "boîte"
+        },
+        {
+          "name": "sucre vanillé",
+          "quantity": 2,
+          "unit": "sachet"
+        },
+        {
+          "name": "/2 sachet de levure",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "pommes à cuire",
+          "quantity": 4,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Mélanger les trois œufs battus avec le sucre, la farine, le lait, le sucre vanillé et la levure.",
+        "Éplucher, couper les pommes (en dés ou en quart).",
+        "Beurrer un plat et mettre les pommes coupées",
+        "Verser le mélange sur les pommes.",
+        "Cuire à hermostat de cuissonfour chaud à 150°C pendant 3/4 d'heure."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFlaugnarde",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFlaugnarde?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "fromage-blanc-aux-fruits",
+      "title": "Fromage blanc aux fruits",
+      "servings": 4,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "fromage blanc",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "gros pruneaux séchés",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "dattes séchées",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "figues séchées",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "raisins secs blonds",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "sucre roux",
+          "quantity": 50,
+          "unit": "g"
+        },
+        {
+          "name": "café de sirop d’orgeat",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "marmelade d'ananas",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "name": "café d’amandes effilées et grillées",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Dans le saladier, mélangez les fruits secs, le sucre roux et le sirop d’orgeat, puis ajoutez le fromage blanc.",
+        "Versez la préparation dans les verres à glace jusqu’au 2/3.",
+        "Dans chaque verre à glace, ajoutez 3 cuillers à soupe de marmelade d’ananas, parsemez d’une cuiller à café d’amandes effilées.",
+        "Réservez au réfrigérateur jusqu’au moment de servir."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFromage_blanc_aux_fruits",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FFromage_blanc_aux_fruits?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "gratin-de-courgettes-et-tomates",
+      "title": "Gratin de courgettes et tomates",
+      "servings": 2,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "courgettes",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "ou 4 tomates",
+          "quantity": 3,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Première préparation (première sauteuse)",
+        "Émincer les courgettes en petits dés.",
+        "Les faire revenir à la sauteuse.",
+        "Écraser trois gousses d'ail.",
+        "Les ajouter aux courgettes.",
+        "Saler.",
+        "Émincer le basilic.",
+        "En fin de cuisson, ajouter la moitié du bouquet de basilic.",
+        "Deuxième préparation (deuxième sauteuse)",
+        "Peler et évider les tomates.",
+        "Émincer les tomates en petits dés.",
+        "Les faire revenir dans une seconde sauteuse.",
+        "Écraser trois gousses d'ail.",
+        "Les ajouter aux tomates.",
+        "Saler.",
+        "En fin de cuisson, ajouter la seconde moitié du bouquet de basilic.",
+        "Verser les deux préparations dans un plat.",
+        "Ajouter le fromage râpé.",
+        "Mélanger.",
+        "Mettre au four préchauffé, hermostat de cuissonthermostat 180 °C, 15 min."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FGratin_de_courgettes_et_tomates",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FGratin_de_courgettes_et_tomates?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "guin",
+      "title": "Gui'n",
+      "servings": 5,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "boule de courge bien mûre",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "graine de palme africaine",
+          "quantity": 500,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Nettoyer et fendre la courge",
+        "Oter les grains de la courge avant de la découper en gros carrés",
+        "Nettoyer la graine",
+        "Mettre la graine dans la casserole et y ajouter les morceaux de courges découpés",
+        "Faire bouillir pendant 20 minutes",
+        "Séparer la courge de la graine et ôter la peau",
+        "Mettre la courge dans un mortier à foutou et l'écraser comme le foufou, jusqu'à obtenir une pâte compacte et homogène",
+        "Laisser la pâte dans le mortier et fermer",
+        "Piler la graine cuite dans un mortier de graine",
+        "collectionner les pailles obtenues dans une casserole",
+        "Y ajouter de l'eau et malaxer",
+        "Oter la pailles pressée et les noyaux de graines",
+        "Recueillir le liquide et bien le filtrer dans une casserole propre",
+        "Verser le liquide filtré sur la pâte compacte de courge dans le mortier à foutou",
+        "Mélanger avec une écumoire où à la main."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FGui'n",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FGui'n?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "kwace-a-la-sauce-dolikpo",
+      "title": "Kwacé à la sauce dolikpo",
+      "servings": 10,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "taro blanc",
+          "quantity": 5,
+          "unit": "kg"
+        },
+        {
+          "name": "bananes plantains non mûres",
+          "quantity": 4,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Rincer la marmite destinée à la cuisson des taros blancs",
+        "Déposer les peaux séchées de banane plantain bien lavées au fond de la marmite",
+        "Laver les tubercules de taro à l’eau claire",
+        "Éplucher les tubercules, les découper en deux ou trois morceaux selon la forme",
+        "Ajouter les tubercules sur les peaux séchées dans la marmite",
+        "Éplucher les 4 bananes plantains et les ajouter aux taros dans la marmite",
+        "Ajouter de l’eau et faire bouillir pendant au moins 30 minutes",
+        "Après 30 ou 45 minutes de cuissons, mettre les taros et les bananes dans le mortier de foutou",
+        "Piler esthétiquement l’ensemble de sorte à obtenir une boule compacte assez légère",
+        "Retirer la purée obtenue du mortier"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FKwac%C3%A9_%C3%A0_la_sauce_dolikpo",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FKwac%C3%A9_%C3%A0_la_sauce_dolikpo?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "lieu-jaune-en-papillote-de-cresson",
+      "title": "Lieu jaune en papillote de cresson",
+      "servings": 2,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "lieu jaune (ollachius pollachius]]), dos de préférence au filet",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "name": "pommes de terre de taille moyenne, à chair ferme",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "oignon",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "une botte de ressoncresson de fontaine",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Préchauffer le four à 225 °C.",
+        "Couper deux arré]]s de apier sulfurisé]], d'environ 45 cm de côté.",
+        "Hacher l'ignon]], et le répartir équitablement dans chaque papillote.",
+        "Laver le resson]] à l'eau claire, l'essorer et en retirer les tiges les plus grosses.",
+        "Répartir une 1ère couche de cresson dans chaque papillotte.",
+        "Rincer le dos lieu jaune, et le découper en portions (le côté queue étant beaucoup plus mince que le côté tête, ne pas hésiter à en faire plus que deux morceaux qu'on rassemblera en les répartissant équitablement dans chaque papillotte).",
+        "Poivrer très légèrement les morceaux de lieu sur les deux faces, et les disposer dans les papillotes, sur le resson]].",
+        "Ajouter une deuxième couche de cresson.",
+        "Éplucher et laver les pommes de terre et les couper en fines rondelles. Les disposer régulièrement sur la deuxième couche de resson]].",
+        "Refermer les papillottes le plus hermétiquement possible, en deux fois deux plis. Les caler dans un petit plat en yrex]] rectangulaire, de taille adéquate pour les empêcher de se rouvrir, et éviter que la vapeur ne s'échappe. On peut aussi les ficeler, mais si la taille du plat est bien ajustée, cela n'est pas nécessaire.",
+        "Mettre au four à la température indiquée, pendant 45 minutes. Le lieu doit être bien cuit, mais sans que les pommes de terre ne soient desséchées."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FLieu_jaune_en_papillote_de_cresson",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FLieu_jaune_en_papillote_de_cresson?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "matoufet",
+      "title": "Matoufet",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "ufs]] entiers",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "farine",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "lait ou bien 2/3 litre de lait et 1/3 litre d'eau",
+          "quantity": 1,
+          "unit": "l"
+        },
+        {
+          "name": "ard]]ons",
+          "quantity": 500,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Mélangez les œufs à la farine, puis ajoutez le lait et un peu de sel et poivre. Remuez vigoureusement pour bien amalgamer le tout.",
+        "Enlevez le gras du lard et faites les fondre dans la poêle. Retirez le gras et faites cuire les lardons (préalablement découpés) sans plus ajouter de gras.",
+        "Quand les lardons sont cuits, versez le mélange dessus. Faites cuire à feu vif durant quelques minutes en remuant constamment.",
+        "Servez sur des tranches de pain."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMatoufet",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMatoufet?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "melange-pomme-fraise",
+      "title": "Mélange Pomme-Fraise",
+      "servings": 2,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "pomme pour 2 à 3 personnes",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "fraises",
+          "quantity": 5,
+          "unit": "pièce"
+        },
+        {
+          "name": "lait",
+          "quantity": 30,
+          "unit": "cl"
+        },
+        {
+          "name": "sucres",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "biscuit ivre de cuisine/Spéculoosspéculoos",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Éplucher, couper les pommes en carré ;",
+        "Mixer les fraises une fois lavé en ajoutant le lait et du sucre (à déterminer soi-même en fonction des goûts) ;",
+        "Faire caramélisé les pommes ;",
+        "Écraser le biscuit speculoos ;",
+        "Dresser dans un ramequin ou une tasse comme sur la photo."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FM%C3%A9lange_Pomme-Fraise",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FM%C3%A9lange_Pomme-Fraise?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "mille-feuille-aux-anchois",
+      "title": "Mille-feuille aux anchois",
+      "servings": 6,
+      "category": "entrées",
+      "ingredients": [
+        {
+          "name": "abaisses de âte feuilletée]] de 26cm x 15cm",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "beurre doux",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "filets d'nchois]]",
+          "quantity": 75,
+          "unit": "g"
+        },
+        {
+          "name": "œufs",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "brins de persil",
+          "quantity": 10,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Faire cuire les abaisses de pâte feuilletée (la pâte feuilletée surgelée est parfaite pour cette recette) après l'avoir décongelée.",
+        "Faire boullir les œufs, et hacher le persil.",
+        "Écraser ou mixer les filets d'anchois et les incorporer au beurre doux réduit en pommade.",
+        "Lorsque les abaisses sont cuites et froides, les tartiner avec le beurre d'anchois et les superposer, décorer en damiers avec les jaunes et les blancs d'œufs et le persil haché.",
+        "Réchauffer au moment de servir."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMille-feuille_aux_anchois",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMille-feuille_aux_anchois?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "mousse-au-chocolat-3",
+      "title": "Mousse au chocolat (3)",
+      "servings": 1,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "œuf",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "sucre",
+          "quantity": 2,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "barres de chocolat",
+          "quantity": 2,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Battre le jaune d'œuf et le sucre pour obtenir un mélange moelleux.",
+        "Faire fondre le chocolat au bain marie. L'ajouter au mélange jaune d'œuf-sucre.",
+        "Battre le(s) blanc(s) en neige et ajouter au mélange avec délicatesse.",
+        "Mettre au frais."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMousse_au_chocolat_(3)",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMousse_au_chocolat_(3)?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "mousse-au-chocolat-noir-et-a-lorange",
+      "title": "Mousse au chocolat noir et à l'orange",
+      "servings": 6,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "chocolat noir à pâtisserie",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "œufs",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "orange",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Prélever le zeste de l'orange et le mixer.",
+        "Presser l'orange.",
+        "Découper le chocolat en carrés.",
+        "Séparer les blancs des jaunes d'œufs.",
+        "Saler légèrement les blancs avant de les fouetter en neige.",
+        "Verser dans une casserole la moitié du zeste, tout le jus, ainsi que le chocolat, et faire chauffer à feu doux en remuant régulièrement avec une spatule jusqu'à obtenir un mélange soyeux.",
+        "Verser les jaunes sur le chocolat fondu et mélanger.",
+        "Verser le mélange sur les blancs et marier délicatement.",
+        "Verser dans un saladier si ce n'est déjà fait et laisser reposer au moins deux heures au frais avant de s'en pourlécher."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMousse_au_chocolat_noir_et_%C3%A0_l'orange",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMousse_au_chocolat_noir_et_%C3%A0_l'orange?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "mousse-de-bananes-au-citron-vert-et-a-lanis-etoile",
+      "title": "Mousse de bananes au citron vert et à l'anis étoilé",
+      "servings": 4,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "bananes coupées en morceaux",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "crèmes de aourt]]",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "graines d'nis]] étoilé",
+          "quantity": 10,
+          "unit": "pièce"
+        },
+        {
+          "name": "sucre cassonade",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Dans le bol du mixeur, mettez ensemble les bananes coupées en morceaux, les crèmes de yaourt, le sucre cassonnade, les graines d'anis étoilé et le jus de citron vert, et mixez jusqu'à obtenir une mousse à la texture homogène.",
+        "Versez ce mélange dans les ramequins, protégez par un film alimentaire et laissez reposer au réfrigérateur pendant 1 heure avant de servir."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMousse_de_bananes_au_citron_vert_et_%C3%A0_l'anis_%C3%A9toil%C3%A9",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FMousse_de_bananes_au_citron_vert_et_%C3%A0_l'anis_%C3%A9toil%C3%A9?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "pad-thai",
+      "title": "Pad Thai",
+      "servings": 2,
+      "category": "pâtes alimentaires",
+      "ingredients": [
+        {
+          "name": "pâtes de riz",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "poulet (ou crevette, ou tofu...)",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "soja frais",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "s",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "citron vert",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Faire tremper les pâtes de riz pendant 15 min dans de l'eau tiède.",
+        "Découper le poulet en fines lamelles. Trancher l'oignon. Émincer la ciboulette et mettre les pousses de côté.",
+        "Dans une grande poêle ou un wok, faire chauffer 3 cuillères à soupe d'huile et faire revenir l'ail émincé.",
+        "Ajouter le poulet et l'oignon et saisir 1 min. Puis ajouter 1 grosse cuillerée à soupe de concentré de tomate, 1 cuillerée à soupe de sauce soja, 1 cuillerée à soupe de sauce poisson, 1 cuillerée à soupe de sucre, le jus d'un demi citron (ou l'équivalent en jus de tamarin).",
+        "Ajouter ensuite les pâtes et mélanger de façon bien homogène.",
+        "Faire cuire 3 min en rajoutant de l'eau et de l'huile si nécessaire.",
+        "Faire un puits au centre de la préparation et y casser 2 œufs.",
+        "Recouvrir avec les pâtes et laisser cuire 30 secondes. Puis bien mélanger l'ensemble.",
+        "Ajouter 100 g de soja frais et la ciboulette émincée et faire cuire 1 à 2 min, puis coupez le feu.",
+        "Dresser dans un plat ou une assiette. Poivrez. Ajouter sur le dessus de la coriandre ciselée, des cacahuètes pilées et du piment en poudre. Garnir avec le soja frais restant, quelques pousses de ciboulette fraîches et un morceau de citron (à presser sur les pâtes avant de les déguster)."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPad_Thai",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPad_Thai?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "pates-au-thon",
+      "title": "Pâtes au thon",
+      "servings": 2,
+      "category": "pâtes alimentaires",
+      "ingredients": [
+        {
+          "name": "âtes]] de préférence des Penne ou des Pipe",
+          "quantity": 250,
+          "unit": "g"
+        },
+        {
+          "name": "ignon]]",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "(à l'huile d'olive de préférence)",
+          "quantity": 1,
+          "unit": "boîte"
+        },
+        {
+          "name": "piment de Cayenne",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Couper l'oignon en deux et en faire de fines lamelles. Mettre sur feu doux une casserole remplie d'un peu d'huile d'olive dans laquelle on ajoutera les oignons émincés. Une fois les oignons transparents, ajouter le piment de Cayenne en le broyant puis ajouter le thon. Laisser cuire le tout, puis après 3 minutes, ajouter la sauce tomate. Enfin laisser mijoter à feu doux jusqu'à la fin de cuisson des pâtes.",
+        "A part, faire cuire les pâtes selon les indications du sachet.",
+        "Mélanger le tout, puis assaisonner selon vos gouts avec du sel et du oivre]] du moulin, ainsi que du armesan]].",
+        "Servir le tout, et déguster."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FP%C3%A2tes_au_thon",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FP%C3%A2tes_au_thon?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "pizza-margherita",
+      "title": "Pizza Margherita",
+      "servings": 3,
+      "category": "recettes de pizzas",
+      "ingredients": [
+        {
+          "name": "eau",
+          "quantity": 200,
+          "unit": "ml"
+        },
+        {
+          "name": "farine",
+          "quantity": 350,
+          "unit": "g"
+        },
+        {
+          "name": "levure fraîche (ou l'équivalent de levure sèche)",
+          "quantity": 25,
+          "unit": "g"
+        },
+        {
+          "name": "d=o",
+          "quantity": 2,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "café de sel",
+          "quantity": 2,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Tamiser la farine et la mélanger à la levure, le sel et le sucre.",
+        "Faire une puits au milieu de la farine et y verser l'eau et l'huile. Mélanger jusqu'à obtenir une pâte.",
+        "Pétrir la pâte (environ 15 minutes) jusqu'à obtenir la bonne consistance.",
+        "Laisser reposer la pâte pour qu'elle lève pendant au moins une heure.",
+        "Pétrir à nouveau la pâte.",
+        "Laissez à nouveau reposer la pâte, au moins 15 minutes.",
+        "Abaisser la pâte sur une épaisseur de plus ou moins 3mm.",
+        "Étaler la sauce tomate, disposer des tranches de mozzarella et le basilic.",
+        "Préchauffer le four à hermostat de cuisson250°C.",
+        "Faire cuire la pizza pendant 10 minutes en haut du four."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPizza_Margherita",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPizza_Margherita?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poelee-brestoise",
+      "title": "Poêlée brestoise",
+      "servings": 8,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "pomme de terre",
+          "quantity": 1,
+          "unit": "kg"
+        },
+        {
+          "name": "Saucisses",
+          "quantity": 12,
+          "unit": "pièce"
+        },
+        {
+          "name": "oignons",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "thon à la catalane",
+          "quantity": 2,
+          "unit": "boîte"
+        },
+        {
+          "name": "œufs",
+          "quantity": 16,
+          "unit": "pièce"
+        },
+        {
+          "name": "gruyère rapé",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "name": "bon morceau de beurre",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Epluchez les pommes de terre et les couper en petits cubes.",
+        "Faites les revenir dans la poêle avec le beurre.",
+        "Pendant ce temps découper les saucisses en rondelles et épluchez les oignons.",
+        "Une fois que les pommes de terre ont pris un peu de couleur, faites revenir les oignons. (coupé en demi-rondelles), puis avant la fin de cuisson ajoutez les rondelles de saucisse.",
+        "Battez les œufs en omelette avec le thon à la catalane, le gruyère rapé, du sel et du poivre.",
+        "Mettez le tout dans la poêle et laissez cuire comme une omelette."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPo%C3%AAl%C3%A9e_brestoise",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPo%C3%AAl%C3%A9e_brestoise?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poelee-de-champignons-au-fromage-a-lail-et-fines-herbes",
+      "title": "Poêlée de champignons au fromage à l'ail et fines herbes",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "hampignon]]s de saisons",
+          "quantity": 250,
+          "unit": "g"
+        },
+        {
+          "name": "fromage frais à l'ail et aux fines herbes",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "chalote]]",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "vin blanc sec",
+          "quantity": 20,
+          "unit": "cl"
+        }
+      ],
+      "steps": [
+        "Dans la casserole faites revenir l'échalote.",
+        "églaçageDéglacez-la avec le vin blanc et incorporez le fromage à l'ail et aux fines herbes afin d'obtenir une sauce, salez et poivrez, et réservez-la.",
+        "Dans la poêle, faites revenir le mélange de champignons de saison, en fin de cuisson, rajoutez la sauce."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPo%C3%AAl%C3%A9e_de_champignons_au_fromage_%C3%A0_l'ail_et_fines_herbes",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPo%C3%AAl%C3%A9e_de_champignons_au_fromage_%C3%A0_l'ail_et_fines_herbes?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poivrons-confits",
+      "title": "Poivrons confits",
+      "servings": 5,
+      "category": "accompagnements",
+      "ingredients": [
+        {
+          "name": "poivrons : 2 rouges, 3 verts",
+          "quantity": 5,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Retirer la queue des poivrons et les pépins à l'intérieur",
+        "Disposer les poivrons entiers sur un plat pouvant aller au four",
+        "Déposer un filet d'huile d'olive sur les poivrons",
+        "Mettre au four à 200°C",
+        "Une fois que la peau du poivron brunit et commence à se décoller, retourner les poivrons pour que le reste cuise autant",
+        "Les poivrons sont cuits quand toute la peau se décolle et qu'ils perdent de leur fermeté",
+        "Sortir les poivrons du four et attendre qu'ils tièdissent (les tremper dans de l'eau froide si vous êtes pressés)",
+        "Retirer la peau des poivrons",
+        "Les découper en fines lamelles",
+        "Mettre les lamelles dans une terrine",
+        "Les imprégner d'huile d'olive",
+        "Saler, poivrer et saupoudrer de piment selon votre goût"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoivrons_confits",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoivrons_confits?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "pommes-a-la-canadienne",
+      "title": "Pommes à la canadienne",
+      "servings": 4,
+      "category": "desserts",
+      "ingredients": [
+        {
+          "name": "omme]]s pelées, épépinées et coupées en fines tranches",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "anane]]s épluchées et coupées en rondelles",
+          "quantity": 2,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Dans une poêle, faites cuire les tranches de pommes et les rondelles de bananes avec un peu de sirop d'érable.",
+        "Répartissez les tranches de pommes et les rondelles de bananes cuites dans les assiettes à dessert.",
+        "Réutilisez la poêle pour faire légèrement revenir les cerneaux de noix et les raisins secs.",
+        "Ajoutez dans chaque assiette à dessert, une boule de glace à la cannelle, et parsemez de quelques cerneaux de noix et de raisins secs préalablement revenus."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPommes_%C3%A0_la_canadienne",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPommes_%C3%A0_la_canadienne?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "porridge-de-riz",
+      "title": "Porridge de riz",
+      "servings": 4,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "riz lavé et égoutté",
+          "quantity": 220,
+          "unit": "g"
+        },
+        {
+          "name": "bouillon de poulet",
+          "quantity": 2.5,
+          "unit": "l"
+        }
+      ],
+      "steps": [
+        "Placer le riz dans la casserole et ajouter le bouillon ou l'eau. Amener à ébullition.",
+        "Laisser cuire à feu très doux pendant 1 heure et 45 minutes, jusqu'à 2 heures, ou jusqu'à ce que le riz devienne pâteux.",
+        "Ajouter la sauce soja, l'huile de sésame et parfumer avec du poivre blanc.",
+        "Ajouter la garniture de ciboule, de coriandre, de sésame et de gingembre suivant vos préférences."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPorridge_de_riz",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPorridge_de_riz?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-a-la-comtoise",
+      "title": "Poulet à la comtoise",
+      "servings": 6,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poulet de Bresse coupé en morceaux cru",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "vin blanc du Jura",
+          "quantity": 1,
+          "unit": "verre"
+        },
+        {
+          "name": "petit pot de crème fraîche",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "comté râpé",
+          "quantity": 150,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Préchauffez votre four à hermostat de cuisson240°C Thermostat 8.",
+        "Découpez le poulet en morceaux crus, faîtes revenir et dorer les morceaux de poulet dans de l'huile de tous les côtés dans une cocotte. Salez et poivrez.",
+        "Déglacez la cocotte avec 1 verre de vin blanc du Jura et assaisonnez de noix de muscade râpée.",
+        "Récupérez du jus de cuisson et mettez la cocotte au four pendant environ 30 minutes toujours à 240°C.",
+        "Dans une casserole, mélangez avec un fouet le jus de cuisson du poulet, les 2 jaunes d'œufs, 1 petit pot de crème fraîche, 150 g de Comté râpé et laissez le tout mijoter pendant 15 minutes.",
+        "Mettez la sauce dans une saucière."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_%C3%A0_la_comtoise",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_%C3%A0_la_comtoise?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-a-la-gaston-gerard",
+      "title": "Poulet à la Gaston Gérard",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poulet coupé en morceaux cru",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "comté râpé",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "oignons",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "vin blanc",
+          "quantity": 2,
+          "unit": "verre"
+        },
+        {
+          "name": "crème fraîche épaisse",
+          "quantity": 50,
+          "unit": "cl"
+        },
+        {
+          "name": ". de beurre",
+          "quantity": 40,
+          "unit": "g"
+        },
+        {
+          "name": "bonne c. à soupe de moutarde de Dijon",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "c. à café de paprika",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Faire dorer les morceaux de poulet dans le beurre dans une cocotte, saler et poivrer. Une fois dorés réserver dans un plat à four.",
+        "Dans la cocotte, faire dorer les oignons, ajouter le vin blanc. Laisser un peu réduire, puis ajouter la moutarde, le Comté (garder un peu de comté pour la fin de la recette) et le paprika. Bien remuer, et porter à ébullition.",
+        "Ajouter la crème et verser sur le poulet dans le plat allant au four.",
+        "Parsemer de comté râpé et mettre au four 30 minutes à 200 °C.",
+        "Servir avec du riz ou des pommes de terre à l'eau."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_%C3%A0_la_Gaston_G%C3%A9rard",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_%C3%A0_la_Gaston_G%C3%A9rard?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-au-riz",
+      "title": "Poulet au riz",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poulet fermier de 1.000 g",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Couper le poulet fermier en morceaux",
+        "Faire mariner dans du sel, du poivre, de l'ail écrasé et du vinaigre pendant 20 minutes",
+        "Dans une marmite, verser 3 cuillerées à soupe d'huile",
+        "Faire dorer les morceaux de poulet"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_au_riz",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_au_riz?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-basquaise",
+      "title": "Poulet basquaise",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poulet",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "poivrons : un rouge, un vert (à l'origine du piment doux du Pays basque)",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "tomates",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "oignons",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "ail",
+          "quantity": 4,
+          "unit": "gousse"
+        }
+      ],
+      "steps": [
+        "Découper le poulet",
+        "Passer les tomates quelques secondes dans l'eau bouillante pour pouvoir les peler facilement.",
+        "Faire revenir le poulet au fond de la sauteuse avec 3 cuillères à soupe d'uile d'olive]] (ou de graisse d'oie ou canard), une fois doré : égoutter le poulet sur une grille)",
+        "Pendant ce temps, dans l'ordre :",
+        "peler et couper les oignons",
+        "couper les poivrons",
+        "peler et couper les tomates",
+        "hacher l'ail finement",
+        "Saler, poivrer",
+        "Ajouter le poulet et placer les blancs en haut pour éviter qu'ils ne sèchent",
+        "Fermer le couvercle et laisser mijoter :",
+        "à la cocotte-minute : 10 à 15 minutes après que le sifflement a commencé",
+        "à la sauteuse une bonne heure"
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_basquaise",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_basquaise?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-de-janze-a-la-normande",
+      "title": "Poulet de Janzé à la normande",
+      "servings": 6,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poulet de Janzé IGP",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "oignons",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "calvados",
+          "quantity": 10,
+          "unit": "cl"
+        },
+        {
+          "name": "crème fraîche",
+          "quantity": 50,
+          "unit": "cl"
+        },
+        {
+          "name": "l de cidre brut",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Coupez le poulet en morceaux.",
+        "Faites chauffer dans une cocotte du beurre avec un filet d’huile pour faire ensuite dorer les morceaux de chaque côté, lorsqu’ils sont bien dorés, bien au chaud.",
+        "Après avoir essuyé la cocotte, mettez la nouveau sur le feu avec un morceau de beurre et une pointe d’huile pour faire colorer, à leur tour, les oignons pelés et finement coupés.",
+        "Rajoutez les morceaux de poulet et lorsque c’est bien chaud, flambez le tout avec le calvados puis ajoutez le cidre.",
+        "Faites mijoter cette préparation pendant 1h30 environ.",
+        "Après ce temps, réservez de nouveau les morceaux de poulet afin de faire réduire le jus de cuisson en y incorporant la crème fraiche.",
+        "Y remettre ensuite les morceaux de poulet pour les servir bien chaud marinés."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_de_Janz%C3%A9_%C3%A0_la_normande",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_de_Janz%C3%A9_%C3%A0_la_normande?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-fafa",
+      "title": "Poulet fafa",
+      "servings": 6,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "gros poulet, vidé, désossé et coupé en gros morceaux",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "pousses d'épinards ou de fafa",
+          "quantity": 1,
+          "unit": "kg"
+        },
+        {
+          "name": "gros oignons blancs",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "ail",
+          "quantity": 1,
+          "unit": "gousse"
+        }
+      ],
+      "steps": [
+        "Désossez le poulet et coupez-le en gros morceaux.",
+        "Épluchez et émincez les oignons, épluchez et hâchez la gousse d'ail, pelez et râpez le gingembre, lavez et équeutez les épinards, râpez la noix de muscade.",
+        "Faites chauffer la moitié de l'huile dans la sauteuse, et faites y fondre les oignons à feu moyen pendant 5 minutes, puis retirez-les et réservez-les.",
+        "Ajoutez l'huile restante, et mettez à dorer à feu vif pendant 5 minutes, les morceaux de poulet avec l'ail, et en les retournant.",
+        "Remettez les oignons fondus, et ajoutez le gingembre, la noix de muscade et le cube de bouillon émietté.",
+        "Mélangez bien le tout, mouillez avec l'eau, salez et poivrez, et laissez cuire pendant encore 7 minutes à feu vif.",
+        "Ajoutez les pousses d'épinards et laissez cuire à feu vif, en remuant pendant encore 5 minutes.",
+        "Ajoutez le lait de noix de coco et laissez cuire à feu vif jusqu'à frémissement.",
+        "Servez dans un plat de service accompagné de ivre de cuisine/Riz à l'ananasriz à l'ananas."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_fafa",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_fafa?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "poulet-sauce-au-vin-rouge",
+      "title": "Poulet sauce au vin rouge",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poulet découpé en morceaux",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "vin rouge",
+          "quantity": 2,
+          "unit": "verre"
+        },
+        {
+          "name": "champignons de Paris coupés en fines tranches",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "tomate pelée",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "fécule de pommes de terre ou farine de maïs, sel et poivre du moulin",
+          "quantity": 3,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "sauteuse",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Dans la sauteuse, faites revenir les morceaux de poulet.",
+        "Quand les morceaux sont bien dorés, ajoutez le vin rouge, salez, poivrez et laissez cuire à feu doux.",
+        "À mi-cuisson, ajoutez la tomate pelée, les champignons coupés et laissez cuire environ 1 heure à feu doux.",
+        "À la fin de la cuisson, retirez les morceaux et déposez-les sur le plat de service, puis ajoutez la fécule de pommes de terre ou la farine de mais et laissez réduire la sauce à feu doux.",
+        "Nappez les morceaux de poulet avec la sauce au vin rouge."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_sauce_au_vin_rouge",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FPoulet_sauce_au_vin_rouge?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "ragout-de-soja",
+      "title": "Ragoût de soja",
+      "servings": 4,
+      "category": "recettes de ragoût",
+      "ingredients": [
+        {
+          "name": "soja texturé",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "vin rouge",
+          "quantity": 1,
+          "unit": "verre"
+        },
+        {
+          "name": "d’eau",
+          "quantity": 1,
+          "unit": "verre"
+        },
+        {
+          "name": "cube de bouillon végétal",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "c. à s. d’erbes de Provence]]",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Faire tremper le soja dans le vin et le bouillon, assaisonné de sel, poivre, paprika et herbes de Provence, pendant plusieurs heures.",
+        "Dans une cocotte, rissoler à l’huile les légumes émincés, ajouter le soja et la arinade]], éventuellement un peu d’eau, et les feuilles de laurier. Laisser cuire à feu doux une bonne heure. Servir par exemple avec du blé."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FRago%C3%BBt_de_soja",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FRago%C3%BBt_de_soja?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "risotto-au-poulet",
+      "title": "Risotto au poulet",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "blanc de poulet coupés en fines lanières",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "riz Arborio, Carnaroli ou Vialone Nano",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "tomate pelée (en boîte) et coupée en quartiers",
+          "quantity": 250,
+          "unit": "g"
+        },
+        {
+          "name": "oignon émincé, ou échalote...",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "bouillon de volaille",
+          "quantity": 1,
+          "unit": "l"
+        },
+        {
+          "name": "persil haché",
+          "quantity": 2,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "(1 tasse) de vin blanc, sel et poivre du moulin",
+          "quantity": 250,
+          "unit": "ml"
+        }
+      ],
+      "steps": [
+        "Dans une à fond épais, faire revenir l'oignon haché, et dès qu'il commence à blondir, ajouter les lanières de blanc de poulet, et faire rissoler le tout.",
+        "Ajouter le verre de vin blanc et les morceaux de tomates pelées, et laisser cuire 10 minutes à feu doux.",
+        "Ajouter le riz, mélangez et laissez cuire 2 minutes, avant d'incorporer, petit à petit, le bouillon de volaille chaud, jusqu'à ce que le riz ne puisse plus absorber de liquide, salez et poivrez.",
+        "Disposer la préparation dans un plat de service et saupoudrer avec le persil haché."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FRisotto_au_poulet",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FRisotto_au_poulet?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "riz-noir",
+      "title": "Riz noir",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poignées de champignons noirs",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "riz",
+          "quantity": 250,
+          "unit": "g"
+        },
+        {
+          "name": "crevettes décortiquées",
+          "quantity": 200,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Mettez une casserole au feu avec un peu d’huile et de sel.",
+        "Faites revenir pendant 5 min les crevettes et le poisson coupé en petits morceaux avec un peu d’oignon et d’ail haché, de sel et la moitié du cube d'assaisonnement.",
+        "Laissez mijoter 5 min puis ajoutez 2 verres d’eau afin que les crevettes cuisent et donnent leur saveur à l’eau de cuisson.",
+        "Ajoutez le riz préalablement lavé. (La recette originale ne comporte pas de légumes mais si vous voulez en ajouter c’est le moment !)",
+        "Ajoutez l’eau obtenue grâce aux champignons, la quantité suffisante pour la cuisson du riz.",
+        "Au besoin rectifiez l’assaisonnement en ajoutant du sel et tout au plus la moitié du cube d'assaisonnement restant.",
+        "Laissez cuire 15 min à grand feu puis 10 min à feu doux. C'est prêt."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FRiz_noir",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FRiz_noir?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "salade-de-riz",
+      "title": "Salade de riz",
+      "servings": 4,
+      "category": "salades",
+      "ingredients": [
+        {
+          "name": "riz",
+          "quantity": 350,
+          "unit": "g"
+        },
+        {
+          "name": "thon",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "tomates",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "maïs",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "œufs durs",
+          "quantity": 4,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Faire cuire le riz puis l'égoutter et le laisser refroidir.",
+        "Couper les œufs durs et les tomates en quartier.",
+        "Mélanger tous les ingrédients dans un saladier."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSalade_de_riz",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSalade_de_riz?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "salade-juive",
+      "title": "Salade juive",
+      "servings": 4,
+      "category": "salades",
+      "ingredients": [
+        {
+          "name": "tomates",
+          "quantity": 2,
+          "unit": "kg"
+        },
+        {
+          "name": "poivrons rouges et 2 poivrons verts",
+          "quantity": 2,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Ébouillanter les tomates, les peler, retirer l'eau des tomates et les épépiner entre les 2 paumes de mains.",
+        "Peler les poivrons au grille, les équeuter et les épépiner, les couper en lamelles grossièrement.",
+        "Prendre un saladier.",
+        "Mettre les tomates lavées, épépinées, pelées, coupées en morceaux dans le saladier.",
+        "Mettre les poivrons épépinés, pelés, coupés en lamelles dans le saladier",
+        "Ajouter l'ail pilé, saler, poivrer, ajouter le vinaigre (assaisonner suivant goût).",
+        "Mélanger le tout avec le persil haché.",
+        "Servir très frais en entrée."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSalade_juive",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSalade_juive?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "salade-nicoise",
+      "title": "Salade niçoise",
+      "servings": 6,
+      "category": "salades",
+      "ingredients": [
+        {
+          "name": "tomates moyennes",
+          "quantity": 10,
+          "unit": "pièce"
+        },
+        {
+          "name": "beau concombre",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "petites fèves fraîches",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "petits artichauts frais du pays coupés en rondelles",
+          "quantity": 12,
+          "unit": "pièce"
+        },
+        {
+          "name": "poivrons verts",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "petits oignons blancs",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "basilic",
+          "quantity": 6,
+          "unit": "feuille"
+        },
+        {
+          "name": "d’ail",
+          "quantity": 1,
+          "unit": "gousse"
+        },
+        {
+          "name": "œufs durs",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "filets d’anchois",
+          "quantity": 12,
+          "unit": "pièce"
+        },
+        {
+          "name": "d’olives noires de Nice",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Couper les tomates en quartiers et les saler légèrement une première fois sur la planche. Couper aussi les œufs en quartiers ou en rondelles. Détailler les filets d’anchois en trois ou quatre morceaux chacun (ou bien, s’il s’agit de thon, le mettre en charpie). Trancher finement le concombre épluché. Émincer en anneaux très fins les poivrons verts, ainsi que les oignons frais et les artichauts ou les févettes.",
+        "Frotter le fond et les parois d’un grand saladier, avec la gousse d’ail coupée en deux, verser tous les ingrédients à l’intérieur, à l’exception des tomates.",
+        "Égoutter les tomates et les resaler légèrement avant de les incorporer.",
+        "Faire une sauce avec 6 cuillerées à soupe d’huile d’olive, le basilic haché finement, poivre et sel. Bien rafraîchir au réfrigérateur avant de servir."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSalade_ni%C3%A7oise",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSalade_ni%C3%A7oise?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "sauce-gnangnan",
+      "title": "Sauce gnangnan",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "poignées de gnangnan frais ou sec",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "tomates fraîches",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "piments africains",
+          "quantity": 6,
+          "unit": "pièce"
+        },
+        {
+          "name": "d’oignon",
+          "quantity": 1,
+          "unit": "gousse"
+        },
+        {
+          "name": "portions d’une gousse d’ail",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "poignée d’akpi (amandes de Djansang ou Njansang)",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "viande",
+          "quantity": 1,
+          "unit": "kg"
+        }
+      ],
+      "steps": [
+        "Faire cuire et écraser par la suite le gnagnan,",
+        "Griller légèrement puis écraser l’akpi,",
+        "Découper en lamelles la gousse d’oignon,",
+        "Écraser les portions de la gousse d’ail,",
+        "Découper en morceaux la viande,",
+        "Mettre les 4 cuillères à soupe d’huile dans la casserole, y ajouter du sel, l’oignon découpé, la viande découpée, les 3 tomates et les 6 piments ; faire griller légèrement le tout.",
+        "Ajouter 1,5 l d’eau au contenu de la casserole et laisser bouillir pendant une trentaine de minutes,",
+        "Retirer les oignons, les 3 tomates et 3 piments, et les écraser,",
+        "Ajouter la pâte de gnagnan obtenue dans la casserole au feu,",
+        "Ajouter la pâte d’akpi obtenue dans la casserole au feu,",
+        "Ajouter la pâte d’ail obtenue dans la casserole au feu,",
+        "Ajouter la pâte d’oignon, de tomate et piment obtenue dans la casserole au feu,",
+        "Ajouter les 5 gombos,",
+        "Bien remuer le mélange obtenu,",
+        "Ajouter le cube d’assaisonnement,",
+        "Laisser cuire, mijoter la sauce pendant une trentaine de minutes."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSauce_gnangnan",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSauce_gnangnan?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "souffle-au-bleu-de-gex",
+      "title": "Soufflé au Bleu de Gex",
+      "servings": 6,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "beurre",
+          "quantity": 70,
+          "unit": "g"
+        },
+        {
+          "name": "/4 l de lait",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "farine",
+          "quantity": 40,
+          "unit": "g"
+        },
+        {
+          "name": "Bleu de Gex très persillé",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "œufs entiers",
+          "quantity": 5,
+          "unit": "pièce"
+        },
+        {
+          "name": "blancs d’œufs",
+          "quantity": 2,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Préparer les six moules à soufflé pour la cuisson avec 20 g de beurre.",
+        "Faire fondre les 50 g de beurre restant dans un moule et incorporer la farine. Faire chauffer le tout jusqu'à obtenir un roux.",
+        "Ajouter le lait et porter à ébullition.",
+        "Retirer du feu et ajouter le Bleu de Gex petit à petit. Laisser fondre.",
+        "Séparer les jaunes des blancs d'œufs et mélanger les 5 jaunes un à un avec la préparation.",
+        "Monter les 7 blancs en neige et les incorporer à la préparation.",
+        "Garnir les moules de la préparation et mettre au four à 200°C.",
+        "Servir très chaud, aussitôt le soufflé monté."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSouffl%C3%A9_au_Bleu_de_Gex",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSouffl%C3%A9_au_Bleu_de_Gex?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "soupe-a-loignon",
+      "title": "Soupe à l'oignon",
+      "servings": 6,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "oignons",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "name": "beurre",
+          "quantity": 25,
+          "unit": "g"
+        },
+        {
+          "name": "c. à soupe de farine",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "l de bouillon de bœuf ou de volaille",
+          "quantity": 1.5,
+          "unit": "pièce"
+        },
+        {
+          "name": "bouquet garni",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "/2 baguette de pain",
+          "quantity": 1,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Peler et émincer les oignons. Faire fondre le beurre dans une grande casserole. Ajouter les oignons en remuant. Laisser blondir les oignons sur feu modéré.",
+        "Ajouter la farine sur les oignons. Remuer pendant 3 à 4 minutes. Verser 1 litre de bouillon froid sur les oignons dorés. Bien mélanger. Ajouter le bouquet garni. Porter à ébullition en remuant régulièrement.",
+        "Saler, poivrer et mettre un peu de noix de muscade. Ajouter le reste de bouillon (500 ml) et laisser bouillonner doucement pendant environ 10 à 15 min.",
+        "Pendant que la soupe bouillonne : Allumer le four à 150°C. Couper la baguette en fines rondelles. Faire sécher les rondelles dans le four à 150°C, jusqu'à ce qu'elles soient légèrement grillées (valable aussi dans un grille pain en surveillant le grill).",
+        "Retirer la soupe à l'oignon du feu. Enlever le bouquet garni. Ajouter 3 cuillères à soupe de porto (ne pas le faire si les oignons ont été préparés au vin blanc à l'étape 1). Bien remuer.",
+        "Répartir la soupe dans 6 bols en porcelaine ou en verre qui peuvent aller au four. Mettre les rondelles de pain dorées dans les bols en les enfonçant dans le bouillon. Ajouter généreusement le gruyère (ou le comté) râpé par dessus. Mettre dans le four (position grill) pendant 10 min - le fromage doit être gratiné.",
+        "Servir brûlant."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSoupe_%C3%A0_l'oignon",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSoupe_%C3%A0_l'oignon?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "soupe-dasperges-champignons-mais-et-poulet",
+      "title": "Soupe d'asperges, champignons, maïs et poulet",
+      "servings": 2,
+      "category": "soupes",
+      "ingredients": [
+        {
+          "name": "eau environ",
+          "quantity": 2,
+          "unit": "l"
+        },
+        {
+          "name": "asperges",
+          "quantity": 180,
+          "unit": "g"
+        },
+        {
+          "name": "maïs",
+          "quantity": 560,
+          "unit": "g"
+        },
+        {
+          "name": "champignon",
+          "quantity": 240,
+          "unit": "g"
+        },
+        {
+          "name": "escalopes de poulet",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "oignons",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "ail",
+          "quantity": 2,
+          "unit": "gousse"
+        }
+      ],
+      "steps": [
+        "Remplir la marmite de suffisamment d'eau pour que les escalopes de poulet soient immergées.",
+        "Chauffer le fond d'eau, lorsqu'il est suffisamment chaud, y plonger les escalopes.",
+        "Lorsque la translucidité des escalopes s'opacifie de blanc suffisamment en profondeur, les retirer et les placer sur la planche à découper.",
+        "Émietter chacune des escalopes, pour ce faire maintenez une escalope plaquée contre la planche à découper avec une fourchette, et avec l'autre fourchette émiettez sa chair finement.",
+        "Faire de même avec la seconde escalope.",
+        "Replonger ces miettes dans l'eau pour en finir la cuisson.",
+        "Couper les oignons, et les faire revenir dans du beurre.",
+        "Ajouter les oignons, l'ail haché, les champignons sans leur jus (pour éviter un goût amer), et le maïs.",
+        "Couper les asperges d'une taille appropriée à la taille d'une cuillère à soupe.",
+        "Ajouter un peu de bouillon d'une recette précédente, si vous en avez.",
+        "Saler, sucrer.",
+        "Assaisonner de beaucoup de poivre, un peu de concentré de tomate, quelques fines herbes éventuellement à votre convenance ou autres épices.",
+        "Laisser mijoter environ 20 minutes."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSoupe_d'asperges%2C_champignons%2C_ma%C3%AFs_et_poulet",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSoupe_d'asperges%2C_champignons%2C_ma%C3%AFs_et_poulet?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Portions de référence : borne inférieure de la fourchette indiquée. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "spaghetti-au-jambon-de-parme",
+      "title": "Spaghetti au jambon de Parme",
+      "servings": 4,
+      "category": "pâtes alimentaires",
+      "ingredients": [
+        {
+          "name": "spaghettis",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "name": "jambon de Parme",
+          "quantity": 4,
+          "unit": "tranche"
+        },
+        {
+          "name": "jambon blanc",
+          "quantity": 2,
+          "unit": "tranche"
+        },
+        {
+          "name": "petits oignons",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "parmesan",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Couper les oignons et les faire roussir avec l'huile d'olive.",
+        "Dans une casseroles d'eau bouillante, faire cuire les spaghettis.",
+        "Couper en dés le jambon blanc et l'ajouter aux oignons. Laisser cuire pendant cinq minutes.",
+        "Ajouter les pâtes et le parmesan en copeaux. Mélanger, couvrir des tranches de jambon de Parme. Posez un couvercle et laisser cinq minutes à feu éteint. Servir."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSpaghetti_au_jambon_de_Parme",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FSpaghetti_au_jambon_de_Parme?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-a-loignon",
+      "title": "Tarte à l'oignon",
+      "servings": 6,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "pâte brisée",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "en rondelle fine",
+          "quantity": 650,
+          "unit": "g"
+        },
+        {
+          "name": "farine",
+          "quantity": 40,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Préchauffer le four à hermostat de cuisson190 °C.",
+        "Faire fondre du beurre et frire les rondelles d'oignons dans une à feu modéré. Retirer du feu lorsque les rondelles sont cuites.",
+        "Battre les œufs avec la farine du sel, du poivre, puis ajouter les rondelles d'oignon.",
+        "Percer la pâte avec une .",
+        "Répartir les rondelles d'oignon sur la pâte",
+        "Cuire pendant 25 à 30 minutes au à 180 °C."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_%C3%A0_l'oignon",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_%C3%A0_l'oignon?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-au-beaufort",
+      "title": "Tarte au beaufort",
+      "servings": 6,
+      "category": "recettes de tartes",
+      "ingredients": [
+        {
+          "name": "beaufort",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "crème fraîche épaisse",
+          "quantity": 30,
+          "unit": "cl"
+        },
+        {
+          "name": "œufs",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "beurre",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "farine",
+          "quantity": 200,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Mettre la farine sur un plat avec une pincée de sel ; ajouter le beurre coupé en petits morceaux ; pétrir à la main jusqu'à obtention d'une pâte homogène.",
+        "Faire un puits et y verser le lait petit à petit tout en continuant à pétrir. Faire une boule avec l'ensemble, puis étaler avec un rouleau à pâtisserie. Foncer une tourtière de 25-30 cm de diamètre.",
+        "Mélanger la crème fraîche avec les deux œufs entiers dans un grand bol. Râper le Beaufort et l'ajouter au contenu du bol. Poivrer abondamment. Verser le contenu du bol dans la tourtière.",
+        "Cuire à four moyen hermostat de cuissonthermostat 6 pendant 25 minutes. Servir chaud, avec de la salade et un vin de Savoie."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_beaufort",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_beaufort?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-au-beaufort-3",
+      "title": "Tarte au beaufort 3",
+      "servings": 6,
+      "category": "recettes de tartes",
+      "ingredients": [
+        {
+          "name": "beaufort",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "crème fraîche épaisse",
+          "quantity": 30,
+          "unit": "cl"
+        },
+        {
+          "name": "'=oui",
+          "quantity": 2,
+          "unit": "pièce"
+        },
+        {
+          "name": "beurre",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "farine",
+          "quantity": 200,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Mettre la farine sur un plat avec une pincée de sel ; ajouter le beurre coupé en petits morceaux ; pétrir à la main jusqu'à obtention d'une pâte homogène.",
+        "Faire un puits et y verser le lait petit à petit tout en continuant à pétrir. Faire une boule avec l'ensemble, puis étaler avec un . Foncer une de 25-30 cm de diamètre.",
+        "Mélanger la crème fraîche avec les deux œufs entiers dans un grand bol. Râper le Beaufort et l'ajouter au contenu du bol. Poivrer abondamment. Verser le contenu du bol dans la tourtière.",
+        "Cuire à four moyen hermostat de cuissonthermostat 6 pendant 25 minutes. Servir chaud, avec de la salade et un vin de Savoie."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_beaufort_3",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_beaufort_3?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-au-comte",
+      "title": "Tarte au comté",
+      "servings": 4,
+      "category": "recettes de tartes",
+      "ingredients": [
+        {
+          "name": "œufs",
+          "quantity": 3,
+          "unit": "pièce"
+        },
+        {
+          "name": "lardons",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "ivre de cuisine/Pâte briséepâte brisée",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "sauce béchamel",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "comté râpé",
+          "quantity": 300,
+          "unit": "g"
+        },
+        {
+          "name": "grosses pommes de terre",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "grosses cuillère à soupe de crème fraîche",
+          "quantity": 3,
+          "unit": "pièce"
+        }
+      ],
+      "steps": [
+        "Préparer une pâte brisée et une sauce béchamel",
+        "Ajouter à la sauce béchamel le comté râpé, la crème et les œufs.",
+        "Saler, poivrer et ajouter une pincée de uscade]].",
+        "Étaler la pâte au rouleau, la piquer avec une fourchette, répartir les pommes de terre coupées en fines rondelles, les lardons revenu à la poêle, puis verser la préparation dessus.",
+        "Cuire à four chaud 45 min à 240°C Thermostat 8."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_comt%C3%A9",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_comt%C3%A9?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-au-persil",
+      "title": "Tarte au persil",
+      "servings": 6,
+      "category": "recettes de tartes",
+      "ingredients": [
+        {
+          "name": "ivre de cuisine/Pâte briséepâte brisée",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "ruyère]] râpé",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "crème liquide, 5 œufs",
+          "quantity": 15,
+          "unit": "cl"
+        },
+        {
+          "name": "lardon",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "café d'ail, 6 cuillers à soupe de persil, poivre",
+          "quantity": 1,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Étalez la pâte brisée et disposez-la au fond d'un moule à tarte.",
+        "Dans un saladier, fouettez les œufs et la crème liquide, puis incorporez le gruyère râpé, les lardons, l'ail, le persil et poivrez.",
+        "Versez le mélange sur la pâte.",
+        "Faites cuire la tarte 35 minutes au four préchauffé à 210 °C.",
+        "Servez la tarte tiède accompagnée de cornichons, de petits oignons au vinaigre et de quelques feuilles de salade Batavia."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_persil",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_au_persil?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-aux-fromages",
+      "title": "Tarte aux fromages",
+      "servings": 4,
+      "category": "recettes de tartes",
+      "ingredients": [
+        {
+          "name": "pâte feuilletée",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "bleu d'Auvergne ou de roquefort",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "emmental râpé",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "fromage blanc à 20 % de matière grasse",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "beurre, 20 cl de crème liquide, 3 œufs",
+          "quantity": 20,
+          "unit": "g"
+        },
+        {
+          "name": "café d'oignon, 3 cuillers à soupe de ciboulette, sel de cuisine, poivre du moulin",
+          "quantity": 3,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Dans un saladier, écrasez le bleu d'Auvergne (ou le roquefort) en lui incorporant petit à petit le fromage blanc, l'emmenthal, la crème, les œufs et 2 cuillers à soupe de ciboulette.",
+        "Faites dorer les oignons dans le beurre sur feu moyen, puis ajoutez y la préparation et mélangez le tout, salez, poivrez",
+        "Étalez la pâte feuilletée et disposez-la au fond d'un moule à tarte. Piquez la fond avec une fourchette avant d'y verser le préparation.",
+        "Faites cuire la tarte 30 minutes au four préchauffé à 210 °C.",
+        "Servez la tarte chaude, parsemée du reste de ciboulette."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_aux_fromages",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_aux_fromages?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tarte-flambee",
+      "title": "Tarte flambée",
+      "servings": 10,
+      "category": "recettes de tartes",
+      "ingredients": [
+        {
+          "name": "crème (fromage blanc + crème épaisse pour obtenir 50%MG)",
+          "quantity": 1200,
+          "unit": "g"
+        },
+        {
+          "name": "entier (l'albumine (le blanc d'œuf) fera office de liant)",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "poignée de farine (pour éviter que la crème ne pénètre trop la pâte pendant la cuisson)",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "sel (attention oignons et lardons sont aussi salés)",
+          "quantity": 2,
+          "unit": "g"
+        },
+        {
+          "name": "poivre",
+          "quantity": 3,
+          "unit": "g"
+        },
+        {
+          "name": "noix de muscade",
+          "quantity": 2,
+          "unit": "pincée"
+        },
+        {
+          "name": "s diamètre de 6 cm",
+          "quantity": 10,
+          "unit": "pièce"
+        },
+        {
+          "name": "lardons",
+          "quantity": 400,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Après les avoir épluchés, râper les oignons afin d'obtenir des rondelles bien uniformes.",
+        "Ensuite les saler légèrement et les malaxer pour bien séparer les rondelles.",
+        "Le sel permet de ramollir les oignons qui seront d'autant plus digestes.",
+        "Variante: on utilisera du saumon cuit à la place des lardons."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_flamb%C3%A9e",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTarte_flamb%C3%A9e?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "thon-grille-a-la-mediterraneenne",
+      "title": "Thon grillé à la méditerranéenne",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "steak de thon frais d'environ 150 g chacun",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "d=oui extra vierge",
+          "quantity": 4,
+          "unit": "c. à soupe"
+        },
+        {
+          "name": "vinaigre balsamique",
+          "quantity": 2,
+          "unit": "c. à soupe"
+        }
+      ],
+      "steps": [
+        "Au moins une heure avant de servir, préparer une marinade avec l'huile, le vinaigre et le jus de lime, de feuilles d'estragon, le sel et le poivre dans un récipient plat. Verser sur les steaks de thon et de les tourner pour s'assurer que toutes les pièces sont bien enrobées. Couvrir d'une pellicule plastique et réfrigérer jusqu'à ce qu'il soit temps de griller.",
+        "Vaporisez une grille propre avec un aérosol de cuisson antiadhésif.",
+        "Égoutter l'excédent de la marinade et faire griller les steaks de thon au cours d'environ quatre minutes de chaque côté ou jusqu'à ce que bien carbonisés à l'extérieur et encore un peu rose au milieu.",
+        "Placer les steaks sur des plats individuels de service et verser la marinade sur le thon grillé.",
+        "Servir avec des légumes cuits à la vapeur, riz vapeur ou une salade de feuilles d'épinard."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FThon_grill%C3%A9_%C3%A0_la_m%C3%A9diterran%C3%A9enne",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FThon_grill%C3%A9_%C3%A0_la_m%C3%A9diterran%C3%A9enne?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tomates-farcies-a-lagneau",
+      "title": "Tomates farcies à l'agneau",
+      "servings": 4,
+      "category": "plat principal",
+      "ingredients": [
+        {
+          "name": "tomates, chapeau coupé et vidées de leur pulpe et graines, couvercles conservés à part",
+          "quantity": 1,
+          "unit": "kg"
+        },
+        {
+          "name": "agneau rôti haché grossièrement",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "name": "champignons hachés",
+          "quantity": 100,
+          "unit": "g"
+        },
+        {
+          "name": "oignon haché, 1 gousse d'ail écrasée",
+          "quantity": 1,
+          "unit": "pièce"
+        },
+        {
+          "name": "sauce tomate fraîche, huile d'olive, sel et poivre du moulin",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Dans un saladier amalgamez l'agneau rôti haché, la sauce tomate fraîche, les champignons, l'oignon haché et l'ail écrasé, salez et poivrez.",
+        "Remplissez les tomates avec la farce ainsi préparée, refermez-les avec leurs couvercles.",
+        "Disposez les tomates farcies dans un plat allant au four avec un fond d'huile d'olive et un demi verre d'eau.",
+        "Faites cuire à hermostat de cuissonfour chaud, soit 180° ou thermostat 6, pendant 40 minutes environ."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTomates_farcies_%C3%A0_l'agneau",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTomates_farcies_%C3%A0_l'agneau?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "tomates-farcies-au-thon",
+      "title": "Tomates farcies au thon",
+      "servings": 4,
+      "category": "entrées",
+      "ingredients": [
+        {
+          "name": "tomates",
+          "quantity": 4,
+          "unit": "pièce"
+        },
+        {
+          "name": "thon",
+          "quantity": 150,
+          "unit": "g"
+        }
+      ],
+      "steps": [
+        "Faire cuire un œuf dur.",
+        "Couper les tomates en deux et les vider.",
+        "Égoutter le thon avant de l'écraser et de le mélanger avec la mayonnaise.",
+        "Farcir les tomates avec le thon.",
+        "Servir deux demi-tomates par personnes décorées avec les olives et un quart d'œuf dur."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTomates_farcies_au_thon",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTomates_farcies_au_thon?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    },
+    {
+      "id": "torti-aux-crevettes-et-a-la-feta",
+      "title": "Torti aux crevettes et à la feta",
+      "servings": 4,
+      "category": "pâtes alimentaires",
+      "ingredients": [
+        {
+          "name": "tortis",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "name": "crevettes",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "name": "feta",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "name": "d’oignons (environ 5)",
+          "quantity": 150,
+          "unit": "g"
+        },
+        {
+          "name": "crème fraîche, une noix de beurre",
+          "quantity": 20,
+          "unit": "cl"
+        }
+      ],
+      "steps": [
+        "Cuire les pâtes \"al dente\", avec 4 litres d'eau bouillante salée. Lorsque les pâtes sont cuites, les égoutter ;",
+        "Décortiquer les crevettes, hacher les oignons ;",
+        "Dans une casserole, faire fondre à feu doux le beurre et ajouter les crevettes décortiquées à feu moyen ;",
+        "Quand elles sont dorées, ajouter les oignons hâchés et laisser cuire 1 minute à feu doux ;",
+        "Ajouter la feta coupée en dés, puis la crème fraîche, saler, poivrer ;",
+        "Mélanger la préparation aux tortis saupoudrer de ciboulette ciselée. Servir immédiatement."
+      ],
+      "provenance": {
+        "origin": "catalogue",
+        "source": "Wikilivres",
+        "url": "https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTorti_aux_crevettes_et_%C3%A0_la_feta",
+        "licence": "CC BY-SA 4.0",
+        "attribution": "Contributeurs de Wikilivres — historique : https://fr.wikibooks.org/wiki/Livre_de_cuisine%2FTorti_aux_crevettes_et_%C3%A0_la_feta?action=history",
+        "adaptations": "Import automatisé du wikitext Wikilivres. Unités normalisées (g, kg, ml, c. à soupe…) ; lignes sans unité comprises comme « pièce »."
+      }
+    }
+  ]
+}

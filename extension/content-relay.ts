@@ -17,9 +17,12 @@
 import { RequestCorrelator } from "../src/orchestrator/correlator.js";
 import {
   isLeclercResponse,
+  isRecipeStorageRequest,
   type LeclercRequest,
   type LeclercResponse,
   type RelayLeclercRunMsg,
+  type RecipeStorageRequest,
+  type RecipeStorageResponse,
 } from "../src/orchestrator/messages.js";
 
 const RELAY_TIMEOUT_MS = 12000;
@@ -37,6 +40,51 @@ window.addEventListener("message", (event) => {
   if (!isLeclercResponse(event.data)) return;
   if (event.data.source !== BRIDGE_SOURCE) return;
   correlator.resolve(event.data.requestId, event.data);
+});
+
+// ---- page → extension: forward bridge recipe-storage requests ---------------
+
+// The recipe MCP tools run in the MAIN world and have no chrome.* access;
+// their storage calls (captures, personal library, digest) travel the other
+// way through this relay: bridge posts a RecipeStorageRequest on the window,
+// we forward it to the background over chrome.runtime and post the
+// correlated response back on the window.
+
+import { RECIPE_STORAGE_RESPONSE_SOURCE as STORAGE_RESPONSE_SOURCE } from "../src/orchestrator/messages.js";
+
+function forwardStorageRequest(request: RecipeStorageRequest): void {
+  void chrome.runtime
+    .sendMessage({ type: "recipe_storage_request", request })
+    .then((reply: unknown) => {
+      const r = reply as { type?: string; response?: RecipeStorageResponse };
+      const response: RecipeStorageResponse =
+        r?.type === "recipe_storage_result" && r.response
+          ? r.response
+          : {
+              source: STORAGE_RESPONSE_SOURCE,
+              requestId: request.requestId,
+              ok: false,
+              error: "Réponse du service worker inattendue.",
+            };
+      window.postMessage(response, location.origin);
+    })
+    .catch((err: unknown) => {
+      window.postMessage(
+        {
+          source: STORAGE_RESPONSE_SOURCE,
+          requestId: request.requestId,
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        },
+        location.origin,
+      );
+    });
+}
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (!isRecipeStorageRequest(event.data)) return;
+  forwardStorageRequest(event.data);
 });
 
 // ---- extension → page: relay LeclercRequest and await the bridge reply -----

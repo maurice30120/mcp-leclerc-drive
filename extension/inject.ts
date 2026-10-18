@@ -18,7 +18,7 @@
  */
 
 import { initializeWebModelContext } from "@mcp-b/global";
-import type { CallToolResult } from "@mcp-b/webmcp-types";
+import type { WebMCP } from "webmcp-types";
 
 import {
   autocompleteUrl,
@@ -55,18 +55,37 @@ import {
   validateCommand,
   type DispatchCall,
 } from "../src/orchestrator/dispatcher.js";
+import { parseRecipe } from "../src/recipes/contract.js";
+import { loadCatalogue } from "../src/recipes/catalogue.js";
+import {
+  createRecipeTools,
+  withNotices,
+  type ToolTextResult,
+} from "../src/recipes/tools.js";
+import { calculateIngredients } from "../src/recipes/calc.js";
+import { searchRecipes } from "../src/recipes/search.js";
+import type { RecipeRuntime } from "../src/recipes/service.js";
+import { RequestCorrelator } from "../src/orchestrator/correlator.js";
+import {
+  isRecipeStorageResponse,
+  RECIPE_STORAGE_REQUEST_SOURCE,
+  type RecipeStorageCommand,
+  type RecipeStorageRequest,
+  type RecipeStorageResponse,
+} from "../src/orchestrator/messages.js";
 
 // ---- Protection: a single injection per tab -------------------------------
 
 declare global {
   interface Window {
     __mcpLeclercDriveInjected?: boolean;
+    __mcpLeclercDriveReady?: Promise<void>;
   }
 }
 
 if (window.__mcpLeclercDriveInjected !== true) {
   window.__mcpLeclercDriveInjected = true;
-  void main();
+  window.__mcpLeclercDriveReady = main();
 }
 
 // ---- Active store (persisted in localStorage, scoped to the Leclerc host) --
@@ -255,11 +274,16 @@ async function getJsonRaw<T>(url: string): Promise<T> {
 
 // ---- Tool response helpers -------------------------------------------------
 
-function asText(text: string): CallToolResult {
+interface ToolTextResult {
+  content: Array<{ type: "text"; text: string }>;
+  isError?: boolean;
+}
+
+function asText(text: string): ToolTextResult {
   return { content: [{ type: "text", text }] };
 }
 
-function asError(err: unknown): CallToolResult {
+function asError(err: unknown): ToolTextResult {
   const message = err instanceof Error ? err.message : String(err);
   return { content: [{ type: "text", text: `Erreur : ${message}` }], isError: true };
 }
@@ -278,10 +302,127 @@ function scrubUntrusted(s: string): string {
 
 // ---- The 9 tools -----------------------------------------------------------
 
-function registerTools(): void {
-  const mc = document.modelContext;
+type LeclercToolDescriptor = Omit<WebMCP.ModelContextTool, "annotations"> & {
+  annotations?: WebMCP.ToolAnnotations & {
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
+  };
+};
 
-  mc.registerTool({
+// ---- Recipe capability: storage bridge (MAIN → relay → background) --------
+
+// The recipe tools run in this MAIN world and have no chrome.* access: their
+// storage calls (captures, personal library, digest) are correlated
+// postMessage requests answered by the background service worker through the
+// isolated-world relay.
+
+const storageCorrelator = new RequestCorrelator<RecipeStorageResponse>({
+  defaultTimeoutMs: 10000,
+});
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window) return;
+  if (!isRecipeStorageResponse(event.data)) return;
+  storageCorrelator.resolve(event.data.requestId, event.data);
+});
+
+let storageRequestId = 0;
+
+function callRecipeStorage(
+  command: RecipeStorageCommand,
+  args: Record<string, unknown> = {},
+): Promise<unknown> {
+  const request: RecipeStorageRequest = {
+    source: RECIPE_STORAGE_REQUEST_SOURCE,
+    requestId: `rs_${++storageRequestId}`,
+    command,
+    args,
+  };
+  const pending = storageCorrelator.register(request.requestId, 10000);
+  window.postMessage(request, location.origin);
+  return pending.then((response) => {
+    if (!response.ok) throw new Error(response.error);
+    return response.data;
+  });
+}
+
+const recipeRuntime: RecipeRuntime = {
+  async listCaptures() {
+    return (await callRecipeStorage("list_captures")) as Awaited<ReturnType<RecipeRuntime["listCaptures"]>>;
+  },
+  async getCapture(id) {
+    return (await callRecipeStorage("get_capture", { id })) as Awaited<ReturnType<RecipeRuntime["getCapture"]>>;
+  },
+  async saveRecipe(raw, captureId) {
+    return (await callRecipeStorage("save_recipe", { recipe: raw, captureId })) as Awaited<
+      ReturnType<RecipeRuntime["saveRecipe"]>
+    >;
+  },
+  async abandonCapture(id) {
+    return (await callRecipeStorage("abandon_capture", { id })) as Awaited<
+      ReturnType<RecipeRuntime["abandonCapture"]>
+    >;
+  },
+  async getPersonalRecipe(id) {
+    return (await callRecipeStorage("get_personal_recipe", { id })) as Awaited<
+      ReturnType<RecipeRuntime["getPersonalRecipe"]>
+    >;
+  },
+  async personalRecipes() {
+    return (await callRecipeStorage("personal_recipes")) as Awaited<
+      ReturnType<RecipeRuntime["personalRecipes"]>
+    >;
+  },
+  async claimNewRecipes() {
+    return (await callRecipeStorage("claim_new_recipes")) as Awaited<
+      ReturnType<RecipeRuntime["claimNewRecipes"]>
+    >;
+  },
+};
+
+/**
+ * Append the bounded recipe notices (pending captures + digest of new
+ * personal recipes) to every successful tool response. Best-effort: if the
+ * storage bridge is unavailable, the underlying result is returned as-is.
+ */
+async function attachRecipeNotices(result: ToolTextResult): Promise<ToolTextResult> {
+  try {
+    return await withNotices(result, recipeRuntime);
+  } catch {
+    return result;
+  }
+}
+async function registerTools(): Promise<void> {
+  const mc = document.modelContext;
+  if (!mc) throw new Error("Le runtime WebMCP document.modelContext est indisponible.");
+
+  const registrations: Promise<void>[] = [];
+  const registerTool = (tool: LeclercToolDescriptor): void => {
+    const wrapped = {
+      ...tool,
+      async execute(args: unknown) {
+        const base = await tool.execute(args);
+        return attachRecipeNotices(base);
+      },
+    };
+    registrations.push(mc.registerTool(wrapped as WebMCP.ModelContextTool));
+  };
+
+  // Recipe capability: catalogue + personal library + captures + digest.
+  // Same descriptor shape, same registration path (incl. notices wrapper).
+  const catalogue = loadCatalogue(parseRecipe);
+  for (const tool of createRecipeTools({
+    getCatalogueRecipe: (id) => catalogue.byId.get(id),
+    catalogueRecipes: () => catalogue.recipes,
+    runtime: recipeRuntime,
+    search: searchRecipes,
+    calculate: calculateIngredients,
+  })) {
+    registerTool(tool as unknown as LeclercToolDescriptor);
+  }
+
+  registerTool({
     name: "search_product",
     title: "Rechercher un produit Leclerc Drive",
     description:
@@ -313,7 +454,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "add_to_cart",
     title: "Ajouter un produit au panier Leclerc",
     description: "Ajoute un produit au panier. Utilise l'id retourné par search_product.",
@@ -341,7 +482,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "remove_from_cart",
     title: "Retirer un produit du panier Leclerc",
     description: "Retire complètement un produit du panier.",
@@ -367,7 +508,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "update_quantity",
     title: "Modifier la quantité d'un produit du panier Leclerc",
     description: "Modifie la quantité d'un produit déjà présent dans le panier (0 retire).",
@@ -398,7 +539,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "get_cart",
     title: "Afficher le panier Leclerc",
     description: "Affiche le contenu complet du panier avec le total.",
@@ -417,7 +558,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "find_stores",
     title: "Trouver un drive Leclerc",
     description:
@@ -480,7 +621,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "set_store",
     title: "Choisir le magasin Leclerc actif",
     description:
@@ -536,7 +677,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "get_store",
     title: "Magasin Leclerc actif",
     description: "Affiche le magasin actuellement sélectionné (id, host).",
@@ -556,7 +697,7 @@ function registerTools(): void {
     },
   });
 
-  mc.registerTool({
+  registerTool({
     name: "list_habitual_products",
     title: "Lister mes produits habitués Leclerc Drive",
     description:
@@ -595,6 +736,8 @@ function registerTools(): void {
       }
     },
   });
+
+  await Promise.all(registrations);
 }
 
 // ---- Internal structured dispatcher --------------------------------------
@@ -730,28 +873,23 @@ async function currentQuantity(productId: string): Promise<number> {
 // ---- Boot ------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  // 1) Install navigator.modelContext / document.modelContext runtime.
-  //    autoInitialize = true wires the default Tab + Iframe transports, which
-  //    the relay's embed iframe relies on.
-  initializeWebModelContext({ autoInitialize: true, installTestingShim: "if-missing" });
+  // Install the current document.modelContext runtime. autoInitialize wires
+  // the Tab + Iframe transports the relay's embed iframe relies on.
+  initializeWebModelContext({ autoInitialize: true });
 
-  // 2) Register the 9 tools on the document's model context.
-  registerTools();
+  // The current WebMCP API registers tools asynchronously. The background
+  // worker waits for this promise before injecting the relay embed.
+  await registerTools();
 
   // 2b) Install the postMessage bridge so the popup orchestrator (local
   //     Transformers.js model) can drive the same dispatcher the MCP tools use.
   //     The isolated-world content relay posts typed LeclercRequest on window.
   installBridgeListener();
 
-  // 3) The webmcp-local-relay embed script is injected right after this one
-  //    by the extension background worker (see ../extension/background.ts).
-  //    It opens a WebSocket to the local relay (127.0.0.1:9333) and forwards
-  //    the registered tools as first-class MCP tools to opencode / any stdio
-  //    MCP client. Nothing to do here except ensure document.modelContext is
-  //    ready before embed.js runs (handled by @mcp-b/global above).
+  // The background worker injects embed.js only after this promise resolves.
 
   console.info(
-    "[mcp-leclerc-drive] WebMCP tools registered (9). Make sure @mcp-b/webmcp-local-relay " +
+    "[mcp-leclerc-drive] WebMCP tools registered (16). Make sure @mcp-b/webmcp-local-relay " +
       "is running (opencode launches it via `npx @mcp-b/webmcp-local-relay`).",
   );
 }
