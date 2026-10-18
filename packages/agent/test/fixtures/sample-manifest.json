@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "modelId": "onnx-community/Qwen3-0.6B-ONNX",
+  "revision": "main",
+  "tokenizer": "tokenizer.json",
+  "files": [
+    {
+      "path": "tokenizer.json",
+      "sizeBytes": 1234,
+      "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    },
+    {
+      "path": "onnx/model_q4.onnx",
+      "sizeBytes": 100,
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  ],
+  "totalSizeBytes": 1334,
+  "dtype": "q4",
+  "format": "onnx",
+  "trainingProvenance": {
+    "baseModel": "Qwen/Qwen3-0.6B"
+  },
+  "license": "apache-2.0",
+  "sourceUrl": "https://huggingface.co/onnx-community/Qwen3-0.6B-ONNX/resolve/main"
+}
